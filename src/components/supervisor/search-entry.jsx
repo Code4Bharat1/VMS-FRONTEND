@@ -1,8 +1,8 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Calendar, ChevronDown, FileDown, LogOut, LayoutGrid, Users, Building, Settings } from 'lucide-react';
 import Sidebar from './sidebar';
-
+import axios from 'axios';
 // Main Component
 const SearchEntries = () => {
   const [activePage, setActivePage] = useState('search');
@@ -10,14 +10,42 @@ const SearchEntries = () => {
   const [entryMethod, setEntryMethod] = useState('All methods');
   const [bay, setBay] = useState('All bays (assigned)');
   const [staff, setStaff] = useState('All my staff');
+  const [supervisor, setSupervisor] = useState(null);
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
 
-  const entries = [
-    { time: '09:22', bay: 'Bay A', vrn: 'QTR-58293', visitor: 'Mohammed Ali', company: 'Alpha Logistics', handledBy: 'Ali Hassan', method: 'OCR', direction: 'Entry' },
-    { time: '09:18', bay: 'Bay C', vrn: 'QTR-99314', visitor: 'Sarah John', company: 'FreshFoods', handledBy: 'Sara Ibrahim', method: 'Manual', direction: 'Exit' },
-    { time: '09:10', bay: 'Bay B', vrn: 'QTR-44120', visitor: 'Ravi Kumar', company: 'Metro Supplies', handledBy: 'John Peter', method: 'QR', direction: 'Entry' },
-    { time: '09:05', bay: 'Bay A', vrn: 'QTR-78110', visitor: 'Imran Khan', company: 'City Courier', handledBy: 'Imran Khan', method: 'OCR', direction: 'Exit' },
-    { time: '08:58', bay: 'Bay C', vrn: 'QTR-66821', visitor: 'Peter James', company: 'Delta Cold Chain', handledBy: 'Ravi Kumar', method: 'Manual', direction: 'Entry' }
-  ];
+  if (storedUser) {
+    setSupervisor(JSON.parse(storedUser));
+  }
+}, []);
+
+useEffect(() => {
+  if (!supervisor?._id) return;
+
+  const fetchEntries = async () => {
+    try {
+      setLoading(true);
+
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/vendors`);
+      
+      console.log("VENDORS API RESPONSE 👉", res.data);
+      setEntries(res.data?.vendors ?? []);
+
+    } catch (err) {
+      console.error("Failed to fetch entries", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchEntries();
+}, [supervisor]);
+
+const filteredEntries = Array.isArray(entries)
+  ? entries
+  : [];
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -30,15 +58,27 @@ const SearchEntries = () => {
             <h1 className="text-2xl font-semibold text-gray-900">Search Entries</h1>
             <p className="text-sm text-gray-500 mt-1">Look up recent visitor entries for the bays and staff under your supervision.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-              <span className="text-sm font-medium text-orange-700">AK</span>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-900">Ahmed Khan</div>
-              <div className="text-xs text-gray-500">Supervisor</div>
-            </div>
-          </div>
+<div className="flex items-center gap-4">
+  <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+    {(supervisor?.name || '')
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()}
+  </div>
+
+  <div>
+    <h2 className="text-2xl font-semibold text-gray-800">
+      {supervisor?.name || 'Supervisor'}
+    </h2>
+
+    <p className="text-gray-500 text-sm">
+      {supervisor?.role || 'Supervisor'}
+     
+    </p>
+  </div>
+</div>
+
         </div>
 
         {/* Filters Section */}
@@ -200,6 +240,15 @@ const SearchEntries = () => {
               Export CSV
             </button>
           </div>
+{loading && (
+  <p className="text-sm text-gray-500 px-4 py-6">Loading entries...</p>
+)}
+
+{!loading && filteredEntries.length === 0 && (
+  <p className="text-sm text-gray-500 px-4 py-6">
+    No entries found.
+  </p>
+)}
 
           {/* Table */}
           <div className="overflow-x-auto">
@@ -216,25 +265,27 @@ const SearchEntries = () => {
                   <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700 bg-gray-50">Direction</th>
                 </tr>
               </thead>
-              <tbody>
-                {entries.map((entry, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 text-sm text-gray-900">{entry.time}</td>
-                    <td className="py-3 px-4 text-sm text-gray-700">{entry.bay}</td>
-                    <td className="py-3 px-4 text-sm text-gray-700">{entry.vrn}</td>
-                    <td className="py-3 px-4 text-sm text-gray-900">{entry.visitor}</td>
-                    <td className="py-3 px-4 text-sm text-gray-700">{entry.company}</td>
-                    <td className="py-3 px-4 text-sm text-gray-700">{entry.handledBy}</td>
-                    <td className="py-3 px-4 text-sm text-gray-700">{entry.method}</td>
-                    <td className="py-3 px-4 text-sm text-gray-700">{entry.direction}</td>
-                  </tr>
-                ))}
-              </tbody>
+<tbody>
+{filteredEntries.map((entry) => (
+  <tr key={entry._id}>
+    <td>{new Date(entry.createdAt).toLocaleString()}</td>
+    <td>—</td>
+    <td>{entry.registeredVehicles || "N/A"}</td>
+    <td>{entry.contactPerson}</td>
+    <td>{entry.companyName}</td>
+    <td>—</td>
+    <td>Manual</td>
+    <td>IN</td>
+  </tr>
+))}
+
+</tbody>
+
             </table>
           </div>
 
           {/* Pagination */}
-          <div className="flex justify-between items-center mt-4">
+          {/* <div className="flex justify-between items-center mt-4">
             <p className="text-sm text-gray-500">Showing 1-5 of 32 entries</p>
             <div className="flex gap-2">
               <button className="px-3 py-1 text-gray-400 text-sm font-medium cursor-not-allowed">
@@ -244,7 +295,7 @@ const SearchEntries = () => {
                 Next
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

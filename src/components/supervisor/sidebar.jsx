@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import authService from "@/services/authService";
 import {
   LayoutDashboard,
   Users,
@@ -13,6 +14,16 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      logout();
+    } catch (err) {
+      console.error(err);
+      logout();
+    }
+  };
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -106,16 +117,19 @@ const Sidebar = () => {
 
       {/* Logout */}
       <div className="p-3 border-t border-gray-200">
-        <Link href="/logout">
-          <div
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all cursor-pointer ${
-              collapsed ? "justify-center" : ""
-            }`}
-          >
-            <LogOut size={20} />
-            {!collapsed && <span>Logout</span>}
-          </div>
-        </Link>
+<div className="p-3 border-t border-gray-200">
+  {/* Logout */}
+  <div
+    onClick={() => handleLogout()}  
+    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all cursor-pointer ${
+      collapsed ? "justify-center" : ""
+    }`}
+  >
+    <LogOut size={20} />
+    {!collapsed && <span>Logout</span>}
+  </div>
+</div>
+
       </div>
     </div>
   );

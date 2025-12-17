@@ -1,10 +1,19 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { LayoutDashboard, Users, Building2, Search, Settings, LogOut, ChevronRight, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 import Sidebar from './sidebar';
 
 const SupervisorDashboard = () => {
   const [activeView, setActiveView] = useState('daily');
+  const [supervisor, setSupervisor] = useState(null);
+  
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+  
+    if (storedUser) {
+      setSupervisor(JSON.parse(storedUser));
+    }
+  }, []);
 
   const staffData = [
     { name: 'Ali Hassan', mobile: '+974 5540 1234', entries: 86, avgTime: '16s', status: 'Active' },
@@ -33,15 +42,27 @@ const SupervisorDashboard = () => {
               <h1 className="text-2xl font-bold text-gray-800">Supervisor Panel</h1>
               <p className="text-gray-500 mt-1">Monitor your assigned security staff, bays, and your own supervision activities.</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="font-semibold text-gray-800">Ahmed Khan</p>
-                <p className="text-sm text-gray-500">Supervisor</p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
-                AK
-              </div>
-            </div>
+<div className="flex items-center gap-4">
+  <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+    {(supervisor?.name || '')
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()}
+  </div>
+
+  <div>
+    <h2 className="text-2xl font-semibold text-gray-800">
+      {supervisor?.name || 'Supervisor'}
+    </h2>
+
+    <p className="text-gray-500 text-sm">
+      {supervisor?.role || 'Supervisor'}
+     
+    </p>
+  </div>
+</div>
+
           </div>
         </div>
 

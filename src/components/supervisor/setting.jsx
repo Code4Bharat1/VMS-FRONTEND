@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Calendar, ChevronDown, FileDown, LogOut, LayoutGrid, Users, Building, Settings, Eye, EyeOff, Shield, Bell, Globe, Clock, Monitor, Smartphone } from 'lucide-react';
 import Sidebar from './sidebar';
 
@@ -11,7 +11,15 @@ const VMSSettings = () => {
   const [defaultView, setDefaultView] = useState('supervisor');
   const [timeWindow, setTimeWindow] = useState('Today');
   const [language, setLanguage] = useState('English (Qatar)');
+  const [supervisor, setSupervisor] = useState(null);
 
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+
+  if (storedUser) {
+    setSupervisor(JSON.parse(storedUser));
+  }
+}, []);
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar activePage={activePage} onPageChange={setActivePage} />
@@ -23,15 +31,27 @@ const VMSSettings = () => {
             <h1 className="text-2xl font-semibold text-gray-900">My Settings</h1>
             <p className="text-sm text-gray-500 mt-1">Manage your supervisor profile, notifications, and preferences for staff and bays you oversee.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-              <span className="text-sm font-medium text-orange-700">AK</span>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-900">Ahmed Khan</div>
-              <div className="text-xs text-gray-500">Supervisor</div>
-            </div>
-          </div>
+          <div className="flex items-center gap-4">
+  <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+    {(supervisor?.name || '')
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()}
+  </div>
+
+  <div>
+    <h2 className="text-2xl font-semibold text-gray-800">
+      {supervisor?.name || 'Supervisor'}
+    </h2>
+
+    <p className="text-gray-500 text-sm">
+      {supervisor?.role || 'Supervisor'}
+     
+    </p>
+  </div>
+</div>
+
         </div>
 
         <div className="p-8 max-w-7xl mx-auto">

@@ -6,92 +6,29 @@ import Sidebar from './sidebar';
 const MyBays = () => {
   const [selectedBay, setSelectedBay] = useState(null);
   const [activeView, setActiveView] = useState('today');
+  const [supervisor, setSupervisor] = useState(null);
+  const [baysData, setBaysData] = useState([]);
 
-  const baysData = [
-    {
-      id: 'A',
-      name: 'Bay A',
-      status: 'Occupied',
-      statusColor: 'orange',
-      vehiclesToday: 132,
-      avgTime: '17s',
-      currentlyInside: 1,
-      staffOnDuty: 4,
-      performance: 'high',
-      performanceText: 'High activity, processing within target.',
-      currentVehicle: 'QTR-58293',
-      recentActivity: [
-        { time: '09:22', type: 'Entry', vehicle: 'Truck', method: 'OCR' },
-        { time: '09:05', type: 'Exit', vehicle: 'Van', method: 'OCR' },
-        { time: '08:42', type: 'Entry', vehicle: 'Truck', method: 'Manual' },
-        { time: '08:15', type: 'Exit', vehicle: 'Car', method: 'QR' },
-      ],
-      recentVehicles: [
-        { vrn: 'QTR-58293', company: 'Alpha Logistics', time: '09:22', direction: 'Entry' },
-        { vrn: 'QTR-78110', company: 'City Courier', time: '09:05', direction: 'Exit' },
-        { vrn: 'QTR-11054', company: 'Metro Supplies', time: '08:42', direction: 'Entry' },
-      ],
-      alerts: [
-        { type: 'reminder', message: 'Vehicle inside for > 25 min, verify unloading status.' },
-        { type: 'notice', message: 'Confirm handover with Alpha Logistics supervisor.' },
-      ],
-      staff: ['Ali Hassan', 'Sara Ibrahim', 'John Peter', 'Imran Khan']
-    },
-    {
-      id: 'B',
-      name: 'Bay B',
-      status: 'Free',
-      statusColor: 'green',
-      vehiclesToday: 84,
-      avgTime: '19s',
-      currentlyInside: 0,
-      staffOnDuty: 3,
-      performance: 'ready',
-      performanceText: 'Ready for next arrival.',
-      currentVehicle: null,
-      recentActivity: [
-        { time: '09:10', type: 'Entry', vehicle: 'Car', method: 'QR' },
-        { time: '08:55', type: 'Exit', vehicle: 'Truck', method: 'OCR' },
-        { time: '08:30', type: 'Entry', vehicle: 'Van', method: 'Manual' },
-        { time: '08:10', type: 'Exit', vehicle: 'Car', method: 'QR' },
-      ],
-      recentVehicles: [
-        { vrn: 'QTR-44120', company: 'Metro Supplies', time: '09:10', direction: 'Entry' },
-        { vrn: 'QTR-33456', company: 'Swift Transport', time: '08:55', direction: 'Exit' },
-        { vrn: 'QTR-22789', company: 'Express Delivery', time: '08:30', direction: 'Entry' },
-      ],
-      alerts: [],
-      staff: ['Michael Chen', 'David Wong', 'Lisa Park']
-    },
-    {
-      id: 'C',
-      name: 'Bay C',
-      status: 'Occupied',
-      statusColor: 'orange',
-      vehiclesToday: 96,
-      avgTime: '20s',
-      currentlyInside: 1,
-      staffOnDuty: 2,
-      performance: 'moderate',
-      performanceText: 'Slightly slower, monitor queue.',
-      currentVehicle: 'QTR-99314',
-      recentActivity: [
-        { time: '09:18', type: 'Exit', vehicle: 'Van', method: 'Manual' },
-        { time: '08:58', type: 'Entry', vehicle: 'Truck', method: 'OCR' },
-        { time: '08:35', type: 'Exit', vehicle: 'Car', method: 'QR' },
-        { time: '08:20', type: 'Entry', vehicle: 'Van', method: 'Manual' },
-      ],
-      recentVehicles: [
-        { vrn: 'QTR-99314', company: 'FreshFoods', time: '09:18', direction: 'Exit' },
-        { vrn: 'QTR-66821', company: 'Delta Cold Chain', time: '08:58', direction: 'Entry' },
-        { vrn: 'QTR-55667', company: 'Quick Logistics', time: '08:35', direction: 'Exit' },
-      ],
-      alerts: [
-        { type: 'notice', message: 'Temperature check required for cold chain vehicles.' },
-      ],
-      staff: ['Ravi Kumar', 'Ahmed Ali']
-    },
-  ];
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+
+  if (storedUser) {
+    setSupervisor(JSON.parse(storedUser));
+  }
+}, []);
+useEffect(() => {
+  const fetchBays = async () => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bays`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`
+      }
+    });
+    const data = await res.json();
+    setBaysData(data.bays);
+  };
+
+  fetchBays();
+}, []);
 
   const recentBayActivity = [
     { time: '09:22', bay: 'Bay A', vrn: 'QTR-58293', company: 'Alpha Logistics', handledBy: 'Ali Hassan', direction: 'Entry', method: 'OCR' },
@@ -100,7 +37,7 @@ const MyBays = () => {
     { time: '09:05', bay: 'Bay A', vrn: 'QTR-78110', company: 'City Courier', handledBy: 'Imran Khan', direction: 'Exit', method: 'OCR' },
     { time: '08:58', bay: 'Bay C', vrn: 'QTR-66821', company: 'Delta Cold Chain', handledBy: 'Ravi Kumar', direction: 'Entry', method: 'Manual' },
   ];
-
+const filter = activeView;
 const BayModal = ({ bay, onClose }) => {
   if (!bay) return null;
 
@@ -370,14 +307,27 @@ const BayModal = ({ bay, onClose }) => {
               <h1 className="text-2xl font-bold text-gray-800">My Bays</h1>
               <p className="text-gray-500 mt-1">Monitor live bay status, traffic, and alerts for the bays assigned to you.</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="font-semibold text-gray-800">Ahmed Khan</p>
-                <p className="text-sm text-gray-500">Supervisor</p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
-                AK
-              </div>
+<div className="flex items-center gap-4">
+  <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+    {(supervisor?.name || '')
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()}
+  </div>
+
+  <div>
+    <h2 className="text-2xl font-semibold text-gray-800">
+      {supervisor?.name || 'Supervisor'}
+    </h2>
+
+    <p className="text-gray-500 text-sm">
+      {supervisor?.role || 'Supervisor'}
+     
+    </p>
+  </div>
+
+
             </div>
           </div>
         </div>
@@ -390,7 +340,7 @@ const BayModal = ({ bay, onClose }) => {
               <p className="text-gray-500 text-sm font-medium">Total Bays Assigned</p>
               <Building2 className="text-emerald-600" size={20} />
             </div>
-            <h3 className="text-3xl font-bold text-gray-800">3</h3>
+            <h3 className="text-3xl font-bold text-gray-800">{baysData.length}</h3>
             <p className="text-gray-400 text-sm mt-1">Bay A, Bay B, Bay C</p>
           </div>
 
@@ -399,7 +349,7 @@ const BayModal = ({ bay, onClose }) => {
               <p className="text-gray-500 text-sm font-medium">Active Bays Now</p>
               <Activity className="text-blue-600" size={20} />
             </div>
-            <h3 className="text-3xl font-bold text-gray-800">2</h3>
+            <h3 className="text-3xl font-bold text-gray-800">{(baysData.filter(bay => bay.status === 'active')).length}</h3>
             <p className="text-gray-400 text-sm mt-1">Receiving vehicles in this shift</p>
           </div>
 
@@ -430,7 +380,7 @@ const BayModal = ({ bay, onClose }) => {
               </button>
             ))}
           </div>
-          <div className="text-sm text-gray-500">All bays • Bay A • Bay B • Bay C</div>
+       
         </div>
 
         {/* Bay Cards */}
@@ -438,13 +388,14 @@ const BayModal = ({ bay, onClose }) => {
           {baysData.map((bay) => (
             <div
               key={bay.id}
-              onClick={() => setSelectedBay(bay)}
+              // onClick={() => openBay(bay.id)}
+
               className="bg-white rounded-xl border-2 border-gray-200 hover:border-emerald-400 hover:shadow-xl transition-all cursor-pointer group"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold text-gray-800 group-hover:text-emerald-600 transition-colors">
-                    {bay.name}
+                    {bay.bayName}
                   </h3>
                   <span className={`px-4 py-1 rounded-full text-sm font-bold ${
                     bay.status === 'Free' 
