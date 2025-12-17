@@ -92,7 +92,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
       {/* LOGOUT */}
       <div className="p-3 border-t">
-        <Link href="/logout">
+        <Link href="/">
           <div
             className={`
               flex items-center gap-3 px-4 py-3 rounded-lg

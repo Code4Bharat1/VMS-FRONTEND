@@ -421,7 +421,7 @@ const filteredStaff = (staffData || []).filter(staff => {
               <tbody className="divide-y divide-gray-200">
                 {filteredStaff.map((staff) => (
                   <tr 
-                    key={staff.id} 
+                    key={staff._id} 
                     onClick={() => setSelectedStaff(staff)}
                     className="hover:bg-emerald-50 transition-colors cursor-pointer"
                   >

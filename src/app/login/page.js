@@ -28,8 +28,10 @@ export default function LoginPage() {
     if (isAuthenticated && user) {
       if (user.role === "admin") {
         router.push("/admin-register");
-      } else {
+      } else if (user.role === "staff") {
         router.push("/staff/dashboard");
+      }else {
+        router.push("/supervisor/dashboard");
       }
     }
   }, [isAuthenticated, user, router]);

@@ -28,7 +28,7 @@ useEffect(() => {
     try {
       setLoading(true);
 
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/vendors`);
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/entries`);
       
       console.log("VENDORS API RESPONSE 👉", res.data);
       setEntries(res.data?.vendors ?? []);
