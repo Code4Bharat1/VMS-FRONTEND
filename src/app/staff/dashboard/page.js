@@ -67,7 +67,6 @@
 //   );
 // }
 
-"use client";
 import Dashboard from "@/components/Staff/Dashboard";
 import React from "react";
 const Page = () => {
