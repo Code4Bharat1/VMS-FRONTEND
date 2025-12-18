@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  QrCode,
-  ScanLine,
-  Edit,
-  List,
   Search,
+  Warehouse,
+  IdCard,
+  Building2,
+  ShieldCheck,
+  Users,
+  BarChart3,
   Settings,
   LogOut,
   ChevronLeft,
@@ -18,44 +20,47 @@ import {
 
 const menu = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Search Records", href: "/admin/Search", icon: QrCode },
-  { label: "Bay Management", href: "/staff/ocr-anpr", icon: ScanLine },
-  { label: "Visitor Management", href: "/admin/Vendors", icon: Edit },
-  { label: "Tenants Management", href: "/admin/Tenants", icon: List },
-  { label: "Supervisors", href: "/admin/Supervisors", icon: Search },
-  { label: "Staff", href: "/admin/Staff", icon: Settings },
-  { label: "Reports", href: "/admin/Report", icon: Settings },
+  { label: "Search Records", href: "/admin/Search", icon: Search },
+  { label: "Bay Management", href: "/admin/Bay", icon: Warehouse },
+  { label: "Vendor Management", href: "/admin/Vendors", icon: IdCard },
+  { label: "Supervisors", href: "/admin/Supervisors", icon: ShieldCheck },
+  { label: "Staff", href: "/admin/Staff", icon: Users },
+  { label: "Reports", href: "/admin/Report", icon: BarChart3 },
   { label: "Settings", href: "/staff/SettingPage", icon: Settings },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const pathname = usePathname();
+
   return (
-    <aside
-      className={`
-        fixed top-0 left-0 z-40 h-screen
-        ${collapsed ? "w-20" : "w-64"}
-        bg-white border-r
-        flex flex-col
-        transition-all duration-300
-      `}
-    >
+   <aside
+  className={`
+    ${collapsed ? "w-20" : "w-64"}
+    h-screen fixed left-0 top-0 z-40
+    flex flex-col
+    bg-gradient-to-b from-emerald-50 to-white
+    border-r border-gray-200
+    transition-all duration-300
++   font-sans text-sm text-gray-700
+  `}
+>
+
       {/* LOGO + TOGGLE */}
-      <div className="flex items-center justify-between px-4 py-4 border-b">
+      <div className="p-4 flex items-center justify-between border-b border-gray-200">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 rounded-lg bg-green-600 text-white flex items-center justify-center font-bold">
-            V
+          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-lg">V</span>
           </div>
 
           {!collapsed && (
-            <span className="font-semibold text-gray-800 text-lg whitespace-nowrap">
+            <span className="font-bold text-gray-800 text-lg whitespace-nowrap">
               VMS
             </span>
           )}
         </div>
 
         <button
-          onClick={() => setCollapsed(!collapsed)} // ✅ NOW WORKS
+          onClick={() => setCollapsed(!collapsed)}
           className="p-1 rounded-md hover:bg-gray-100"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -63,7 +68,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       </div>
 
       {/* MENU */}
-      <nav className="flex-1 px-3 py-4 space-y-1 text-sm overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1">
         {menu.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -75,10 +80,10 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               <div
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer
-                  transition-colors
+                  transition-all
                   ${
                     isActive
-                      ? "bg-green-50 text-green-700 font-medium"
+                      ? "bg-emerald-100 text-emerald-700 font-medium"
                       : "text-gray-600 hover:bg-gray-100"
                   }
                   ${collapsed ? "justify-center" : ""}
@@ -93,13 +98,13 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       </nav>
 
       {/* LOGOUT */}
-      <div className="p-3 border-t">
+      <div className="p-3 border-t border-gray-200">
         <Link href="/">
           <div
             className={`
               flex items-center gap-3 px-4 py-3 rounded-lg
               text-gray-600 hover:bg-red-50 hover:text-red-600
-              cursor-pointer
+              transition-all cursor-pointer
               ${collapsed ? "justify-center" : ""}
             `}
           >
