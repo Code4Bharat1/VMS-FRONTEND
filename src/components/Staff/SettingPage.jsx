@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "@/components/Staff/Sidebar";
 
 export default function MySettings() {
   const [form, setForm] = useState({
@@ -34,8 +33,6 @@ export default function MySettings() {
 
   return (
     <div className="min-h-screen bg-[#f5f7fa] flex text-[13px] text-gray-700">
-      {/* SIDEBAR */}
-      <Sidebar />
 
       {/* CONTENT */}
       <main className="flex-1 p-4 sm:p-6 space-y-6">

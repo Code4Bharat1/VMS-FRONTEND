@@ -211,7 +211,7 @@ export default function StaffManagement() {
             <Stat
               title="Assigned Bays"
               value={
-                new Set(staff.map((s) => s.assignedBay).filter(Boolean)).size
+                new Set(staff.map((s) => s.assignedBay?.bayName).filter(Boolean)).size
               }
               icon={Users}
             />
@@ -243,7 +243,7 @@ export default function StaffManagement() {
                       <td className="px-6 py-4 font-medium">{s.name}</td>
                       <td className="px-6 py-4">{s.email}</td>
                       <td className="px-6 py-4">{s.phone}</td>
-                      <td className="px-6 py-4">{s.assignedBay || "-"}</td>
+                      <td className="px-6 py-4">{s.assignedBay?.bayName || "-"}</td>
                       <td className="px-6 py-4">
                         <span
                           className={`px-3 py-1 rounded-full text-[13px] ${
@@ -271,7 +271,7 @@ export default function StaffManagement() {
                   <h3 className="text-[16px] font-semibold">{selected.name}</h3>
                   <Detail label="Email" value={selected.email} />
                   <Detail label="Phone" value={selected.phone} />
-                  <Detail label="Bay" value={selected.assignedBay || "—"} />
+                  <Detail label="Bay" value={selected.assignedBay?.bayName || "—"} />
                   <Detail label="Role" value={selected.role} />
                   <Detail
                     label="Status"
@@ -354,7 +354,7 @@ export default function StaffManagement() {
                 <Field
                   label="Assigned Bay"
                   placeholder="e.g. Bay A"
-                  value={form.assignedBay}
+                  value={form.assignedBay?.bayName}
                   onChange={(e) =>
                     setForm({ ...form, assignedBay: e.target.value })
                   }

@@ -1,15 +1,15 @@
 "use client";
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Users, Building2, Search, Settings, LogOut, ChevronRight, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 import Sidebar from './sidebar';
 
 const SupervisorDashboard = () => {
   const [activeView, setActiveView] = useState('daily');
   const [supervisor, setSupervisor] = useState(null);
-  
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-  
+
     if (storedUser) {
       setSupervisor(JSON.parse(storedUser));
     }
@@ -33,7 +33,7 @@ const SupervisorDashboard = () => {
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar activeItem="overview" />
-      
+
       <div className="flex-1 overflow-auto">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-8 py-6">
@@ -42,26 +42,26 @@ const SupervisorDashboard = () => {
               <h1 className="text-2xl font-bold text-gray-800">Supervisor Panel</h1>
               <p className="text-gray-500 mt-1">Monitor your assigned security staff, bays, and your own supervision activities.</p>
             </div>
-<div className="flex items-center gap-4">
-  <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
-    {(supervisor?.name || '')
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()}
-  </div>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+                {(supervisor?.name || '')
+                  .split(' ')
+                  .map(n => n[0])
+                  .join('')
+                  .toUpperCase()}
+              </div>
 
-  <div>
-    <h2 className="text-2xl font-semibold text-gray-800">
-      {supervisor?.name || 'Supervisor'}
-    </h2>
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-800">
+                  {supervisor?.name || 'Supervisor'}
+                </h2>
 
-    <p className="text-gray-500 text-sm">
-      {supervisor?.role || 'Supervisor'}
-     
-    </p>
-  </div>
-</div>
+                <p className="text-gray-500 text-sm">
+                  {supervisor?.role || 'Supervisor'}
+
+                </p>
+              </div>
+            </div>
 
           </div>
         </div>
@@ -117,11 +117,10 @@ const SupervisorDashboard = () => {
                 <button
                   key={view}
                   onClick={() => setActiveView(view.toLowerCase())}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeView === view.toLowerCase()
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeView === view.toLowerCase()
                       ? 'bg-white text-emerald-700 shadow-sm'
                       : 'text-gray-600 hover:text-gray-800'
-                  }`}
+                    }`}
                 >
                   {view}
                 </button>
@@ -161,11 +160,10 @@ const SupervisorDashboard = () => {
                         <span className="text-gray-800 font-semibold">{staff.avgTime}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          staff.status === 'Active'
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${staff.status === 'Active'
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'bg-orange-100 text-orange-700'
-                        }`}>
+                          }`}>
                           {staff.status}
                         </span>
                       </td>
@@ -191,7 +189,7 @@ const SupervisorDashboard = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-2">My Recent Updates</h2>
             <p className="text-gray-500 text-sm mb-6">Latest actions and interactions performed by you as a supervisor.</p>
-            
+
             <div className="space-y-4">
               {recentUpdates.map((update, index) => (
                 <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">

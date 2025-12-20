@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "@/components/Staff/Sidebar";
 
 export default function StaffDashboardPage() {
   const [form, setForm] = useState({

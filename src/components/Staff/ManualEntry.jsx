@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/Staff/Sidebar";
-
+import axios from "axios";
 export default function ManualEntry() {
   const [visitorName, setVisitorName] = useState("");
   const [qid, setQid] = useState("");
@@ -10,119 +9,154 @@ export default function ManualEntry() {
   const [company, setCompany] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [vehicleType, setVehicleType] = useState("");
-  const [driverName, setDriverName] = useState("");
-  const [driverMobile, setDriverMobile] = useState("");
   const [purpose, setPurpose] = useState("");
   const [bayId, setBayId] = useState("");
-  const [duration, setDuration] = useState("");
-  const [notes, setNotes] = useState("");
-
+  const [staff, setStaff] = useState(null);
   const [bays, setBays] = useState([]);
   const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
 
+    if (storedUser) {
+      setStaff(JSON.parse(storedUser));
+    }
+  }, []);
   const token =
     typeof window !== "undefined"
-      ? localStorage.getItem("token")
+      ? localStorage.getItem("accessToken")
       : null;
 
+
+  const staffId =
+    typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   /* ---------------- FETCH BAYS ---------------- */
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      console.log("❌ Token missing");
+      return;
+    }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bays`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setBays(data.bays || []))
-      .catch(() => alert("Failed to load bays"));
+    axios
+      .get(`${process.env.NEXT_PUBLIC_API_URL}/bays`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        console.log("✅ Bays API response:", res.data);
+        setBays(res.data.bays || []);
+      })
+      .catch((err) => {
+        console.error("❌ Failed to load bays:", err);
+        alert("Failed to load bays");
+      });
   }, [token]);
 
   /* ---------------- SAVE ENTRY ---------------- */
   const saveEntry = async () => {
-    if (!vehicleNumber || !bayId) {
-      alert("Vehicle number and Bay are required");
+    console.log("vehicleNumber:", vehicleNumber);
+    console.log("bayId:", bayId);
+
+    if (!vehicleNumber) {
+      alert("Vehicle number is required");
       return;
     }
 
-    setLoading(true);
+    if (!bayId) {
+      alert("Please select a Bay");
+      return;
+    }
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/entries/manual`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+    const user = JSON.parse(localStorage.getItem("user"));
+    const staffId = user?.id;
+
+    if (!staffId) {
+      alert("Staff not logged in");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/entries/manual`,
+        {
           visitorName,
           visitorMobile: mobile,
           visitorCompany: company,
-          vehicleNumber,
+          vehicleNumber: vehicleNumber.toUpperCase(),
           vehicleType,
           bayId,
-        }),
-      }
-    );
+          createdBy: staffId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    setLoading(false);
+      alert("Manual entry saved successfully");
 
-    if (!res.ok) {
+      setVisitorName("");
+      setMobile("");
+      setCompany("");
+      setVehicleNumber("");
+      setVehicleType("");
+      setBayId("");
+    } catch (err) {
+      console.error(err);
       alert("Failed to save entry");
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    alert("Manual entry saved");
-
-    // reset
-    setVisitorName("");
-    setQid("");
-    setMobile("");
-    setCompany("");
-    setVehicleNumber("");
-    setVehicleType("");
-    setDriverName("");
-    setDriverMobile("");
-    setPurpose("");
-    setBayId("");
-    setDuration("");
-    setNotes("");
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] flex text-[13px] text-gray-700">
-      <Sidebar />
+    <div className="flex h-screen bg-gray-50">
 
-      <main className="flex-1 p-4 sm:p-6 space-y-6">
+      <main className="flex-1 w">
         {/* HEADER */}
-        <div className="flex justify-between mb-5">
-          <div>
-            <h1 className="font-semibold text-2xl">Manual Entry Capture</h1>
-            <p className="text-xs text-gray-500">
-              Capture visitor and vehicle details manually when QR or OCR cannot be used.
-              One-way entry capture only.
-            </p>
-          </div>
+        <div className="bg-white border-b border-gray-200 px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">My Bays</h1>
+              <p className="text-gray-500 mt-1">Monitor live bay status, traffic, and alerts for the bays assigned to you.</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+                {(staff?.name || '')
+                  .split(' ')
+                  .map(n => n[0])
+                  .join('')
+                  .toUpperCase()}
+              </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Site: Nexcore Alliance</span>
-            <div className="w-8 h-8 rounded-full bg-gray-300" />
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-800">
+                  {staff?.name || 'staff'}
+                </h2>
+
+                <p className="text-gray-500 text-sm">
+                  {staff?.role || 'staff'}
+
+                </p>
+              </div>
+
+
+            </div>
           </div>
         </div>
-
         <div className="grid grid-cols-12 gap-5">
           {/* LEFT PANEL */}
-          <div className="col-span-12 lg:col-span-8 bg-white border rounded-xl p-5 space-y-6">
-            <div className="flex justify-between items-center">
+          <div className="col-span-12 lg:col-span-8 bg-white border-white bg-teal-500 rounded-xl p-5 space-y-6">
+            <div className="flex items-center justify-between ">
               <div>
                 <h3 className="font-semibold text-xl">Manual Visitor & Vehicle Details</h3>
                 <p className="text-xs text-gray-500">
                   This entry is linked to your staff ID and bay allocation.
                 </p>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                Mode: Manual
-              </span>
+
             </div>
 
             {/* VISITOR */}
@@ -143,8 +177,6 @@ export default function ManualEntry() {
                 <Input label="Vehicle Number" value={vehicleNumber} onChange={setVehicleNumber} />
                 <Select label="Vehicle Type" value={vehicleType} onChange={setVehicleType}
                   options={["Truck", "Van", "Car"]} />
-                <Input label="Driver Name" value={driverName} onChange={setDriverName} />
-                <Input label="Driver Mobile" value={driverMobile} onChange={setDriverMobile} />
               </div>
             </section>
 
@@ -163,13 +195,12 @@ export default function ManualEntry() {
                     <option value="">Select Bay</option>
                     {bays.map((bay) => (
                       <option key={bay._id} value={bay._id}>
-                        {bay.name}
+                        {bay.bayName}
                       </option>
                     ))}
                   </select>
+
                 </div>
-                <Input label="Expected Duration (mins)" value={duration} onChange={setDuration} />
-                <Input label="Notes" value={notes} onChange={setNotes} />
               </div>
             </section>
 
@@ -185,32 +216,7 @@ export default function ManualEntry() {
             </div>
           </div>
 
-          {/* RIGHT PANEL (UNCHANGED) */}
-          <div className="col-span-12 lg:col-span-4 space-y-4">
-            <Card title="Suggested Bay Allocation">
-              <p><strong>Bay B</strong></p>
-              <p>Status: Free</p>
-              <p>Queue position: #2</p>
-            </Card>
 
-            <Card title="My recent manual entries">
-              <p>15:10 – QAT 44129 – Bay B</p>
-              <p>14:55 – QAT 99231 – Bay A</p>
-              <p>14:18 – QAT 77331 – Bay C</p>
-            </Card>
-
-            <Card title="Manual entry tips">
-              <p>• Confirm VRN and mobile verbally</p>
-              <p>• Select correct bay</p>
-              <p>• Keep notes short</p>
-            </Card>
-
-            <Card title="My performance today">
-              <p>Manual entries: 8</p>
-              <p>Avg processing time: 22s</p>
-              <p>Manual vs auto: 30%</p>
-            </Card>
-          </div>
         </div>
       </main>
     </div>

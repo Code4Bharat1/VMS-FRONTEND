@@ -14,7 +14,7 @@ export default function StaffLayout({ children }) {
       {/* MAIN CONTENT */}
       <main
         className={`
-          flex-1 overflow-y-auto p-4 sm:p-6 transition-all duration-300
+          flex-1 overflow-y-auto transition-all duration-300
           ${collapsed ? "ml-20" : "ml-64"}
         `}
       >

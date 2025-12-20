@@ -28,8 +28,7 @@ useEffect(() => {
 
 const fetchStaff = async () => {
   try {
-    const res = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/staff`,
+    const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/staff`,
       {
         withCredentials: true,
         headers: {
@@ -66,6 +65,8 @@ const filteredStaff = (staffData || []).filter(staff => {
   return matchesBay && matchesSearch;
 });
 
+console.log(filteredStaff)
+
 
   const StaffModal = ({ staff, onClose }) => {
     if (!staff) return null;
@@ -89,7 +90,7 @@ const filteredStaff = (staffData || []).filter(staff => {
 </h2>
 
 <p className="text-gray-500">
-  {staff.role || 'Staff'} • {staff.assignedBay || '—'} • {staff.shift || '—'}
+  {staff.role || 'Staff'} • {staff.assignedBay?.bayName || '—'} • {staff.shift || '—'}
 </p>
 
             </div>
@@ -114,7 +115,7 @@ const filteredStaff = (staffData || []).filter(staff => {
 </p>
 
 <p className="text-purple-900 font-semibold text-lg">
-  {staff.assignedBay || 'Not Assigned'}
+  {staff.assignedBay?.bayName || 'Not Assigned'}
 </p>
 
               </div>
@@ -124,7 +125,7 @@ const filteredStaff = (staffData || []).filter(staff => {
                   <MapPin className="text-purple-600" size={20} />
                   <h3 className="font-semibold text-purple-900">Assignment Details</h3>
                 </div>
-                <p className="text-purple-900 font-semibold text-lg">{staff.assignedBay}</p>
+                <p className="text-purple-900 font-semibold text-lg">{staff.assignedBay?.bayName}</p>
                 <p className="text-purple-700 text-sm mt-1">Shift: {staff.shift}</p>
               </div>
             </div>
@@ -439,7 +440,7 @@ const filteredStaff = (staffData || []).filter(staff => {
                     <td className="px-6 py-4 text-gray-600">{staff.phone}</td>
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-semibold">
-                        {staff.assignedBay}
+                        {staff.assignedBay?.bayName}
                       </span>
                     </td>
                     <td className="px-6 py-4">
