@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 export default function ManualEntry() {
   const [visitorName, setVisitorName] = useState("");
-  const [qid, setQid] = useState("");
+  const [qidNumber, setQidNumber]= useState("");
   const [mobile, setMobile] = useState("");
   const [company, setCompany] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
@@ -84,6 +84,7 @@ export default function ManualEntry() {
           visitorCompany: company,
           vehicleNumber: vehicleNumber.toUpperCase(),
           vehicleType,
+          qidNumber,
           bayId,
           createdBy: staffId,
         },
@@ -103,6 +104,7 @@ export default function ManualEntry() {
       setVehicleNumber("");
       setVehicleType("");
       setBayId("");
+      setQidNumber("");
     } catch (err) {
       console.error(err);
       alert("Failed to save entry");
@@ -164,7 +166,7 @@ export default function ManualEntry() {
               <h4 className="font-medium text-sm">Visitor information</h4>
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Visitor Name" value={visitorName} onChange={setVisitorName} />
-                <Input label="QID" value={qid} onChange={setQid} />
+                <Input label="QID" value={qidNumber} onChange={setQidNumber} />
                 <Input label="Mobile Number" value={mobile} onChange={setMobile} />
                 <Input label="Company / Tenant" value={company} onChange={setCompany} />
               </div>
