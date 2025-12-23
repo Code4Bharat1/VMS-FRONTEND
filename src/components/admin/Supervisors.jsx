@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Plus, Filter, X } from "lucide-react";
+import { Search, Plus, X } from "lucide-react";
 import api from "@/lib/axios";
 
 export default function Supervisors() {
   const [supervisors, setSupervisors] = useState([]);
-  const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
+  const [bays, setBays] = useState([]);
 
-  // ADD MODAL STATE
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -19,61 +18,50 @@ export default function Supervisors() {
     assignedBay: "",
   });
 
-  /* ---------------- FETCH SUPERVISORS ---------------- */
+  /* ---------------- FETCH ---------------- */
   const fetchSupervisors = async () => {
-    try {
-      const res = await api.get("/supervisors");
-
-      const mapped = (res.data.supervisors || []).map((u) => ({
+    const res = await api.get("/supervisors");
+    console.log(res)
+    setSupervisors(
+      (res.data.supervisors || []).map((u) => ({
         id: u._id,
         name: u.name,
-        staffCount: 0,
+        staffCount: u.staffCount || 0,
         mobile: u.phone || "-",
         email: u.email,
         status: u.isActive ? "Active" : "Inactive",
-      }));
+        assignedBay: u.assignedBay || "-",
+      }))
+    );
+  };
 
-      setSupervisors(mapped);
-      setSelected(mapped[0] || null);
-    } catch (err) {
-      console.error("FETCH ERROR:", err);
-    }
+  const fetchBays = async () => {
+    const res = await api.get("/bays");
+    setBays(res.data.bays || res.data || []);
+    console.log(res.data)
   };
 
   useEffect(() => {
     fetchSupervisors();
+    fetchBays();
   }, []);
 
-  /* ---------------- TOGGLE STATUS ---------------- */
   const toggleStatus = async (id) => {
-    try {
-      await api.patch(`/supervisors/${id}/status`);
-      fetchSupervisors();
-    } catch (err) {
-      console.error(err);
-    }
+    await api.patch(`/supervisors/${id}/status`);
+    fetchSupervisors();
   };
 
-  /* ---------------- CREATE SUPERVISOR ---------------- */
   const createSupervisor = async () => {
-    try {
-      await api.post("/supervisors", {
-        ...form,
-      });
-
-      setShowAdd(false);
-      setForm({
-        name: "",
-        email: "",
-        phone: "",
-        password: "",
-        assignedBay: "",
-      });
-
-      fetchSupervisors();
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to add supervisor");
-    }
+    await api.post("/supervisors", form);
+    setShowAdd(false);
+    setForm({
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+      assignedBay: "",
+    });
+    fetchSupervisors();
   };
 
   const filtered = supervisors.filter((s) =>
@@ -81,176 +69,162 @@ export default function Supervisors() {
   );
 
   return (
-    <div className="flex h-screen bg-gray-50 text-[15px] text-gray-700">
-      <div className="flex-1 overflow-auto">
-        {/* HEADER */}
-
-        {/* TOP BAR */}
-        <div className="bg-white border-b border-gray-200 px-8 py-5 flex items-center justify-between sticky top-0 z-50">
-          {/* LEFT */}
-          <div>
-            <h1 className="text-[22px] font-bold text-gray-900">
-              Supervisor Management
-            </h1>
-            <p className="text-[14px] text-gray-500 mt-1">
-              Manage security supervisors, assigned staff, performance and bay
-              activities
-            </p>
-          </div>
-
-          {/* RIGHT */}
-          <div className="flex items-center gap-4">
-            {/* ADD BUTTON */}
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 px-5 py-2
-  bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700"
-            >
-              <Plus size={16} />
-              Add Supervisor
-            </button>
-
-            {/* USER */}
-            <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-700">
-                AT
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Alex Tan</p>
-                <p className="text-xs text-gray-500">Operations Manager</p>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* HEADER */}
+      <div className="sticky top-0 z-40 bg-white shadow-sm px-4 sm:px-8 py-4 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">
+            Supervisor Management
+          </h1>
+          <p className="text-sm text-gray-500">
+            Manage supervisors and assigned bays
+          </p>
         </div>
 
-        {/* CONTENT */}
-        <div className="px-8 py-6">
-          <div className="grid grid-cols-3 gap-6">
-            {/* TABLE */}
-            <div className="col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="relative">
-                  <Search
-                    size={16}
-                    className="absolute left-3 top-2.5 text-gray-400"
-                  />
-                  <input
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm"
-                    placeholder="Search supervisors by name"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-              </div>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700"
+        >
+          <Plus size={16} /> Add Supervisor
+        </button>
+      </div>
 
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    {[
-                      "Supervisor Name",
-                      "Staff Assigned",
-                      "Mobile Number",
-                      "Email",
-                      "Status",
-                    ].map((h) => (
+      {/* CONTENT */}
+      <div className="p-4 sm:p-6">
+        <div className="bg-white rounded-2xl shadow-md">
+          {/* SEARCH */}
+          <div className="p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+              <input
+                className="w-full bg-gray-100 pl-9 pr-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Search supervisors"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* DESKTOP TABLE */}
+          <div className="hidden md:block">
+            <table className="w-full">
+              <thead className="bg-gray-50/60">
+                <tr>
+                  {["Name", "Staff", "Mobile", "Email", "Bay", "Status"].map(
+                    (h) => (
                       <th
                         key={h}
-                        className="text-left px-6 py-4 text-sm font-semibold text-gray-600"
+                        className="px-6 py-4 text-left text-sm font-semibold text-gray-600"
                       >
                         {h}
                       </th>
-                    ))}
+                    )
+                  )}
+                </tr>
+              </thead>
+
+              <tbody>
+                {filtered.map((s) => (
+                  <tr
+                    key={s.id}
+                    className="hover:bg-emerald-50/40 transition"
+                  >
+                    <td className="px-6 py-4 font-semibold">{s.name}</td>
+                    <td className="px-6 py-4">{s.staffCount}</td>
+                    <td className="px-6 py-4">{s.mobile}</td>
+                    <td className="px-6 py-4">{s.email}</td>
+                    <td className="px-6 py-4">{s.assignedBay.bayName}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        onClick={() => toggleStatus(s.id)}
+                        className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
+                          s.status === "Active"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-gray-200 text-gray-600"
+                        }`}
+                      >
+                        {s.status}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-                <tbody className="divide-y divide-gray-200">
-                  {filtered.map((s) => (
-                    <tr key={s.id} className="hover:bg-gray-50 cursor-pointer">
-                      <td className="px-6 py-4 font-semibold text-gray-800">
-                        {s.name}
-                      </td>
-                      <td className="px-6 py-4 font-semibold">
-                        {s.staffCount}
-                      </td>
-                      <td className="px-6 py-4">{s.mobile}</td>
-                      <td className="px-6 py-4">{s.email}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          onClick={() => toggleStatus(s.id)}
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            s.status === "Active"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-gray-200 text-gray-600"
-                          }`}
-                        >
-                          {s.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* MOBILE CARDS */}
+          <div className="md:hidden space-y-3 p-4">
+            {filtered.map((s) => (
+              <div
+                key={s.id}
+                className="bg-gray-50 rounded-xl p-4 shadow-sm"
+              >
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold text-gray-900">{s.name}</h3>
+                  <span
+                    onClick={() => toggleStatus(s.id)}
+                    className={`text-xs px-3 py-1 rounded-full ${
+                      s.status === "Active"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {s.status}
+                  </span>
+                </div>
 
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-                Showing {filtered.length} supervisors
+                <div className="mt-2 text-sm text-gray-600 space-y-1">
+                  <p>📍 Bay: {s.assignedBay?.bayName}</p>
+                  <p>👥 Staff: {s.staffCount}</p>
+                  <p>📞 {s.mobile}</p>
+                  <p>✉️ {s.email}</p>
+                </div>
               </div>
-            </div>
+            ))}
+          </div>
+
+          <div className="px-4 py-3 text-sm text-gray-500 bg-gray-50 rounded-b-2xl">
+            Showing {filtered.length} supervisors
           </div>
         </div>
       </div>
 
-      {/* ADD SUPERVISOR MODAL */}
+      {/* ADD MODAL */}
       {showAdd && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-[520px] rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex justify-between items-center px-6 py-4 border-b">
-              <h2 className="text-[16px] font-semibold">Add Supervisor</h2>
-              <X className="cursor-pointer" onClick={() => setShowAdd(false)} />
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl">
+            <div className="flex justify-between items-center px-6 py-4 shadow-sm">
+              <h2 className="font-semibold">Add Supervisor</h2>
+              <X onClick={() => setShowAdd(false)} className="cursor-pointer" />
             </div>
 
-            <div className="p-6 space-y-4 text-sm">
-              <Input
-                label="Name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-              <Input
-                label="Email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-              <Input
-                label="Phone"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              />
-              <Input
-                label="Assigned Bay"
+            <div className="p-6 space-y-4">
+              <Input label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <Input label="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Input label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+
+              <select
+                className="w-full h-11 rounded-xl px-4 bg-gray-100 focus:ring-2 focus:ring-emerald-500"
                 value={form.assignedBay}
-                onChange={(e) =>
-                  setForm({ ...form, assignedBay: e.target.value })
-                }
-              />
-              <Input
-                label="Password"
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-              />
+                onChange={(e) => setForm({ ...form, assignedBay: e.target.value })}
+              >
+                <option value="">Select Bay</option>
+                {bays.map((b) => (
+                  <option key={b._id} value={b._id}>
+                    {b.bayName}
+                  </option>
+                ))}
+              </select>
+
+              <Input label="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
             </div>
 
-            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
-              <button
-                onClick={() => setShowAdd(false)}
-                className="px-4 py-2 border rounded-lg"
-              >
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+              <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm">
                 Cancel
               </button>
-              <button
-                onClick={createSupervisor}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
-              >
-                Create Supervisor
+              <button onClick={createSupervisor} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm">
+                Create
               </button>
             </div>
           </div>
@@ -260,17 +234,14 @@ export default function Supervisors() {
   );
 }
 
-/* ---------------- UI HELPERS ---------------- */
-
+/* INPUT */
 function Input({ label, ...props }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-600 mb-1">
-        {label}
-      </label>
+      <label className="text-sm font-medium text-gray-600">{label}</label>
       <input
         {...props}
-        className="w-full px-3 py-2 border rounded-lg text-sm"
+        className="w-full mt-1 px-3 py-2 rounded-xl bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
       />
     </div>
   );
