@@ -18,11 +18,11 @@ import {
 
 const menuItems = [
   { id: "dashboard", label: "Security Dashboard", href: "/staff/dashboard", icon: LayoutDashboard },
-  { id: "qr-scan", label: "QR Scan", href: "/staff/QREntry", icon: QrCode },
+  // { id: "qr-scan", label: "QR Scan", href: "/staff/QREntry", icon: QrCode },
   { id: "ocr-anpr", label: "OCR / ANPR", href: "/staff/ocr-anpr", icon: ScanLine },
   { id: "manual-entry", label: "Manual Entry", href: "/staff/ManualEntry", icon: Edit },
   { id: "my-entries", label: "My Entries", href: "/staff/MyEntries", icon: List },
-  { id: "search-entries", label: "Search Entries", href: "/staff/SearchEntry", icon: Search },
+  // { id: "search-entries", label: "Search Entries", href: "/staff/SearchEntry", icon: Search },
   { id: "my-settings", label: "My Settings", href: "/staff/SettingPage", icon: Settings },
 ];
 
@@ -42,10 +42,10 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       `}
     >
       {/* LOGO */}
-      <div className="h-16 px-4 flex items-center justify-between">
+      <div className="h-16 px-4 flex items-center justify-between border-gray-200 border-b-2 p-4">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 bg-emerald-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold">V</span>
+          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-lg">V</span>
           </div>
           {!collapsed && (
             <span className="font-bold text-gray-800 text-lg">VMS</span>
@@ -61,7 +61,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       </div>
 
       {/* MENU */}
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 py-2 text-[16px] space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -96,8 +96,8 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           }}
           className={`
             flex items-center gap-3 px-4 py-2.5 rounded-lg
-            text-gray-600 hover:bg-red-50 hover:text-red-600
-            cursor-pointer
+            text-white hover:bg-red-50 hover:text-red-600
+            cursor-pointer bg-red-500
             ${collapsed ? "justify-center" : ""}
           `}
         >

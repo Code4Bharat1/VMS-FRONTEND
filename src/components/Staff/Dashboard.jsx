@@ -1,235 +1,238 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 export default function StaffDashboardPage() {
-  const [form, setForm] = useState({
-    name: "",
-    qid: "",
-    mobile: "",
-    vrn: "",
-    purpose: "",
-    bay: "",
-    company: "",
-    method: "",
-  });
+  const [entries, setEntries] = useState([]);
+  const [bays, setBays] = useState([]);
+  const [staff, setStaff] = useState(null);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  /* ---------------- FETCH DATA (UNCHANGED) ---------------- */
+  useEffect(() => {
+    fetchData();
+
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) setStaff(JSON.parse(storedUser));
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const [entriesRes, baysRes] = await Promise.all([
+        axios.get("http://localhost:5000/api/v1/entries", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("http://localhost:5000/api/v1/bays", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      setEntries(entriesRes.data.entries || []);
+      setBays(baysRes.data.bays || []);
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    }
   };
 
-  const handleSave = () => {
-    alert("Entry saved (backend integration pending)");
+  /* ---------------- DERIVED STATS (UNCHANGED) ---------------- */
+  const today = new Date().toDateString();
+
+  const todayEntries = entries.filter(
+    (e) => e.inTime && new Date(e.inTime).toDateString() === today
+  );
+
+  const activeBays = bays.filter(
+    (b) => String(b.status).toLowerCase() === "active"
+  );
+
+  const lastEntry = [...entries]
+    .filter((e) => e.inTime)
+    .sort((a, b) => new Date(b.inTime) - new Date(a.inTime))[0];
+
+  const getBayName = (bayId) => {
+    const bay = bays.find((b) => b._id === bayId);
+    return bay ? bay.bayName : "--";
   };
 
-  const handlePrint = () => {
-    alert("Slip generated");
-  };
-
+  /* ---------------- UI ---------------- */
   return (
-    <div className="min-h-screen bg-[#f6f8fa] flex">
-      
-
-      <main className="flex-1 p-4 sm:p-6 space-y-6">
-
-
-        {/* HEADER */}
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
+    <div className="min-h-screen bg-[#f6f8fa]">
+      {/* NAVBAR */}
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-semibold text-2xl text-gray-800">
+            <h1 className="text-[24px] font-semibold text-gray-900">
               Security Staff Panel
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-[14px] text-gray-500 mt-1">
               Lowest access view for on-site guards. One-way entry capture only.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">Site: Nexcore Alliance</span>
-            <div className="w-9 h-9 rounded-full bg-gray-300" />
-          </div>
-        </div>
-
-        {/* STAT CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Stat title="Today's Entries Captured" value="26" note="Updated in real-time during your shift" />
-          <Stat title="Average Processing Time" value="17s" tag="Target 15s" note="Time per entry" />
-          <Stat title="Active Bays" value="3" tag="A / B / C" note="Assigned bays" />
-          <Stat title="Last Entry Captured" value="14:18" note="Captured via QR" />
-        </div>
-
-        {/* MAIN CONTENT */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* ENTRY CAPTURE */}
-          <div className="lg:col-span-2 bg-white border rounded-xl p-5 space-y-5">
-
-            <h3 className="font-semibold text-2xl text-gray-700">
-              Entry Capture (one-way only)
-            </h3>
-
-            {/* ENTRY MODE */}
-            <div className="flex flex-wrap gap-3">
-              <button className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm">QR Scan</button>
-              <button className="px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm">OCR / ANPR</button>
-              <button className="px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm">Manual</button>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-semibold">
+              {(staff?.name || "")
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase()}
             </div>
-
-            {/* CAMERA */}
-            <div className="h-44 border rounded-lg flex items-center justify-center text-sm text-gray-400">
-              Camera preview / plate scan area
-            </div>
-
-            {/* FORM */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-              <Input label="Date" value="2025-09-08" readOnly />
-              <Input label="Time In" value="14:20" readOnly />
-              <Input label="Full Name" name="name" value={form.name} onChange={handleChange} />
-              <Input label="QID Number" name="qid" value={form.qid} onChange={handleChange} />
-              <Input label="Mobile Number" name="mobile" value={form.mobile} onChange={handleChange} />
-              <Input label="Vehicle Registration" name="vrn" value={form.vrn} onChange={handleChange} />
-
-              <Select label="Purpose" name="purpose" onChange={handleChange} />
-              <Select label="Bay" name="bay" onChange={handleChange} />
-              <Select label="Company" name="company" onChange={handleChange} />
-              <Select label="Entry Method" name="method" onChange={handleChange} />
-            </div>
-
-            {/* ACTIONS */}
-            <div className="flex flex-wrap justify-end gap-3">
-              <button onClick={handlePrint} className="px-4 py-2 text-sm rounded-lg border">
-                Save & Print Slip
-              </button>
-              <button onClick={handleSave} className="px-5 py-2 text-sm rounded-lg bg-green-600 text-white">
-                Save Entry
-              </button>
+            <div>
+              <p className="text-[18px] font-semibold text-gray-900">
+                {staff?.name}
+              </p>
+              <p className="text-[14px] text-gray-500 capitalize">
+                {staff?.role}
+              </p>
             </div>
           </div>
-
-          {/* RIGHT PANEL */}
-          <div className="space-y-6">
-
-            <InfoBox title="What you can do">
-              <Item label="Capture new visitor entries" allowed />
-              <Item label="Use QR and OCR/ANPR" allowed />
-              <Item label="Edit past records" blocked />
-              <Item label="Delete records" blocked />
-            </InfoBox>
-
-            <InfoBox title="My stats today">
-              <StatRow label="Entries captured" value="26" />
-              <StatRow label="Avg processing time" value="17s" />
-              <StatRow label="Active shift duration" value="03:12h" />
-            </InfoBox>
-          </div>
         </div>
-
-        {/* RECENT ENTRIES */}
-        <div className="bg-white border rounded-xl p-5 overflow-x-auto">
-          <h3 className="font-medium mb-4">My Recent Entries</h3>
-
-          <table className="min-w-[700px] w-full text-sm">
-            <thead className="text-gray-500 border-b">
-              <tr>
-                <th className="py-2 text-left">Time In</th>
-                <th>Name</th>
-                <th>QID</th>
-                <th>VRN</th>
-                <th>Mobile</th>
-                <th>Bay</th>
-                <th>Company</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-700">
-              <Row />
-              <Row />
-              <Row />
-            </tbody>
-          </table>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-/* ---------- COMPONENTS ---------- */
-
-function Stat({ title, value, note, tag }) {
-  return (
-    <div className="bg-white border rounded-xl p-4">
-      <div className="flex justify-between text-xs text-gray-500 mb-1">
-        <span>{title}</span>
-        {tag && <span className="bg-green-50 text-green-700 px-2 rounded">{tag}</span>}
       </div>
-      <div className="text-2xl font-semibold">{value}</div>
-      <div className="text-xs text-gray-400">{note}</div>
+
+      {/* CONTENT */}
+      <div className="px-8 py-6">
+        {/* STAT CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Stat
+            title="Today's Entries Captured"
+            value={todayEntries.length}
+            subtitle="Updated in real-time"
+          />
+          <Stat
+            title="Active Bays"
+            value={activeBays.length}
+            subtitle={`Across bays ${activeBays
+              .map((b) => b.bayName)
+              .join(", ")}`}
+          />
+          <Stat
+            title="Last Entry Captured"
+            value={
+              lastEntry
+                ? new Date(lastEntry.inTime).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "--"
+            }
+            subtitle="Most recent entry"
+          />
+        </div>
+
+        {/* TABLE */}
+        <div className="bg-white rounded-xl">
+          <div className="px-6 py-5 border-b border-gray-200">
+            <h2 className="text-[18px] font-semibold text-gray-900">
+              Recent Entries
+            </h2>
+            <p className="text-[14px] text-gray-500 mt-1">
+              Entries captured during your shift
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-gray-200 bg-green-100">
+                <tr className="text-[14px] text-gray-600">
+                  <th className="px-6 py-4 text-left font-medium">
+                    Visitor Name
+                  </th>
+                  <th className="py-4 text-left font-medium">
+                    Vehicle Number
+                  </th>
+                  <th className="py-4 text-left font-medium">
+                    Company
+                  </th>
+                  <th className="py-4 text-left font-medium">
+                    Bay
+                  </th>
+                  <th className="py-4 text-left font-medium">
+                    Method
+                  </th>
+                  <th className="py-4 text-left font-medium">
+                    Time In
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {entries.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="text-center py-6 text-[14px] text-gray-400"
+                    >
+                      No entries found
+                    </td>
+                  </tr>
+                ) : (
+                  entries.map((e) => (
+                    <tr
+                      key={e._id}
+                      className="
+                        border-b border-gray-100
+                        text-[14px] text-gray-800
+                        cursor-pointer
+                        transition-colors duration-150
+                        hover:bg-gray-50
+                      "
+                    >
+                      <td className="px-6 py-4">
+                        {e.visitorName}
+                      </td>
+                      <td className="py-4">
+                        {e.vehicleNumber}
+                      </td>
+                      <td className="py-4">
+                        {e.visitorCompany}
+                      </td>
+                      <td className="py-4">
+                        {getBayName(e.bayId)}
+                      </td>
+                      <td className="py-4 capitalize">
+                        {e.entryMethod}
+                      </td>
+                      <td className="py-4">
+                        {new Date(e.inTime).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Input({ label, ...props }) {
-  return (
-    <div>
-      <label className="text-xs text-gray-500">{label}</label>
-      <input {...props} className="w-full border rounded-lg px-3 py-2 mt-1 text-sm" />
-    </div>
-  );
-}
+/* ---------------- STAT CARD ---------------- */
 
-function Select({ label, name, onChange }) {
+function Stat({ title, value, subtitle }) {
   return (
-    <div>
-      <label className="text-xs text-gray-500">{label}</label>
-      <select name={name} onChange={onChange} className="w-full border rounded-lg px-3 py-2 mt-1 text-sm">
-        <option value="">Select</option>
-        <option value="A">Option A</option>
-        <option value="B">Option B</option>
-      </select>
+    <div
+      className="
+        bg-white rounded-xl px-6 py-6
+        transition-all duration-200
+        hover:bg-gray-50
+        hover:-translate-y-[1px]
+      "
+    >
+      <p className="text-[14px] text-gray-500 mb-2">
+        {title}
+      </p>
+      <p className="text-[32px] font-semibold text-gray-900">
+        {value}
+      </p>
+      <p className="text-[14px] text-gray-500 mt-1">
+        {subtitle}
+      </p>
     </div>
-  );
-}
-
-function InfoBox({ title, children }) {
-  return (
-    <div className="bg-white border rounded-xl p-5 text-sm">
-      <h4 className="font-medium mb-3">{title}</h4>
-      {children}
-    </div>
-  );
-}
-
-function Item({ label, allowed, blocked }) {
-  return (
-    <div className="flex justify-between">
-      <span>{label}</span>
-      <span className={allowed ? "text-green-600" : "text-red-500"}>
-        {allowed ? "Allowed" : "Blocked"}
-      </span>
-    </div>
-  );
-}
-
-function StatRow({ label, value }) {
-  return (
-    <div className="flex justify-between">
-      <span>{label}</span>
-      <span>{value}</span>
-    </div>
-  );
-}
-
-function Row() {
-  return (
-    <tr className="border-b last:border-none">
-      <td className="py-2">14:18</td>
-      <td>Ahmed Ali</td>
-      <td>QID-90321</td>
-      <td>QA-12345</td>
-      <td>55612345</td>
-      <td>Bay B</td>
-      <td>Nexcore</td>
-      <td className="text-green-600">Saved</td>
-    </tr>
   );
 }
