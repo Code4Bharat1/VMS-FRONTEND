@@ -34,7 +34,7 @@ export default function VendorManagement() {
   });
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
   useEffect(() => {
     fetchVendors();

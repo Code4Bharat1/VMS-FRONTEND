@@ -14,7 +14,7 @@ export default function BayManagement() {
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
 
       const [bayRes, entryRes] = await Promise.all([
         axios.get(`${process.env.NEXT_PUBLIC_API_URL}/bays`, {

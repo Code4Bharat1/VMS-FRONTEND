@@ -8,7 +8,7 @@ export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
-
+  const [bays, setBays] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [nameFilter, setNameFilter] = useState("all");
@@ -23,11 +23,12 @@ export default function StaffManagement() {
   });
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
   /* ================= FETCH STAFF ================= */
   useEffect(() => {
     fetchStaff();
+    fetchBays();
   }, []);
 
   const fetchStaff = async () => {
@@ -68,6 +69,11 @@ export default function StaffManagement() {
     }
   };
 
+ const fetchBays = async () => {
+    const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/bays`);
+    setBays(res.data.bays || res.data || []);
+    console.log(res.data)
+  };
   /* ================= FILTER ================= */
   const filtered = staff.filter((s) => {
     const matchesSearch = s.name
@@ -288,38 +294,98 @@ export default function StaffManagement() {
       </div>
 
       {/* ================= ADD MODAL ================= */}
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-[520px] rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex justify-between items-center px-6 py-4 border-b">
-              <h2 className="text-[16px] font-semibold">Add Staff</h2>
-              <X onClick={() => setShowAdd(false)} className="cursor-pointer" />
-            </div>
+{showAdd && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in">
 
-            <div className="p-6 space-y-4 text-sm">
-              <Field label="Full Name" value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              <Field label="Email" value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              <Field label="Phone" value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              <Field label="Assigned Bay" value={form.assignedBay}
-                onChange={(e) => setForm({ ...form, assignedBay: e.target.value })} />
-              <Field type="password" label="Password" value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })} />
-            </div>
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <h2 className="text-lg font-semibold text-gray-800">
+          Add New Staff
+        </h2>
+        <button
+          onClick={() => setShowAdd(false)}
+          className="p-1 rounded-lg hover:bg-gray-100 transition"
+        >
+          <X className="w-5 h-5 text-gray-600" />
+        </button>
+      </div>
 
-            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
-              <button onClick={() => setShowAdd(false)} className="px-4 py-2 border rounded-lg">
-                Cancel
-              </button>
-              <button onClick={submitStaff} className="px-4 py-2 bg-emerald-600 text-white rounded-lg">
-                Add Staff
-              </button>
-            </div>
-          </div>
+      {/* Form */}
+      <div className="px-6 py-5 space-y-4 text-sm">
+        <Field
+          label="Full Name"
+          placeholder="Enter staff name"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+        />
+
+        <Field
+          label="Email"
+          placeholder="staff@email.com"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+        />
+
+        <Field
+          label="Phone"
+          placeholder="+91 XXXXX XXXXX"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+        />
+
+        <Field
+          type="password"
+          label="Password"
+          placeholder="Create a secure password"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+        />
+
+        {/* Bay Select */}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-600">
+            Assigned Bay
+          </label>
+          <select
+            className="w-full h-11 rounded-xl px-4 bg-gray-100 text-gray-800
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            value={form.assignedBay}
+            onChange={(e) =>
+              setForm({ ...form, assignedBay: e.target.value })
+            }
+          >
+            <option value="">Select Bay</option>
+            {bays.map((b) => (
+              <option key={b._id} value={b._id}>
+                {b.bayName}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
+      </div>
+
+      {/* Footer */}
+      <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
+        <button
+          onClick={() => setShowAdd(false)}
+          className="px-4 py-2 text-sm border border-gray-300 rounded-lg
+                     hover:bg-gray-100 transition"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={submitStaff}
+          className="px-5 py-2 text-sm bg-emerald-600 text-white rounded-lg
+                     hover:bg-emerald-700 active:scale-95 transition"
+        >
+          Add Staff
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

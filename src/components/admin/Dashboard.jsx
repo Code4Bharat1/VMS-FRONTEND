@@ -22,7 +22,7 @@ export default function Dashboard() {
   /* ================= DATA LOGIC (UNCHANGED) ================= */
   const fetchDashboard = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("accessToken");
 
       const [entriesRes, baysRes, staffRes] = await Promise.all([
         axios.get("http://localhost:5000/api/v1/entries", {

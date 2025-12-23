@@ -11,7 +11,7 @@ export default function SearchRecords() {
   const [loading, setLoading] = useState(true);
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
   /* ================= FETCH ENTRIES ================= */
   useEffect(() => {

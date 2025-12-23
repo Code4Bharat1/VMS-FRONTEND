@@ -56,7 +56,7 @@ export default function Sidebar({
       </div>
 
       {/* ================= LOGO ================= */}
-      <div className="h-16 px-4 flex items-center justify-between border-b">
+      <div className="h-16 px-4 flex items-center justify-between border-b border-gray-300">
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-lg">V</span>
@@ -106,7 +106,7 @@ export default function Sidebar({
       </nav>
 
       {/* ================= LOGOUT ================= */}
-      <div className="p-3 border-t">
+      <div className="p-3 ">
         <div
           onClick={() => {
             localStorage.clear();

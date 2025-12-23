@@ -13,7 +13,7 @@ export default function MyEntries() {
   useEffect(() => {
     const fetchEntries = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("accessToken");
 
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_URL}/entries`,
