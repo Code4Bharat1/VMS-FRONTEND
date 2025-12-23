@@ -17,14 +17,14 @@ export default function StaffDashboardPage() {
   }, []);
 
   const fetchData = async () => {
-    try {
-      const token = localStorage.getItem("token");
+     try {
+      const token = localStorage.getItem("accessToken");
 
       const [entriesRes, baysRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/v1/entries", {
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/entries`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        axios.get("http://localhost:5000/api/v1/bays", {
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/bays`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
