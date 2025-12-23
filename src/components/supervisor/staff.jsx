@@ -163,7 +163,7 @@ const MyStaff = () => {
 
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {/* Header */}
-        <div className="bg-white border-b px-4 md:px-8 py-4 md:py-6">
+        <div className="bg-white shadow-md px-4 md:px-8 py-4 md:py-6">
           <div className="flex flex-col sm:flex-row gap-4 sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold">My Staff</h1>
@@ -244,9 +244,9 @@ const MyStaff = () => {
           </div>
 
           {/* Table (Desktop) */}
-          <div className="hidden md:block bg-white rounded-xl border overflow-hidden">
+          <div className="hidden md:block bg-white rounded-xl shadow-md overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gray-50 shadow-sm">
                 <tr>
                   {["Name", "Phone", "Bay", "Email", "Entries", "Avg", "Status"].map(
                     (h) => (
@@ -309,7 +309,7 @@ const MyStaff = () => {
 
 /* ------------ SMALL COMPONENT ------------ */
 const StatCard = ({ title, value, icon }) => (
-  <div className="bg-white p-4 md:p-6 border rounded-xl hover:shadow">
+  <div className="bg-white p-4 md:p-6 shadow-sm shadow-green rounded-xl hover:shadow">
     <div className="flex justify-between items-center mb-2">
       <p className="text-sm text-gray-500">{title}</p>
       {icon}
