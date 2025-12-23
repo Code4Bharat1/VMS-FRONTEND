@@ -31,7 +31,9 @@ class AuthService {
     try {
       const response = await api.post("/auth/login", credentials);
 
-      const { accessToken, user } = response.data;
+      const { token, user } = response.data;
+
+      const accessToken = token;
 
       // Save access token AFTER receiving it
       saveToken(accessToken);
