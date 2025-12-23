@@ -60,30 +60,30 @@ export default function StaffDashboardPage() {
   return (
     <div className="min-h-screen bg-[#f6f8fa]">
       {/* NAVBAR */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-[24px] font-semibold text-gray-900">
+            <h1 className="text-[18px] sm:text-[22px] font-semibold text-gray-900">
               Security Staff Panel
             </h1>
-            <p className="text-[14px] text-gray-500 mt-1">
+            <p className="text-[13px] sm:text-[14px] text-gray-500 mt-1">
               Lowest access view for on-site guards. One-way entry capture only.
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-semibold">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-semibold">
               {(staff?.name || "")
                 .split(" ")
                 .map((n) => n[0])
                 .join("")
                 .toUpperCase()}
             </div>
-            <div>
-              <p className="text-[18px] font-semibold text-gray-900">
+            <div className="leading-tight">
+              <p className="text-[14px] sm:text-[16px] font-semibold text-gray-900">
                 {staff?.name}
               </p>
-              <p className="text-[14px] text-gray-500 capitalize">
+              <p className="text-[12px] sm:text-[14px] text-gray-500 capitalize">
                 {staff?.role}
               </p>
             </div>
@@ -92,9 +92,9 @@ export default function StaffDashboardPage() {
       </div>
 
       {/* CONTENT */}
-      <div className="px-8 py-6">
-        {/* STAT CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        {/* STATS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Stat
             title="Today's Entries Captured"
             value={todayEntries.length}
@@ -121,9 +121,9 @@ export default function StaffDashboardPage() {
           />
         </div>
 
-        {/* TABLE */}
-        <div className="bg-white rounded-xl">
-          <div className="px-6 py-5 border-b border-gray-200">
+        {/* DESKTOP TABLE */}
+        <div className="hidden sm:block bg-white rounded-xl shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-[18px] font-semibold text-gray-900">
               Recent Entries
             </h2>
@@ -133,106 +133,93 @@ export default function StaffDashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200 bg-green-100">
+            <table className="min-w-[720px] w-full">
+              <thead className="border-b border-gray-200 bg-emerald-50">
                 <tr className="text-[14px] text-gray-600">
-                  <th className="px-6 py-4 text-left font-medium">
-                    Visitor Name
-                  </th>
-                  <th className="py-4 text-left font-medium">
-                    Vehicle Number
-                  </th>
-                  <th className="py-4 text-left font-medium">
-                    Company
-                  </th>
-                  <th className="py-4 text-left font-medium">
-                    Bay
-                  </th>
-                  <th className="py-4 text-left font-medium">
-                    Method
-                  </th>
-                  <th className="py-4 text-left font-medium">
-                    Time In
-                  </th>
+                  {[
+                    "Visitor Name",
+                    "Vehicle Number",
+                    "Company",
+                    "Bay",
+                    "Method",
+                    "Time In",
+                  ].map((h) => (
+                    <th key={h} className="px-6 py-4 text-left font-medium">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
               <tbody>
-                {entries.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="text-center py-6 text-[14px] text-gray-400"
-                    >
-                      No entries found
+                {entries.map((e) => (
+                  <tr
+                    key={e._id}
+                    className="border-b border-gray-100 text-[14px] hover:bg-gray-50"
+                  >
+                    <td className="px-6 py-4">{e.visitorName}</td>
+                    <td className="px-6 py-4">{e.vehicleNumber}</td>
+                    <td className="px-6 py-4">{e.visitorCompany}</td>
+                    <td className="px-6 py-4">{getBayName(e.bayId)}</td>
+                    <td className="px-6 py-4 capitalize">{e.entryMethod}</td>
+                    <td className="px-6 py-4">
+                      {new Date(e.inTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </td>
                   </tr>
-                ) : (
-                  entries.map((e) => (
-                    <tr
-                      key={e._id}
-                      className="
-                        border-b border-gray-100
-                        text-[14px] text-gray-800
-                        cursor-pointer
-                        transition-colors duration-150
-                        hover:bg-gray-50
-                      "
-                    >
-                      <td className="px-6 py-4">
-                        {e.visitorName}
-                      </td>
-                      <td className="py-4">
-                        {e.vehicleNumber}
-                      </td>
-                      <td className="py-4">
-                        {e.visitorCompany}
-                      </td>
-                      <td className="py-4">
-                        {getBayName(e.bayId)}
-                      </td>
-                      <td className="py-4 capitalize">
-                        {e.entryMethod}
-                      </td>
-                      <td className="py-4">
-                        {new Date(e.inTime).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* MOBILE CARDS */}
+        <div className="sm:hidden space-y-4">
+          {entries.map((e) => (
+            <div
+              key={e._id}
+              className="bg-white rounded-xl p-4 shadow-sm"
+            >
+              <p className="font-semibold text-gray-900">
+                {e.visitorName}
+              </p>
+              <p className="text-sm text-gray-500">{e.visitorCompany}</p>
+
+              <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
+                <span className="text-gray-500">Vehicle</span>
+                <span>{e.vehicleNumber}</span>
+
+                <span className="text-gray-500">Bay</span>
+                <span>{getBayName(e.bayId)}</span>
+
+                <span className="text-gray-500">Method</span>
+                <span className="capitalize">{e.entryMethod}</span>
+
+                <span className="text-gray-500">Time In</span>
+                <span>
+                  {new Date(e.inTime).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-/* ---------------- STAT CARD ---------------- */
-
+/* STAT CARD */
 function Stat({ title, value, subtitle }) {
   return (
-    <div
-      className="
-        bg-white rounded-xl px-6 py-6
-        transition-all duration-200
-        hover:bg-gray-50
-        hover:-translate-y-[1px]
-      "
-    >
-      <p className="text-[14px] text-gray-500 mb-2">
-        {title}
-      </p>
-      <p className="text-[32px] font-semibold text-gray-900">
-        {value}
-      </p>
-      <p className="text-[14px] text-gray-500 mt-1">
-        {subtitle}
-      </p>
+    <div className="bg-white rounded-xl px-6 py-6 shadow-sm hover:bg-gray-50 transition">
+      <p className="text-[14px] text-gray-500 mb-2">{title}</p>
+      <p className="text-[32px] font-semibold text-gray-900">{value}</p>
+      <p className="text-[14px] text-gray-500 mt-1">{subtitle}</p>
     </div>
   );
 }

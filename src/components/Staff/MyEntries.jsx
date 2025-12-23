@@ -61,7 +61,7 @@ export default function MyEntries() {
   return (
     <div className="min-h-screen bg-[#f6f8fa]">
       {/* HEADER */}
-      <div className="bg-white px-8 py-6 shadow-sm">
+      <div className="bg-white px-4 sm:px-8 py-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">
@@ -73,14 +73,14 @@ export default function MyEntries() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
               {(staff?.name || "")
                 .split(" ")
                 .map((n) => n[0])
                 .join("")
                 .toUpperCase()}
             </div>
-            <div>
+            <div className="hidden sm:block">
               <p className="text-lg font-semibold text-gray-900">
                 {staff?.name}
               </p>
@@ -93,9 +93,9 @@ export default function MyEntries() {
       </div>
 
       {/* CONTENT */}
-      <div className="px-8 py-6 grid grid-cols-12 gap-6">
-        {/* TABLE CARD */}
-        <div className="col-span-12 lg:col-span-8 bg-white rounded-xl shadow-sm">
+      <div className="px-4 sm:px-8 py-6 grid grid-cols-12 gap-6">
+        {/* ================= DESKTOP TABLE ================= */}
+        <div className="hidden lg:block col-span-8 bg-white rounded-xl shadow-sm">
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
             <h3 className="font-semibold text-gray-900">
               Entries captured by you
@@ -145,17 +145,9 @@ export default function MyEntries() {
                   <tr
                     key={e._id}
                     onClick={() => setSelected(e)}
-                    className={`
-                      cursor-pointer
-                      border-b border-gray-50
-                      transition
-                      hover:bg-gray-50
-                      ${
-                        selected?._id === e._id
-                          ? "bg-emerald-50"
-                          : ""
-                      }
-                    `}
+                    className={`cursor-pointer border-b border-gray-50 hover:bg-gray-50 ${
+                      selected?._id === e._id ? "bg-emerald-50" : ""
+                    }`}
                   >
                     <td className="px-6 py-3">
                       {formatDateTime(e.createdAt)}
@@ -174,7 +166,41 @@ export default function MyEntries() {
           )}
         </div>
 
-        {/* RIGHT PANEL */}
+        {/* ================= MOBILE CARDS ================= */}
+        <div className="lg:hidden col-span-12 space-y-4">
+          {filteredEntries.map((e) => (
+            <div
+              key={e._id}
+              onClick={() => setSelected(e)}
+              className={`bg-white rounded-xl shadow-sm p-4 ${
+                selected?._id === e._id ? "ring-2 ring-emerald-200" : ""
+              }`}
+            >
+              <p className="font-semibold text-gray-900">
+                {e.visitorName}
+              </p>
+              <p className="text-sm text-gray-500">
+                {e.visitorCompany}
+              </p>
+
+              <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
+                <span className="text-gray-500">Vehicle</span>
+                <span>{e.vehicleNumber}</span>
+
+                <span className="text-gray-500">Bay</span>
+                <span>{e.bayName}</span>
+
+                <span className="text-gray-500">Method</span>
+                <span className="capitalize">{e.vehicleType}</span>
+
+                <span className="text-gray-500">Time</span>
+                <span>{formatDateTime(e.createdAt)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ================= RIGHT PANEL ================= */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
           {selected && (
             <div className="bg-white rounded-xl shadow-sm p-6">

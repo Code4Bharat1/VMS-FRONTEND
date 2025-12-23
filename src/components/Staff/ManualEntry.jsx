@@ -68,30 +68,30 @@ export default function ManualEntry() {
   return (
     <div className="min-h-screen bg-[#f6f8fa]">
       {/* HEADER */}
-      <div className="bg-white px-8 py-6 shadow-sm">
-        <div className="flex items-center justify-between">
+      <div className="bg-white px-4 sm:px-8 py-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-[24px] font-semibold text-gray-900">
+            <h1 className="text-[22px] sm:text-[24px] font-semibold text-gray-900">
               Manual Entry
             </h1>
-            <p className="text-[14px] text-gray-500 mt-1">
+            <p className="text-[13px] sm:text-[14px] text-gray-500 mt-1">
               Capture visitor and vehicle details manually
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-semibold">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-semibold">
               {(staff?.name || "")
                 .split(" ")
                 .map((n) => n[0])
                 .join("")
                 .toUpperCase()}
             </div>
-            <div>
-              <p className="text-[18px] font-semibold text-gray-900">
+            <div className="leading-tight">
+              <p className="text-[14px] sm:text-[18px] font-semibold text-gray-900">
                 {staff?.name}
               </p>
-              <p className="text-[14px] text-gray-500 capitalize">
+              <p className="text-[12px] sm:text-[14px] text-gray-500 capitalize">
                 {staff?.role}
               </p>
             </div>
@@ -100,8 +100,8 @@ export default function ManualEntry() {
       </div>
 
       {/* FORM CARD */}
-      <div className="px-8 py-8">
-        <div className="max-w-5xl bg-white rounded-xl p-8 shadow-sm border border-gray-100">
+      <div className="px-4 sm:px-8 py-8">
+        <div className="max-w-5xl bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
           <Section title="Visitor Information">
             <Input label="Visitor Name" value={visitorName} onChange={setVisitorName} />
             <Input label="QID" value={qidNumber} onChange={setQidNumber} />
@@ -143,11 +143,12 @@ export default function ManualEntry() {
           </Section>
 
           {/* ACTION */}
-          <div className="flex justify-end mt-10 pt-6 border-t border-gray-100">
+          <div className="flex flex-col sm:flex-row justify-end mt-10 pt-6 border-t border-gray-100">
             <button
               onClick={saveEntry}
               disabled={loading}
               className="
+                w-full sm:w-auto
                 px-8 py-2.5 rounded-xl
                 bg-emerald-600 text-white text-sm font-medium
                 transition-all duration-300
