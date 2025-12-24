@@ -96,7 +96,7 @@ export default function Dashboard() {
       <div className="flex-1 overflow-x-hidden">
 
         {/* ================= HEADER ================= */}
-        <div className="bg-white border-b px-6 py-4">
+        <div className="bg-white border-b border-gray-100 px-6 py-4">
           <div className="flex flex-col lg:flex-row justify-between gap-4">
             <div>
               <h1 className="text-[22px] font-semibold text-gray-800">

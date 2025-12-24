@@ -8,7 +8,6 @@ import {
   X,
   Users,
   Activity,
-  TrendingUp,
 } from "lucide-react";
 
 export default function VendorManagement() {
@@ -23,14 +22,14 @@ export default function VendorManagement() {
 
   const [filters, setFilters] = useState({
     status: "all",
-    hasVehicles: "all",
   });
 
   const [form, setForm] = useState({
     companyName: "",
     contactPerson: "",
     mobile: "",
-    registeredVehicles: "",
+    shopID: "",
+    qid: "",
   });
 
   const token =
@@ -47,8 +46,6 @@ export default function VendorManagement() {
       const query = new URLSearchParams({
         search,
         status: filters.status !== "all" ? filters.status : "",
-        hasVehicles:
-          filters.hasVehicles !== "all" ? filters.hasVehicles : "",
       });
 
       const res = await fetch(
@@ -76,12 +73,7 @@ export default function VendorManagement() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...form,
-          registeredVehicles: form.registeredVehicles
-            .split(",")
-            .map((v) => v.trim()),
-        }),
+        body: JSON.stringify(form),
       });
 
       setShowAdd(false);
@@ -89,7 +81,8 @@ export default function VendorManagement() {
         companyName: "",
         contactPerson: "",
         mobile: "",
-        registeredVehicles: "",
+        shopID: "",
+        qid: "",
       });
       fetchVendors();
     } catch (err) {
@@ -101,19 +94,18 @@ export default function VendorManagement() {
     <div className="flex min-h-screen bg-gray-50">
       <div className="flex-1 overflow-x-hidden">
         {/* HEADER */}
-        <div className="bg-white border-b px-4 sm:px-6 lg:px-8 py-4">
+        <div className="bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h1 className="text-[22px] font-semibold text-gray-800">
                 Vendor Management
               </h1>
               <p className="text-[14px] text-gray-500">
-                Manage vendor profiles and registered vehicles
+                Manage vendor profiles
               </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              {/* SEARCH */}
               <div className="relative">
                 <Search
                   size={18}
@@ -129,7 +121,6 @@ export default function VendorManagement() {
                 />
               </div>
 
-              {/* FILTER */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="flex items-center gap-2 px-4 h-[40px] border rounded-lg"
@@ -138,7 +129,6 @@ export default function VendorManagement() {
                 Filters
               </button>
 
-              {/* ADD */}
               <button
                 onClick={() => setShowAdd(true)}
                 className="flex items-center gap-2 px-4 h-[40px]
@@ -151,7 +141,6 @@ export default function VendorManagement() {
           </div>
         </div>
 
-        {/* FILTER PANEL */}
         {showFilters && (
           <div className="bg-white border-b px-6 py-4 flex gap-4">
             <Select
@@ -166,18 +155,6 @@ export default function VendorManagement() {
               <option value="inactive">Inactive</option>
             </Select>
 
-            <Select
-              label="Registered Vehicles"
-              value={filters.hasVehicles}
-              onChange={(e) =>
-                setFilters({ ...filters, hasVehicles: e.target.value })
-              }
-            >
-              <option value="all">All</option>
-              <option value="yes">Has Vehicles</option>
-              <option value="no">No Vehicles</option>
-            </Select>
-
             <button
               onClick={fetchVendors}
               className="self-end px-4 h-[40px] bg-emerald-600 text-white rounded-lg"
@@ -187,47 +164,30 @@ export default function VendorManagement() {
           </div>
         )}
 
-        {/* CONTENT */}
         <div className="px-4 sm:px-6 lg:px-8 py-6">
-          {/* STATS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
             <Stat title="Total Vendors" value={vendors.length} icon={Users} />
             <Stat
               title="Active Vendors"
               value={vendors.filter((v) => v.status === "active").length}
               icon={Activity}
             />
-            <Stat
-              title="Registered Vehicles"
-              value={vendors.reduce(
-                (a, v) => a + (v.registeredVehicles?.length || 0),
-                0
-              )}
-              icon={TrendingUp}
-            />
           </div>
 
-          {/* TABLE + DETAILS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* TABLE */}
             <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-x-auto">
               <table className="min-w-[700px] w-full">
                 <thead className="bg-green-100">
                   <tr>
-                    {["Company", "Contact", "Mobile", "Vehicles", "Status"].map(
-                      (h) => (
-                        <th
-                          key={h}
-                          className="px-6 py-4 text-center text-[14px]"
-                        >
-                          {h}
-                        </th>
-                      )
-                    )}
+                    {["Company", "Contact", "Mobile", "Status"].map((h) => (
+                      <th key={h} className="px-6 py-4 text-center text-[14px]">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
 
-                <tbody className=" text-center">
+                <tbody className="text-center">
                   {vendors.map((v) => (
                     <tr
                       key={v._id}
@@ -237,14 +197,9 @@ export default function VendorManagement() {
                       }}
                       className="hover:bg-green-50 cursor-pointer border-b-2 border-gray-200"
                     >
-                      <td className="px-6 py-4 font-medium">
-                        {v.companyName}
-                      </td>
+                      <td className="px-6 py-4 font-medium">{v.companyName}</td>
                       <td className="px-6 py-4">{v.contactPerson}</td>
                       <td className="px-6 py-4">{v.mobile}</td>
-                      <td className="px-6 py-4">
-                        {v.registeredVehicles?.length || 0}
-                      </td>
                       <td className="px-6 py-4">
                         <span className="px-3 py-1 rounded-full bg-green-50 text-green-700 text-[13px]">
                           {v.status}
@@ -256,7 +211,6 @@ export default function VendorManagement() {
               </table>
             </div>
 
-            {/* DESKTOP DETAILS */}
             <div className="hidden lg:block bg-white rounded-2xl shadow-sm p-6">
               {!selected ? (
                 <p className="text-gray-400 text-center">
@@ -270,7 +224,6 @@ export default function VendorManagement() {
         </div>
       </div>
 
-      {/* MOBILE DETAILS POPUP */}
       {showMobilePopup && selected && (
         <div
           className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center lg:hidden"
@@ -291,7 +244,6 @@ export default function VendorManagement() {
         </div>
       )}
 
-      {/* ADD MODAL */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-[520px] rounded-2xl overflow-hidden">
@@ -301,34 +253,20 @@ export default function VendorManagement() {
             </div>
 
             <div className="p-6 space-y-4">
-              <Field
-                label="Company Name"
-                value={form.companyName}
-                onChange={(e) =>
-                  setForm({ ...form, companyName: e.target.value })
-                }
-              />
-              <Field
-                label="Contact Person"
-                value={form.contactPerson}
-                onChange={(e) =>
-                  setForm({ ...form, contactPerson: e.target.value })
-                }
-              />
-              <Field
-                label="Mobile"
-                value={form.mobile}
-                onChange={(e) =>
-                  setForm({ ...form, mobile: e.target.value })
-                }
-              />
-              <Field
-                label="Registered Vehicles"
-                value={form.registeredVehicles}
-                onChange={(e) =>
-                  setForm({ ...form, registeredVehicles: e.target.value })
-                }
-              />
+              <Field label="Company Name" value={form.companyName}
+                onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
+
+              <Field label="Contact Person" value={form.contactPerson}
+                onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} />
+
+              <Field label="Mobile" value={form.mobile}
+                onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
+
+              <Field label="Shop ID" value={form.shopID}
+                onChange={(e) => setForm({ ...form, shopID: e.target.value })} />
+
+              <Field label="QID" value={form.qid}
+                onChange={(e) => setForm({ ...form, qid: e.target.value })} />
             </div>
 
             <div className="px-6 py-4 border-t flex justify-end gap-3">
@@ -351,29 +289,11 @@ export default function VendorManagement() {
 
 const VendorDetails = ({ selected }) => (
   <div className="space-y-4 text-[14px]">
-    <h3 className="text-[16px] font-semibold">
-      {selected.companyName}
-    </h3>
+    <h3 className="text-[16px] font-semibold">{selected.companyName}</h3>
     <Detail label="Contact" value={selected.contactPerson} />
     <Detail label="Mobile" value={selected.mobile} />
-
-    <div>
-      <p className="text-gray-500 mb-1">Registered Vehicles</p>
-      <div className="flex flex-wrap gap-2">
-        {selected.registeredVehicles?.length ? (
-          selected.registeredVehicles.map((v, i) => (
-            <span
-              key={i}
-              className="px-3 py-1 bg-gray-100 rounded-lg text-[13px]"
-            >
-              {v}
-            </span>
-          ))
-        ) : (
-          <p className="text-gray-400">No vehicles</p>
-        )}
-      </div>
-    </div>
+    <Detail label="Shop ID" value={selected.shopID} />
+    <Detail label="QID" value={selected.qid} />
   </div>
 );
 
