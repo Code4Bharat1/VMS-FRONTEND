@@ -175,7 +175,7 @@ export default function SearchRecords() {
         <div className="px-4 sm:px-8 py-6">
           <div className="bg-white rounded-2xl shadow-sm overflow-x-auto">
             <table className="min-w-[900px] w-full">
-              <thead className="border-b border-gray-200">
+              <thead className="border-b border-gray-200 bg-green-100">
                 <tr>
                   {[
                     "Time",
@@ -211,7 +211,7 @@ export default function SearchRecords() {
                 )}
 
                 {filtered.map((e) => (
-                  <tr key={e._id} className="hover:bg-gray-50">
+                  <tr key={e._id} className="hover:bg-green-50">
                     <td className="px-6 py-4 text-[14px]">
                       {formatTime(e.inTime, e.outTime)}
                     </td>

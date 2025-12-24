@@ -18,37 +18,61 @@ export default function Supervisors() {
     assignedBay: "",
   });
 
-  /* ---------------- FETCH ---------------- */
-  const fetchSupervisors = async () => {
-    const res = await api.get("/supervisors");
-    console.log(res)
-    setSupervisors(
-      (res.data.supervisors || []).map((u) => ({
-        id: u._id,
-        name: u.name,
-        staffCount: u.staffCount || 0,
-        mobile: u.phone || "-",
-        email: u.email,
-        status: u.isActive ? "Active" : "Inactive",
-        assignedBay: u.assignedBay || "-",
-      }))
-    );
-  };
+  /* ================= LOAD ALL DATA (FIXED) ================= */
+  const loadData = async () => {
+    try {
+      const [supRes, staffRes, bayRes] = await Promise.all([
+        api.get("/supervisors"),
+        api.get("/staff"),
+        api.get("/bays"),
+      ]);
 
-  const fetchBays = async () => {
-    const res = await api.get("/bays");
-    setBays(res.data.bays || res.data || []);
-    console.log(res.data)
+      const supervisorsData = supRes.data.supervisors || [];
+      const staffData = staffRes.data.staff || [];
+      const baysData = bayRes.data.bays || bayRes.data || [];
+
+      setBays(baysData);
+
+      const mapped = supervisorsData.map((u) => {
+        const supervisorBayId =
+          typeof u.assignedBay === "object"
+            ? u.assignedBay?._id
+            : u.assignedBay;
+
+        const staffCount = staffData.filter((s) => {
+          const staffBayId =
+            typeof s.assignedBay === "object"
+              ? s.assignedBay?._id
+              : s.assignedBay;
+
+          return supervisorBayId && staffBayId === supervisorBayId;
+        }).length;
+
+        return {
+          id: u._id,
+          name: u.name,
+          staffCount,
+          mobile: u.phone || "-",
+          email: u.email,
+          status: u.isActive ? "Active" : "Inactive",
+          assignedBay: u.assignedBay || "-",
+        };
+      });
+
+      setSupervisors(mapped);
+    } catch (err) {
+      console.error("Load supervisors error:", err);
+    }
   };
 
   useEffect(() => {
-    fetchSupervisors();
-    fetchBays();
+    loadData();
   }, []);
 
+  /* ================= ACTIONS ================= */
   const toggleStatus = async (id) => {
     await api.patch(`/supervisors/${id}/status`);
-    fetchSupervisors();
+    loadData();
   };
 
   const createSupervisor = async () => {
@@ -61,13 +85,15 @@ export default function Supervisors() {
       password: "",
       assignedBay: "",
     });
-    fetchSupervisors();
+    loadData();
   };
 
+  /* ================= FILTER ================= */
   const filtered = supervisors.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  /* ================= UI ================= */
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
@@ -108,13 +134,13 @@ export default function Supervisors() {
           {/* DESKTOP TABLE */}
           <div className="hidden md:block">
             <table className="w-full">
-              <thead className="bg-gray-50/60">
+              <thead className="bg-green-100 border-b-2 border-gray-200">
                 <tr>
                   {["Name", "Staff", "Mobile", "Email", "Bay", "Status"].map(
                     (h) => (
                       <th
                         key={h}
-                        className="px-6 py-4 text-left text-sm font-semibold text-gray-600"
+                        className="px-6 py-4 text-sm font-semibold text-center text-gray-600"
                       >
                         {h}
                       </th>
@@ -127,13 +153,15 @@ export default function Supervisors() {
                 {filtered.map((s) => (
                   <tr
                     key={s.id}
-                    className="hover:bg-emerald-50/40 transition"
+                    className="hover:bg-green-50 transition text-center border-b border-gray-200"
                   >
                     <td className="px-6 py-4 font-semibold">{s.name}</td>
                     <td className="px-6 py-4">{s.staffCount}</td>
                     <td className="px-6 py-4">{s.mobile}</td>
                     <td className="px-6 py-4">{s.email}</td>
-                    <td className="px-6 py-4">{s.assignedBay.bayName}</td>
+                    <td className="px-6 py-4">
+                      {s.assignedBay?.bayName || "-"}
+                    </td>
                     <td className="px-6 py-4">
                       <span
                         onClick={() => toggleStatus(s.id)}
@@ -174,7 +202,7 @@ export default function Supervisors() {
                 </div>
 
                 <div className="mt-2 text-sm text-gray-600 space-y-1">
-                  <p>📍 Bay: {s.assignedBay?.bayName}</p>
+                  <p>📍 Bay: {s.assignedBay?.bayName || "-"}</p>
                   <p>👥 Staff: {s.staffCount}</p>
                   <p>📞 {s.mobile}</p>
                   <p>✉️ {s.email}</p>
@@ -199,14 +227,34 @@ export default function Supervisors() {
             </div>
 
             <div className="p-6 space-y-4">
-              <Input label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              <Input label="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              <Input label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <Input
+                label="Name"
+                value={form.name}
+                onChange={(e) =>
+                  setForm({ ...form, name: e.target.value })
+                }
+              />
+              <Input
+                label="Email"
+                value={form.email}
+                onChange={(e) =>
+                  setForm({ ...form, email: e.target.value })
+                }
+              />
+              <Input
+                label="Phone"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm({ ...form, phone: e.target.value })
+                }
+              />
 
               <select
                 className="w-full h-11 rounded-xl px-4 bg-gray-100 focus:ring-2 focus:ring-emerald-500"
                 value={form.assignedBay}
-                onChange={(e) => setForm({ ...form, assignedBay: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, assignedBay: e.target.value })
+                }
               >
                 <option value="">Select Bay</option>
                 {bays.map((b) => (
@@ -216,14 +264,27 @@ export default function Supervisors() {
                 ))}
               </select>
 
-              <Input label="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              <Input
+                label="Password"
+                type="password"
+                value={form.password}
+                onChange={(e) =>
+                  setForm({ ...form, password: e.target.value })
+                }
+              />
             </div>
 
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
-              <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm">
+              <button
+                onClick={() => setShowAdd(false)}
+                className="px-4 py-2 text-sm"
+              >
                 Cancel
               </button>
-              <button onClick={createSupervisor} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm">
+              <button
+                onClick={createSupervisor}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm"
+              >
                 Create
               </button>
             </div>

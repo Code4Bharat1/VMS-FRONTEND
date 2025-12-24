@@ -10,6 +10,9 @@ export default function MyEntries() {
   const [selected, setSelected] = useState(null);
   const [staff, setStaff] = useState(null);
 
+  // ✅ ONLY ADDITION
+  const [showMobilePopup, setShowMobilePopup] = useState(false);
+
   useEffect(() => {
     const fetchEntries = async () => {
       try {
@@ -94,60 +97,34 @@ export default function MyEntries() {
 
       {/* CONTENT */}
       <div className="px-4 sm:px-8 py-6 grid grid-cols-12 gap-6">
-        {/* ================= DESKTOP TABLE ================= */}
+        {/* DESKTOP TABLE */}
         <div className="hidden lg:block col-span-8 bg-white rounded-xl shadow-sm">
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
             <h3 className="font-semibold text-gray-900">
               Entries captured by you
             </h3>
-
-            <div className="flex gap-2">
-              <select
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm"
-              >
-                <option>Today</option>
-                <option>Yesterday</option>
-                <option>Last 7 days</option>
-              </select>
-
-              <select
-                value={bay}
-                onChange={(e) => setBay(e.target.value)}
-                className="h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm"
-              >
-                <option>All bays</option>
-                <option>Bay A</option>
-                <option>Bay B</option>
-                <option>Bay C</option>
-              </select>
-            </div>
           </div>
 
           {loading ? (
             <p className="p-6 text-sm text-gray-500">Loading entries…</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="text-gray-500 border-b border-gray-100">
+            <table className="w-full text-sm ">
+              <thead className="text-gray-500 border-b-1 border-gray-100 bg-green-100">
                 <tr>
-                  <th className="px-6 py-3 text-left">Time</th>
-                  <th className="py-3 text-left">Vehicle</th>
-                  <th className="py-3 text-left">Visitor</th>
-                  <th className="py-3 text-left">Company</th>
-                  <th className="py-3 text-left">Bay</th>
-                  <th className="py-3 text-left">Method</th>
+                  <th className="px-6 py-3 text-center">Time</th>
+                  <th className="py-3 text-center">Vehicle</th>
+                  <th className="py-3 text-center">Visitor</th>
+                  <th className="py-3 text-center">Company</th>
+                  <th className="py-3 text-center">Bay</th>
+                  <th className="py-3 text-center">Method</th>
                 </tr>
               </thead>
-
               <tbody>
                 {filteredEntries.map((e) => (
                   <tr
                     key={e._id}
                     onClick={() => setSelected(e)}
-                    className={`cursor-pointer border-b border-gray-50 hover:bg-gray-50 ${
-                      selected?._id === e._id ? "bg-emerald-50" : ""
-                    }`}
+                    className=" cursor-pointer border-b-2 border-gray-200 hover:bg-gray-50 text-center"
                   >
                     <td className="px-6 py-3">
                       {formatDateTime(e.createdAt)}
@@ -166,15 +143,16 @@ export default function MyEntries() {
           )}
         </div>
 
-        {/* ================= MOBILE CARDS ================= */}
+        {/* MOBILE CARDS */}
         <div className="lg:hidden col-span-12 space-y-4">
           {filteredEntries.map((e) => (
             <div
               key={e._id}
-              onClick={() => setSelected(e)}
-              className={`bg-white rounded-xl shadow-sm p-4 ${
-                selected?._id === e._id ? "ring-2 ring-emerald-200" : ""
-              }`}
+              onClick={() => {
+                setSelected(e);
+                setShowMobilePopup(true);
+              }}
+              className="bg-white rounded-xl shadow-sm p-4"
             >
               <p className="font-semibold text-gray-900">
                 {e.visitorName}
@@ -200,8 +178,8 @@ export default function MyEntries() {
           ))}
         </div>
 
-        {/* ================= RIGHT PANEL ================= */}
-        <div className="col-span-12 lg:col-span-4 space-y-4">
+        {/* RIGHT PANEL (DESKTOP ONLY) */}
+        <div className="hidden lg:block col-span-4 space-y-4">
           {selected && (
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="text-sm font-semibold text-gray-900 mb-4">
@@ -240,6 +218,43 @@ export default function MyEntries() {
           </div>
         </div>
       </div>
+
+      {/* ✅ MOBILE POPUP — SAME JSX, JUST OVERLAY */}
+    {showMobilePopup && selected && (
+  <div
+    className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center lg:hidden"
+    onClick={() => setShowMobilePopup(false)}
+  >
+    <div
+      className="bg-white rounded-xl shadow-sm p-6 w-[92%] max-w-sm transition-all duration-300 scale-100 relative"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* CLOSE BUTTON */}
+      <button
+        onClick={() => setShowMobilePopup(false)}
+        className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-lg"
+      >
+        ✕
+      </button>
+
+      <h3 className="text-sm font-semibold text-gray-900 mb-4">
+        Selected Entry
+      </h3>
+
+      <p className="text-lg font-semibold mb-4">
+        {selected.visitorName}
+      </p>
+
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <Info label="Mobile" value={selected.visitorMobile} />
+        <Info label="QID" value={selected.qidNumber || "—"} />
+        <Info label="Vehicle" value={selected.vehicleNumber} />
+        <Info label="Bay" value={selected.bayName} />
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
