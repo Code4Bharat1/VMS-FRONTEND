@@ -35,10 +35,9 @@ export default function StaffManagement() {
 
   const fetchStaff = async () => {
     try {
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/staff`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/staff`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       setStaff(res.data.staff || []);
       setSelected(res.data.staff?.[0] || null);
@@ -67,11 +66,9 @@ export default function StaffManagement() {
   /* ================= ADD STAFF ================= */
   const submitStaff = async () => {
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/staff`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/staff`, form, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       setShowAdd(false);
       setForm({
@@ -90,9 +87,7 @@ export default function StaffManagement() {
 
   /* ================= FILTER ================= */
   const filtered = staff.filter((s) => {
-    const matchesSearch = s.name
-      ?.toLowerCase()
-      .includes(search.toLowerCase());
+    const matchesSearch = s.name?.toLowerCase().includes(search.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" ||
@@ -243,9 +238,7 @@ export default function StaffManagement() {
                       <td className="px-6 py-4 font-medium">{s.name}</td>
                       <td className="px-6 py-4">{s.email}</td>
                       <td className="px-6 py-4">{s.phone}</td>
-                      <td className="px-6 py-4">
-                        {getBayName(s.assignedBay)}
-                      </td>
+                      <td className="px-6 py-4">{getBayName(s.assignedBay)}</td>
                       <td className="px-6 py-4">
                         <span
                           className={`px-3 py-1 rounded-full text-[13px] ${
@@ -270,10 +263,7 @@ export default function StaffManagement() {
                   Select a staff member to view details
                 </p>
               ) : (
-                <StaffDetails
-                  selected={selected}
-                  getBayName={getBayName}
-                />
+                <StaffDetails selected={selected} getBayName={getBayName} />
               )}
             </div>
           </div>
@@ -296,10 +286,7 @@ export default function StaffManagement() {
             >
               ✕
             </button>
-            <StaffDetails
-              selected={selected}
-              getBayName={getBayName}
-            />
+            <StaffDetails selected={selected} getBayName={getBayName} />
           </div>
         </div>
       )}
@@ -333,9 +320,7 @@ export default function StaffManagement() {
                 type="password"
                 label="Password"
                 value={form.password}
-                onChange={(e) =>
-                  setForm({ ...form, password: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
               />
 
               <div>
