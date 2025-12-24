@@ -10,18 +10,19 @@ export default function HomePage() {
   const { isAuthenticated, user, loading } = useAuth();
 
   useEffect(() => {
-    if (!loading) {
-      if (isAuthenticated && user) {
-        if (user.role === "admin") {
-          router.push("/admin-register");
-        } else if (user.role === "staff") {
-          router.push("/staff/dashboard");
-        } else {
-          router.push("/supervisor/dashboard");
-        }
-      } else {
-        router.push("/login");
-      }
+    if (loading) return;
+
+    if (!isAuthenticated || !user) {
+      router.replace("/login");
+      return;
+    }
+
+    if (user.role === "admin") {
+      router.replace("/admin-register");
+    } else if (user.role === "staff") {
+      router.replace("/staff/dashboard");
+    } else if (user.role === "supervisor") {
+      router.replace("/supervisor/dashboard");
     }
   }, [isAuthenticated, user, loading, router]);
 
