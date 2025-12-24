@@ -44,7 +44,7 @@ export default function Sidebar({
         h-screen
         ${collapsed ? "w-20" : "w-64"}
         flex flex-col
-        bg-gradient-to-b from-emerald-50 to-white
+        bg-linear-to-b from-emerald-50 to-white
         border-r border-gray-200
         transition-[width] duration-300
         text-sm text-gray-700
@@ -52,7 +52,7 @@ export default function Sidebar({
     >
       {/* MOBILE HEADER */}
       {onClose && (
-        <div className="lg:hidden flex items-center justify-between px-4 h-[56px] border-b">
+        <div className="lg:hidden flex items-center justify-between px-4 h-14 border-b">
           <span className="font-semibold text-gray-800">Menu</span>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X size={20} />
@@ -74,7 +74,7 @@ export default function Sidebar({
         {!onClose && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-1 hover:bg-emerald-200 rounded"
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
@@ -86,8 +86,7 @@ export default function Sidebar({
         {menu.map((item) => {
           const Icon = item.icon;
           const active =
-            pathname === item.href ||
-            pathname.startsWith(item.href + "/");
+            pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
             <Link key={item.href} href={item.href}>

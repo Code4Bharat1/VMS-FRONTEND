@@ -22,11 +22,26 @@ const Sidebar = () => {
   const router = useRouter();
 
   const menuItems = [
-    { id: "overview", icon: LayoutDashboard, label: "Supervisor Overview", href: "/supervisor/dashboard" },
+    {
+      id: "overview",
+      icon: LayoutDashboard,
+      label: "Supervisor Overview",
+      href: "/supervisor/dashboard",
+    },
     { id: "staff", icon: Users, label: "My Staff", href: "/supervisor/staff" },
     { id: "bays", icon: Building2, label: "My Bays", href: "/supervisor/bays" },
-    { id: "search", icon: Search, label: "Search Entries", href: "/supervisor/search" },
-    { id: "settings", icon: Settings, label: "My Settings", href: "/supervisor/settings" },
+    {
+      id: "search",
+      icon: Search,
+      label: "Search Entries",
+      href: "/supervisor/search",
+    },
+    {
+      id: "settings",
+      icon: Settings,
+      label: "My Settings",
+      href: "/supervisor/settings",
+    },
   ];
 
   return (
@@ -54,8 +69,8 @@ const Sidebar = () => {
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0
           ${collapsed ? "w-20" : "w-64"}
-          bg-gradient-to-b from-emerald-50 to-white
-          h-[100dvh] md:h-screen
+          bg-linear-to-b from-emerald-50 to-white
+          h-dvh md:h-screen
           flex flex-col border-r border-gray-200
           transition-all duration-300
         `}
@@ -92,9 +107,11 @@ const Sidebar = () => {
               >
                 <div
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all cursor-pointer
-                    ${isActive
-                      ? "bg-emerald-100 text-emerald-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-100"}
+                    ${
+                      isActive
+                        ? "bg-emerald-100 text-emerald-700 font-medium"
+                        : "text-gray-600 hover:bg-emerald-100/40"
+                    }
                     ${collapsed ? "justify-center" : ""}
                     active:scale-[0.98]
                   `}

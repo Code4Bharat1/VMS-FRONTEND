@@ -36,14 +36,11 @@ const MyStaff = () => {
 
   const fetchStaff = async () => {
     try {
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/staff`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/staff`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
       setStaffData(res.data.staff || []);
     } catch (err) {
       console.error(err);
@@ -76,9 +73,7 @@ const MyStaff = () => {
                 {staff.name?.[0]}
               </div>
               <div>
-                <h2 className="text-lg md:text-2xl font-bold">
-                  {staff.name}
-                </h2>
+                <h2 className="text-lg md:text-2xl font-bold">{staff.name}</h2>
                 <p className="text-gray-500 text-sm">
                   {staff.role} • {staff.assignedBay?.bayName || "—"}
                 </p>
@@ -113,10 +108,7 @@ const MyStaff = () => {
                 ["Avg", staff.avgTime || "-"],
                 ["7 Days", staff.last7Days || 0],
               ].map(([label, value], i) => (
-                <div
-                  key={i}
-                  className="border rounded-xl p-4 text-center"
-                >
+                <div key={i} className="border rounded-xl p-4 text-center">
                   <p className="text-sm text-gray-500">{label}</p>
                   <p className="font-bold text-lg">{value}</p>
                 </div>
@@ -178,9 +170,7 @@ const MyStaff = () => {
               </div>
               <div>
                 <p className="font-semibold">{supervisor?.name}</p>
-                <p className="text-xs text-gray-500">
-                  {supervisor?.role}
-                </p>
+                <p className="text-xs text-gray-500">{supervisor?.role}</p>
               </div>
             </div>
           </div>
@@ -190,13 +180,21 @@ const MyStaff = () => {
         <div className="px-4 md:px-8 py-4 md:py-6">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
-            <StatCard title="Total Staff" value={staffData.length} icon={<Users />} />
+            <StatCard
+              title="Total Staff"
+              value={staffData.length}
+              icon={<Users />}
+            />
             <StatCard
               title="Active Staff"
               value={staffData.filter((s) => s.isActive).length}
               icon={<Activity />}
             />
-            <StatCard title="Today's Entries" value="384" icon={<TrendingUp />} />
+            <StatCard
+              title="Today's Entries"
+              value="384"
+              icon={<TrendingUp />}
+            />
           </div>
 
           {/* Filters */}
@@ -221,7 +219,10 @@ const MyStaff = () => {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:ml-auto">
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -248,13 +249,22 @@ const MyStaff = () => {
             <table className="w-full">
               <thead className="bg-gray-50 shadow-sm">
                 <tr>
-                  {["Name", "Phone", "Bay", "Email", "Entries", "Avg", "Status"].map(
-                    (h) => (
-                      <th key={h} className="px-6 py-3 text-left text-sm text-gray-600">
-                        {h}
-                      </th>
-                    )
-                  )}
+                  {[
+                    "Name",
+                    "Phone",
+                    "Bay",
+                    "Email",
+                    "Entries",
+                    "Avg",
+                    "Status",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-6 py-3 text-left text-sm text-gray-600"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -301,7 +311,10 @@ const MyStaff = () => {
       </div>
 
       {selectedStaff && (
-        <StaffModal staff={selectedStaff} onClose={() => setSelectedStaff(null)} />
+        <StaffModal
+          staff={selectedStaff}
+          onClose={() => setSelectedStaff(null)}
+        />
       )}
     </div>
   );
