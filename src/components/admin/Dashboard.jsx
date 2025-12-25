@@ -156,6 +156,7 @@ export default function Dashboard() {
           />
         </div>
 
+
         {/* DONUT + BAR */}
         <div className="grid grid-cols-1 lg:grid-cols-3 p-5 gap-6">
           <DonutChart label="Staff Active" value={activeStaff} total={totalStaff} />
