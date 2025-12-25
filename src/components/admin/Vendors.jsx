@@ -8,7 +8,10 @@ import {
   X,
   Users,
   Activity,
+  Trash2,
+  Pencil,
 } from "lucide-react";
+import axios from "axios";
 
 export default function VendorManagement() {
   const [vendors, setVendors] = useState([]);
@@ -16,25 +19,27 @@ export default function VendorManagement() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const [editId, setEditId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const [showAdd, setShowAdd] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showMobilePopup, setShowMobilePopup] = useState(false);
 
-  const [filters, setFilters] = useState({
-    status: "all",
-  });
+  const [filters, setFilters] = useState({ status: "all" });
 
   const [form, setForm] = useState({
     companyName: "",
     contactPerson: "",
     mobile: "",
-    shopID: "",
-    qid: "",
   });
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    typeof window !== "undefined"
+      ? localStorage.getItem("accessToken")
+      : null;
 
+  /* ================= FETCH ================= */
   useEffect(() => {
     fetchVendors();
   }, []);
@@ -48,15 +53,12 @@ export default function VendorManagement() {
         status: filters.status !== "all" ? filters.status : "",
       });
 
-      const res = await fetch(
-        `http://localhost:5000/api/v1/vendors?${query.toString()}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/vendors?${query.toString()}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const data = await res.json();
-      setVendors(data.vendors || []);
+      setVendors(res.data.vendors || []);
       setSelected(null);
     } catch (err) {
       console.error("Failed to fetch vendors", err);
@@ -65,245 +67,318 @@ export default function VendorManagement() {
     }
   };
 
+  /* ================= CREATE ================= */
   const submitVendor = async () => {
     try {
-      await fetch("http://localhost:5000/api/v1/vendors", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      });
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/vendors`,
+        form,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      setShowAdd(false);
-      setForm({
-        companyName: "",
-        contactPerson: "",
-        mobile: "",
-        shopID: "",
-        qid: "",
-      });
-      fetchVendors();
+      setVendors((prev) => [res.data.vendor, ...prev]);
+      closeModal();
     } catch (err) {
-      console.error("Failed to add vendor", err);
+      console.error("Add vendor failed", err);
     }
   };
 
+  /* ================= UPDATE ================= */
+  const updateVendor = async () => {
+    try {
+      const res = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/vendors/${editId}`,
+        form,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setVendors((prev) =>
+        prev.map((v) => (v._id === editId ? res.data.updated : v))
+      );
+
+      closeModal();
+    } catch (err) {
+      console.error("Update vendor failed", err);
+    }
+  };
+
+  /* ================= STATUS ================= */
+  const toggleVendorStatus = async (id) => {
+    try {
+      const res = await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_URL}/vendors/${id}/status`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setVendors((prev) =>
+        prev.map((v) =>
+          v._id === id ? { ...v, status: res.data.status } : v
+        )
+      );
+    } catch (err) {
+      console.error("Toggle status failed", err);
+    }
+  };
+
+  /* ================= DELETE ================= */
+  const deleteVendor = async () => {
+    try {
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_URL}/vendors/${selected._id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setVendors((prev) =>
+        prev.filter((v) => v._id !== selected._id)
+      );
+
+      setConfirmDelete(false);
+      setSelected(null);
+    } catch (err) {
+      console.error("Delete vendor failed", err);
+    }
+  };
+
+  const closeModal = () => {
+    setShowAdd(false);
+    setEditId(null);
+    setForm({ companyName: "", contactPerson: "", mobile: "" });
+  };
+
+  /* ================= UI ================= */
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <div className="flex-1 overflow-x-hidden">
-        {/* HEADER */}
-        <div className="bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-[22px] font-semibold text-gray-800">
-                Vendor Management
-              </h1>
-              <p className="text-[14px] text-gray-500">
-                Manage vendor profiles
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <div className="relative">
-                <Search
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  className="pl-10 pr-4 h-[40px] w-64 rounded-lg border
-                             focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Search vendor"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyUp={fetchVendors}
-                />
-              </div>
-
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 h-[40px] border rounded-lg"
-              >
-                <Filter size={16} />
-                Filters
-              </button>
-
-              <button
-                onClick={() => setShowAdd(true)}
-                className="flex items-center gap-2 px-4 h-[40px]
-                           rounded-lg bg-emerald-600 text-white"
-              >
-                <Plus size={16} />
-                Add Vendor
-              </button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* HEADER */}
+      <div className="bg-white shadow-sm px-6 py-4 flex justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">Vendor Management</h1>
+          <p className="text-sm text-gray-500">Manage vendor profiles</p>
         </div>
 
-        {showFilters && (
-          <div className="bg-white border-b px-6 py-4 flex gap-4">
-            <Select
-              label="Status"
-              value={filters.status}
-              onChange={(e) =>
-                setFilters({ ...filters, status: e.target.value })
-              }
-            >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </Select>
-
-            <button
-              onClick={fetchVendors}
-              className="self-end px-4 h-[40px] bg-emerald-600 text-white rounded-lg"
-            >
-              Apply
-            </button>
-          </div>
-        )}
-
-        <div className="px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-            <Stat title="Total Vendors" value={vendors.length} icon={Users} />
-            <Stat
-              title="Active Vendors"
-              value={vendors.filter((v) => v.status === "active").length}
-              icon={Activity}
+        <div className="flex gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 text-gray-400" size={16} />
+            <input
+              className="pl-9 pr-4 h-10 border border-gray-400 rounded-lg"
+              placeholder="Search vendor"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyUp={fetchVendors}
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-x-auto">
-              <table className="min-w-[700px] w-full">
-                <thead className="bg-green-100">
-                  <tr>
-                    {["Company", "Contact", "Mobile", "Status"].map((h) => (
-                      <th key={h} className="px-6 py-4 text-center text-[14px]">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-4 h-10 border border-gray-400 rounded-lg"
+          >
+            <Filter size={16} />
+          </button>
 
-                <tbody className="text-center">
-                  {vendors.map((v) => (
-                    <tr
-                      key={v._id}
-                      onClick={() => {
-                        setSelected(v);
-                        setShowMobilePopup(true);
-                      }}
-                      className="hover:bg-green-50 cursor-pointer border-b-2 border-gray-200"
-                    >
-                      <td className="px-6 py-4 font-medium">{v.companyName}</td>
-                      <td className="px-6 py-4">{v.contactPerson}</td>
-                      <td className="px-6 py-4">{v.mobile}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 rounded-full bg-green-50 text-green-700 text-[13px]">
-                          {v.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="hidden lg:block bg-white rounded-2xl shadow-sm p-6">
-              {!selected ? (
-                <p className="text-gray-400 text-center">
-                  Select a vendor to view details
-                </p>
-              ) : (
-                <VendorDetails selected={selected} />
-              )}
-            </div>
-          </div>
+          <button
+            onClick={() => {
+              setEditId(null);
+              setShowAdd(true);
+            }}
+            className="px-4 h-10 bg-emerald-600 text-white rounded-lg flex items-center gap-2"
+          >
+            <Plus size={16} /> Add Vendor
+          </button>
         </div>
       </div>
 
-      {showMobilePopup && selected && (
-        <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center lg:hidden"
-          onClick={() => setShowMobilePopup(false)}
-        >
-          <div
-            className="bg-white rounded-2xl p-6 w-[92%] max-w-sm relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowMobilePopup(false)}
-              className="absolute top-3 right-3"
-            >
-              ✕
-            </button>
-            <VendorDetails selected={selected} />
-          </div>
+      {/* STATS */}
+      <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <Stat title="Total Vendors" value={vendors.length} icon={Users} />
+        <Stat
+          title="Active Vendors"
+          value={vendors.filter((v) => v.status === "active").length}
+          icon={Activity}
+        />
+      </div>
+
+      {/* TABLE */}
+      <div className="px-6">
+        <div className="bg-white rounded-2xl shadow overflow-x-auto">
+          <table className="min-w-[720px] w-full">
+            <thead className="bg-green-100">
+              <tr>
+                {["Company", "Contact", "Mobile", "Status", "Actions"].map(
+                  (h) => (
+                    <th key={h} className="px-6 py-4 text-center text-sm">
+                      {h}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+
+            <tbody className="text-center">
+              {vendors.map((v) => (
+                <tr
+                  key={v._id}
+                  onClick={() => {
+                    setSelected(v);
+                    setShowMobilePopup(true);
+                  }}
+                  className="shadow-sm hover:bg-green-50 cursor-pointer"
+                >
+                  <td className="px-6 py-4 font-medium">
+                    {v.companyName}
+                  </td>
+                  <td className="px-6 py-4">{v.contactPerson}</td>
+                  <td className="px-6 py-4">{v.mobile}</td>
+
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleVendorStatus(v._id);
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs ${
+                        v.status === "active"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-gray-200 text-gray-600"
+                      }`}
+                    >
+                      {v.status}
+                    </button>
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditId(v._id);
+                          setForm({
+                            companyName: v.companyName,
+                            contactPerson: v.contactPerson,
+                            mobile: v.mobile,
+                          });
+                          setShowAdd(true);
+                        }}
+                        className="text-emerald-600 hover:text-emerald-800"
+                      >
+                        <Pencil size={18} />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(v);
+                          setConfirmDelete(true);
+                        }}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </div>
+
+      {/* ADD / EDIT MODAL */}
+      {showAdd && (
+        <Modal
+          title={editId ? "Edit Vendor" : "Add Vendor"}
+          onClose={closeModal}
+          onSubmit={editId ? updateVendor : submitVendor}
+          form={form}
+          setForm={setForm}
+        />
       )}
 
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-[520px] rounded-2xl overflow-hidden">
-            <div className="flex justify-between px-6 py-4 border-b">
-              <h2 className="font-semibold">Add Vendor</h2>
-              <X onClick={() => setShowAdd(false)} />
-            </div>
-
-            <div className="p-6 space-y-4">
-              <Field label="Company Name" value={form.companyName}
-                onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
-
-              <Field label="Contact Person" value={form.contactPerson}
-                onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} />
-
-              <Field label="Mobile" value={form.mobile}
-                onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
-
-              <Field label="Shop ID" value={form.shopID}
-                onChange={(e) => setForm({ ...form, shopID: e.target.value })} />
-
-              <Field label="QID" value={form.qid}
-                onChange={(e) => setForm({ ...form, qid: e.target.value })} />
-            </div>
-
-            <div className="px-6 py-4 border-t flex justify-end gap-3">
-              <button onClick={() => setShowAdd(false)}>Cancel</button>
-              <button
-                onClick={submitVendor}
-                className="px-5 py-2 bg-emerald-600 text-white rounded-lg"
-              >
-                Add Vendor
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* DELETE CONFIRM */}
+      {confirmDelete && (
+        <ConfirmDelete
+          onCancel={() => setConfirmDelete(false)}
+          onDelete={deleteVendor}
+        />
       )}
     </div>
   );
 }
 
-/* COMPONENTS */
-
-const VendorDetails = ({ selected }) => (
-  <div className="space-y-4 text-[14px]">
-    <h3 className="text-[16px] font-semibold">{selected.companyName}</h3>
-    <Detail label="Contact" value={selected.contactPerson} />
-    <Detail label="Mobile" value={selected.mobile} />
-    <Detail label="Shop ID" value={selected.shopID} />
-    <Detail label="QID" value={selected.qid} />
-  </div>
-);
+/* ================= COMPONENTS ================= */
 
 const Stat = ({ title, value, icon: Icon }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
+  <div className="bg-teal-50 border border-green-600 rounded-2xl shadow p-6">
     <div className="flex justify-between mb-2">
       <p className="text-gray-500">{title}</p>
       <Icon size={18} className="text-emerald-600" />
     </div>
-    <p className="text-[26px] font-semibold">{value}</p>
+    <p className="text-2xl font-semibold">{value}</p>
+  </div>
+);
+
+const Modal = ({ title, onClose, onSubmit, form, setForm }) => (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-2xl w-full max-w-md">
+      <div className="px-6 py-4 border-b flex justify-between">
+        <h2 className="font-semibold">{title}</h2>
+        <X onClick={onClose} className="cursor-pointer" />
+      </div>
+
+      <div className="p-6 space-y-4">
+        <Field
+          label="Company Name"
+          value={form.companyName}
+          onChange={(e) =>
+            setForm({ ...form, companyName: e.target.value })
+          }
+        />
+        <Field
+          label="Contact Person"
+          value={form.contactPerson}
+          onChange={(e) =>
+            setForm({ ...form, contactPerson: e.target.value })
+          }
+        />
+        <Field
+          label="Mobile"
+          value={form.mobile}
+          onChange={(e) =>
+            setForm({ ...form, mobile: e.target.value })
+          }
+        />
+      </div>
+
+      <div className="px-6 py-4 border-t flex justify-end gap-3">
+        <button onClick={onClose}>Cancel</button>
+        <button
+          onClick={onSubmit}
+          className="bg-emerald-600 text-white px-4 py-2 rounded-lg"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const ConfirmDelete = ({ onCancel, onDelete }) => (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl p-6 w-80">
+      <h3 className="font-semibold mb-2">Delete Vendor?</h3>
+      <p className="text-sm text-gray-500 mb-4">
+        This action cannot be undone.
+      </p>
+
+      <div className="flex justify-end gap-3">
+        <button onClick={onCancel}>Cancel</button>
+        <button
+          onClick={onDelete}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
   </div>
 );
 
@@ -314,21 +389,5 @@ const Field = ({ label, ...props }) => (
       {...props}
       className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
     />
-  </div>
-);
-
-const Select = ({ label, children, ...props }) => (
-  <div>
-    <label className="block text-gray-500 mb-1">{label}</label>
-    <select {...props} className="border rounded-lg px-3 py-2">
-      {children}
-    </select>
-  </div>
-);
-
-const Detail = ({ label, value }) => (
-  <div>
-    <p className="text-gray-500">{label}</p>
-    <p className="font-medium">{value}</p>
   </div>
 );

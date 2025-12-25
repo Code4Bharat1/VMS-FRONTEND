@@ -8,6 +8,12 @@ export default function BayManagement() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  /* -------- Add Bay Modal State -------- */
+  const [showAddBay, setShowAddBay] = useState(false);
+  const [bayName, setBayName] = useState("");
+  const [bayType, setBayType] = useState("");
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -34,7 +40,33 @@ export default function BayManagement() {
     }
   };
 
-  /* ================= OCCUPIED COUNT LOGIC (UNCHANGED) ================= */
+  /* ================= ADD BAY ================= */
+  const addBay = async () => {
+    if (!bayName || !bayType) return;
+
+    try {
+      setSaving(true);
+      const token = localStorage.getItem("accessToken");
+
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/bays`,
+        { bayName, bayType },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setShowAddBay(false);
+      setBayName("");
+      setBayType("");
+
+      fetchData(); // refresh list
+    } catch (err) {
+      console.error("Failed to add bay", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ================= OCCUPIED COUNT ================= */
   const getOccupiedCount = (bayId) => {
     return entries.filter((entry) => {
       if (entry.outTime !== null) return false;
@@ -61,9 +93,9 @@ export default function BayManagement() {
     <div className="flex min-h-screen bg-gray-50">
       <div className="flex-1 overflow-x-hidden">
 
-        {/* ================= WHITE NAVBAR (ADDED) ================= */}
+        {/* ================= NAVBAR ================= */}
         <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sticky top-0 z-40">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center justify-between">
             <div>
               <h1 className="text-[18px] sm:text-[22px] font-semibold text-gray-800">
                 Bay Management
@@ -72,13 +104,18 @@ export default function BayManagement() {
                 Real-time bay availability and occupancy status
               </p>
             </div>
+
+            <button
+              onClick={() => setShowAddBay(true)}
+              className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+            >
+              + Add Bay
+            </button>
           </div>
         </div>
 
         {/* ================= PAGE CONTENT ================= */}
         <div className="px-4 sm:px-6 lg:px-8 py-6">
-
-          {/* ================= BAY GRID ================= */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {bays.map((bay) => {
               const occupied = getOccupiedCount(bay._id);
@@ -86,25 +123,18 @@ export default function BayManagement() {
               return (
                 <div
                   key={bay._id}
-                  className="
-                    bg-white rounded-2xl border border-gray-200
-                    p-4 sm:p-5
-                    shadow-sm hover:shadow-md
-                    transition-shadow
-                  "
+                  className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  {/* BAY TITLE */}
                   <div className="mb-3">
                     <h2 className="text-[15px] sm:text-lg font-semibold text-gray-800">
                       Bay {bay.bayName}
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-500">
-                      Operational {bay.bayType} bay
+                      {bay.bayType} bay
                     </p>
                   </div>
 
-                  {/* STATUS TAGS */}
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex gap-2 mb-4">
                     <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 font-medium">
                       Free: --
                     </span>
@@ -113,22 +143,63 @@ export default function BayManagement() {
                     </span>
                   </div>
 
-                  {/* PROGRESS BAR */}
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className="h-2 bg-emerald-600 rounded-full transition-all duration-300"
-                      style={{
-                        width: occupied > 0 ? "60%" : "0%",
-                      }}
+                      className="h-2 bg-emerald-600 rounded-full transition-all"
+                      style={{ width: occupied > 0 ? "60%" : "0%" }}
                     />
                   </div>
                 </div>
               );
             })}
           </div>
-
         </div>
       </div>
+
+      {/* ================= ADD BAY MODAL ================= */}
+      {showAddBay && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+              Add New Bay
+            </h2>
+
+            <div className="space-y-4 text-sm">
+              <input
+                type="text"
+                placeholder="Bay Name (e.g. A, B, C)"
+                value={bayName}
+                onChange={(e) => setBayName(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+
+              <input
+                type="text"
+                placeholder="Bay Type (e.g. Loading, Parking)"
+                value={bayType}
+                onChange={(e) => setBayType(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowAddBay(false)}
+                className="px-4 py-2 text-sm rounded-lg border"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={addBay}
+                disabled={saving}
+                className="px-4 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {saving ? "Saving..." : "Add Bay"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

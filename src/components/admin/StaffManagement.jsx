@@ -12,6 +12,7 @@ export default function StaffManagement() {
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [nameFilter, setNameFilter] = useState("all");
+  const [editId, setEditId] = useState(null);
 
   const [showAdd, setShowAdd] = useState(false);
   const [showMobilePopup, setShowMobilePopup] = useState(false);
@@ -64,26 +65,58 @@ export default function StaffManagement() {
   };
 
   /* ================= ADD STAFF ================= */
-  const submitStaff = async () => {
-    try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/staff`, form, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setShowAdd(false);
-      setForm({
-        name: "",
-        email: "",
-        phone: "",
-        assignedBay: "",
-        password: "",
-      });
-
-      fetchStaff();
-    } catch (err) {
-      console.error("Add staff error:", err);
+const saveStaff = async () => {
+  try {
+    if (editId) {
+      // UPDATE STAFF
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/staff/${editId}`,
+        {
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          assignedBay: form.assignedBay,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } else {
+      // CREATE STAFF
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/staff`,
+        form,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
     }
-  };
+
+    setShowAdd(false);
+    setEditId(null);
+    setForm({
+      name: "",
+      email: "",
+      phone: "",
+      assignedBay: "",
+      password: "",
+    });
+
+    fetchStaff();
+  } catch (err) {
+    console.error("Save staff error:", err);
+  }
+};
+
+
+  const toggleStaffStatus = async (id) => {
+  try {
+    await axios.patch(
+      `${process.env.NEXT_PUBLIC_API_URL}/staff/${id}/status`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    fetchStaff();
+  } catch (err) {
+    console.error("Toggle staff status error:", err);
+  }
+};
 
   /* ================= FILTER ================= */
   const filtered = staff.filter((s) => {
@@ -104,7 +137,7 @@ export default function StaffManagement() {
     <div className="flex min-h-screen bg-gray-50">
       <div className="flex-1 overflow-auto">
         {/* HEADER */}
-        <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-4">
+        <div className="bg-white border-b border-gray-200 shadow-sm px-4 sm:px-8 py-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h1 className="text-[18px] sm:text-[22px] font-semibold text-gray-800">
@@ -214,7 +247,7 @@ export default function StaffManagement() {
               <table className="min-w-[720px] w-full">
                 <thead className="bg-green-100 border-b-2 border-gray-200">
                   <tr>
-                    {["Name", "Email", "Phone", "Bay", "Status"].map((h) => (
+                    {["Name", "Email", "Phone", "Bay", "Status", "Action"].map((h) => (
                       <th
                         key={h}
                         className="px-6 py-4 text-[14px] font-medium text-center text-gray-600"
@@ -239,17 +272,41 @@ export default function StaffManagement() {
                       <td className="px-6 py-4">{s.email}</td>
                       <td className="px-6 py-4">{s.phone}</td>
                       <td className="px-6 py-4">{getBayName(s.assignedBay)}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-[13px] ${
-                            s.isActive
-                              ? "bg-green-50 text-green-700"
-                              : "bg-gray-100"
-                          }`}
-                        >
-                          {s.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </td>
+<td className="px-6 py-4">
+  <span
+    onClick={() => toggleStaffStatus(s._id)}
+    className={`cursor-pointer px-3 py-1 rounded-full text-[13px] ${
+      s.isActive
+        ? "bg-green-50 text-green-700"
+        : "bg-gray-100 text-gray-600"
+    }`}
+  >
+    {s.isActive ? "Active" : "Inactive"}
+  </span>
+</td>
+
+<td className="px-6 py-4">
+  <button
+    onClick={() => {
+      setEditId(s._id);
+      setForm({
+        name: s.name,
+        email: s.email,
+        phone: s.phone,
+        assignedBay:
+          typeof s.assignedBay === "object"
+            ? s.assignedBay?._id
+            : s.assignedBay || "",
+        password: "",
+      });
+      setShowAdd(true);
+    }}
+    className="text-sm text-emerald-600 hover:underline"
+  >
+    Edit
+  </button>
+</td>
+
                     </tr>
                   ))}
                 </tbody>
@@ -316,12 +373,17 @@ export default function StaffManagement() {
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
-              <Field
-                type="password"
-                label="Password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-              />
+{!editId && (
+  <Field
+    type="password"
+    label="Password"
+    value={form.password}
+    onChange={(e) =>
+      setForm({ ...form, password: e.target.value })
+    }
+  />
+)}
+
 
               <div>
                 <label className="block mb-1 font-medium text-gray-600">
@@ -347,12 +409,13 @@ export default function StaffManagement() {
 
             <div className="px-6 py-4 border-t flex justify-end gap-3">
               <button onClick={() => setShowAdd(false)}>Cancel</button>
-              <button
-                onClick={submitStaff}
-                className="px-5 py-2 bg-emerald-600 text-white rounded-lg"
-              >
-                Add Staff
-              </button>
+<button
+  onClick={saveStaff}
+  className="px-5 py-2 bg-emerald-600 text-white rounded-lg"
+>
+  {editId ? "Update Staff" : "Add Staff"}
+</button>
+
             </div>
           </div>
         </div>
@@ -364,18 +427,45 @@ export default function StaffManagement() {
 /* ================= SMALL COMPONENTS ================= */
 
 const StaffDetails = ({ selected, getBayName }) => (
-  <div className="space-y-3 text-[14px]">
-    <h3 className="text-[16px] font-semibold">{selected.name}</h3>
-    <Detail label="Email" value={selected.email} />
-    <Detail label="Phone" value={selected.phone} />
-    <Detail label="Bay" value={getBayName(selected.assignedBay)} />
-    <Detail label="Role" value={selected.role} />
-    <Detail label="Status" value={selected.isActive ? "Active" : "Inactive"} />
+  <div className="space-y-5 text-[14px]">
+    {/* Header */}
+    <div className="flex items-center justify-between">
+      <h3 className="text-[17px] font-semibold text-gray-900">
+        {selected.name}
+      </h3>
+
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-medium ${
+          selected.isActive
+            ? "bg-emerald-100 text-emerald-700"
+            : "bg-gray-200 text-gray-600"
+        }`}
+      >
+        {selected.isActive ? "Active" : "Inactive"}
+      </span>
+    </div>
+
+    {/* Divider */}
+    <div className="h-px bg-gray-200" />
+
+    {/* Details */}
+    <div className="space-y-3">
+      <Detail label="Email" value={selected.email} />
+      <Detail label="Phone" value={selected.phone} />
+      <Detail label="Assigned Bay" value={getBayName(selected.assignedBay)} />
+      <Detail label="Role" value={selected.role} />
+    </div>
+
+    {/* Accent Footer */}
+    <div className="pt-3">
+      <div className="h-1 w-12 rounded-full bg-emerald-500" />
+    </div>
   </div>
 );
 
+
 const Stat = ({ title, value, icon: Icon }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
+  <div className="bg-teal-50 border border-green rounded-2xl shadow-sm p-6">
     <div className="flex justify-between mb-2">
       <p className="text-gray-500">{title}</p>
       <Icon size={18} className="text-emerald-600" />
