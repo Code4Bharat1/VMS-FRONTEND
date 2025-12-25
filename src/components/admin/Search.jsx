@@ -20,8 +20,7 @@ export default function SearchRecords() {
 
   const fetchEntries = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:5000/api/v1/entries",
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/entries`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -52,7 +51,6 @@ export default function SearchRecords() {
           e.visitorCompany,
           e.visitorMobile,
           e.qidNumber,
-          e.entryMethod,
           e.bayId?.bayName,
           e.createdBy?.name,
         ]
@@ -68,16 +66,15 @@ export default function SearchRecords() {
     const i = new Date(inTime).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
+            month:"short",
+            year:"2-digit",
+
+      
     });
 
-    const o = outTime
-      ? new Date(outTime).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "—";
 
-    return `${i} / ${o}`;
+
+    return ` ${i} `;
   };
 
   /* ================= EXPORT CSV ================= */
@@ -91,19 +88,16 @@ export default function SearchRecords() {
       "Visitor Name",
       "Company",
       "Handled By",
-      "Method",
-      "Direction",
     ];
 
     const rows = filtered.map((e) => [
-      formatTime(e.inTime, e.outTime),
+      formatTime(e.inTime),
       e.bayId?.bayName || "",
       e.vehicleNumber || "",
       e.visitorName || "",
       e.visitorCompany || "",
       e.createdBy?.name || "",
-      e.entryMethod?.toUpperCase() || "",
-      e.outTime ? "OUT" : "IN",
+     
     ]);
 
     const csv =
@@ -184,8 +178,7 @@ export default function SearchRecords() {
                     "Visitor Name",
                     "Company",
                     "Handled By",
-                    "Method",
-                    "Direction",
+                  
                   ].map((h) => (
                     <th
                       key={h}
@@ -213,7 +206,7 @@ export default function SearchRecords() {
                 {filtered.map((e) => (
                   <tr key={e._id} className="hover:bg-green-50">
                     <td className="px-6 py-4 text-[14px]">
-                      {formatTime(e.inTime, e.outTime)}
+                      {formatTime(e.inTime)}
                     </td>
                     <td className="px-6 py-4 text-[14px]">
                       {e.bayId?.bayName || "—"}
@@ -230,20 +223,8 @@ export default function SearchRecords() {
                     <td className="px-6 py-4 text-[14px]">
                       {e.createdBy?.name || "—"}
                     </td>
-                    <td className="px-6 py-4 text-[14px]">
-                      {e.entryMethod?.toUpperCase()}
-                    </td>
-                    <td className="px-6 py-4 text-[14px]">
-                      <span
-                        className={`px-3 py-1 rounded-full text-[13px] ${
-                          e.outTime
-                            ? "bg-gray-100 text-gray-700"
-                            : "bg-green-50 text-green-700"
-                        }`}
-                      >
-                        {e.outTime ? "OUT" : "IN"}
-                      </span>
-                    </td>
+                
+       
                   </tr>
                 ))}
               </tbody>
