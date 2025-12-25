@@ -27,7 +27,7 @@ const menu = [
   { label: "Supervisors", href: "/admin/Supervisors", icon: ShieldCheck },
   { label: "Staff", href: "/admin/Staff", icon: Users },
   { label: "Reports", href: "/admin/Report", icon: BarChart3 },
-  { label: "Settings", href: "/staff/SettingPage", icon: Settings },
+  { label: "Settings", href: "/admin/SettingPage", icon: Settings },
 ];
 
 /* ================= SIDEBAR ================= */
