@@ -1,4 +1,5 @@
 "use client";
+import * as yup from "yup";
 
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -17,6 +18,8 @@ export default function ManualEntry() {
   const [staff, setStaff] = useState(null);
   const [bays, setBays] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -36,14 +39,84 @@ export default function ManualEntry() {
       })
       .then((res) => setBays(res.data.bays || []));
   }, [token]);
+const entrySchema = yup.object().shape({
+  visitorName: yup
+    .string()
+    .matches(/^[A-Za-z ]*$/, "Only alphabets allowed")
+    .nullable(),
+
+  qidNumber: yup
+    .string()
+    .nullable(),
+
+  mobile: yup
+    .string()
+    .matches(/^[0-9]{10}$/, "Mobile number must be 10 digits")
+    .nullable(),
+
+  company: yup
+    .string()
+    .nullable(),
+
+  vehicleNumber: yup
+  .string()
+  .matches(
+    /^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$/,
+    "Vehicle number must be in format like KA01AB1234"
+  )
+  .required("Vehicle number is required"),
+
+
+  vehicleType: yup
+    .string()
+    .required("Vehicle type is required"),
+
+  bayId: yup
+    .string()
+    .required("Please select a bay"),
+
+  purpose: yup
+    .string()
+    .nullable(),
+});
+
+const validateForm = async () => {
+  try {
+    await entrySchema.validate(
+      {
+        visitorName,
+        qidNumber,
+        mobile,
+        company,
+        vehicleNumber,
+        vehicleType,
+        bayId,
+        purpose,
+      },
+      { abortEarly: false }
+    );
+
+    setErrors({});
+    return true;
+  } catch (err) {
+    const newErrors = {};
+    err.inner.forEach((e) => {
+      newErrors[e.path] = e.message;
+    });
+    setErrors(newErrors);
+    return false;
+  }
+};
+
 
   const saveEntry = async () => {
-    if (!vehicleNumber) return alert("Vehicle number is required");
-    if (!bayId) return alert("Please select a Bay");
+    const isValid = await validateForm();
+if (!isValid) return;
 
     const user = JSON.parse(localStorage.getItem("user"));
     const staffId = user?.id;
     if (!staffId) return alert("Staff not logged in");
+    // if (!user.role === "staff") return alert("Staff not logged in");
 
     try {
       setLoading(true);
@@ -105,14 +178,19 @@ export default function ManualEntry() {
       <div className="px-4 sm:px-8 py-8">
         <div className="max-w-5xl bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
           <Section title="Visitor Information">
-            <Input label="Visitor Name" value={visitorName} onChange={setVisitorName} />
-            <Input label="QID" value={qidNumber} onChange={setQidNumber} />
-            <Input label="Mobile Number" value={mobile} onChange={setMobile} />
-            <Input label="Company / Tenant" value={company} onChange={setCompany} />
+            <Input
+  label="Visitor Name"
+  value={visitorName}
+  onChange={setVisitorName}
+  error={errors.visitorName}
+/>
+            <Input label="QID" value={qidNumber} onChange={setQidNumber} error={errors.qidNumber} />
+            <Input label="Mobile Number" value={mobile} onChange={setMobile} error={errors.mobile} />
+            <Input label="Company / Tenant" value={company} onChange={setCompany} error={errors.company} />
           </Section>
 
           <Section title="Vehicle Information">
-            <Input label="Vehicle Number" value={vehicleNumber} onChange={setVehicleNumber} />
+            <Input label="Vehicle Number" value={vehicleNumber} onChange={setVehicleNumber} error={errors.vehicleNumber} />
             <Select
               label="Vehicle Type"
               value={vehicleType}
@@ -124,23 +202,30 @@ export default function ManualEntry() {
           <Section title="Visit Details" withDivider>
             <Input label="Purpose" value={purpose} onChange={setPurpose} />
             <div>
-              <label className="text-xs text-gray-500">Destination Bay</label>
-              <select
-                className="
-                  h-11 w-full rounded-xl px-4
-                  bg-gray-50 border border-gray-200
-                  focus:outline-none focus:ring-2 focus:ring-emerald-500
-                "
-                value={bayId}
-                onChange={(e) => setBayId(e.target.value)}
-              >
-                <option value="">Select Bay</option>
-                {bays.map((bay) => (
-                  <option key={bay._id} value={bay._id}>
-                    {bay.bayName}
-                  </option>
-                ))}
-              </select>
+             <label className="text-xs text-gray-500">Destination Bay</label>
+
+  <select
+    className="
+      h-11 w-full rounded-xl px-4
+      bg-gray-50 border border-gray-200
+      focus:outline-none focus:ring-2 focus:ring-emerald-500
+    "
+    value={bayId}
+    onChange={(e) => setBayId(e.target.value)}
+  >
+    <option value="">Select Bay</option>
+    {bays.map((bay) => (
+      <option key={bay._id} value={bay._id}>
+        {bay.bayName}
+      </option>
+    ))}
+  </select>
+
+  {errors.bayId && (
+    <p className="text-red-500 text-xs mt-1">
+      {errors.bayId}
+    </p>
+  )}
             </div>
           </Section>
 
@@ -182,7 +267,7 @@ function Section({ title, children, withDivider }) {
   );
 }
 
-function Input({ label, value, onChange }) {
+function Input({ label, value, onChange, error }) {
   return (
     <div>
       <label className="text-xs text-gray-500 mb-1 block">{label}</label>
@@ -195,9 +280,11 @@ function Input({ label, value, onChange }) {
           focus:outline-none focus:ring-2 focus:ring-emerald-500
         "
       />
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   );
 }
+
 
 function Select({ label, value, onChange, options }) {
   return (

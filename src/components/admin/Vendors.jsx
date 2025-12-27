@@ -12,6 +12,40 @@ import {
   Pencil,
 } from "lucide-react";
 import axios from "axios";
+import * as yup from "yup";
+
+/* ================= YUP VALIDATION ================= */
+const vendorSchema = yup.object().shape({
+  companyName: yup
+    .string()
+    .matches(/^[A-Za-z ]+$/, "Only alphabets allowed")
+    .required("Company name is required"),
+
+  contactPerson: yup
+    .string()
+    .matches(/^[A-Za-z ]+$/, "Only alphabets allowed")
+    .required("Contact person is required"),
+
+  mobile: yup
+    .string()
+    .matches(/^[0-9]{10,15}$/, "Only numbers (10–15 digits)")
+    .required("Mobile number is required"),
+
+  shopId: yup
+    .string()
+    .matches(/^[A-Za-z0-9]+$/, "Only letters & numbers allowed")
+    .required("Shop ID is required"),
+
+  floorNo: yup
+    .string()
+    .matches(/^[0-9]+$/, "Only numbers allowed")
+    .required("Floor number is required"),
+
+  crNo: yup
+    .string()
+    .matches(/^[A-Za-z0-9]+$/, "Only letters & numbers allowed")
+    .required("Registration number is required"),
+});
 
 export default function VendorManagement() {
   const [vendors, setVendors] = useState([]);
@@ -36,6 +70,8 @@ export default function VendorManagement() {
     floorNo: "",
     crNo: "",
   });
+
+  const [errors, setErrors] = useState({});
 
   const token =
     typeof window !== "undefined"
@@ -70,8 +106,26 @@ export default function VendorManagement() {
     }
   };
 
+  /* ================= VALIDATION ================= */
+  const validateForm = async () => {
+    try {
+      await vendorSchema.validate(form, { abortEarly: false });
+      setErrors({});
+      return true;
+    } catch (err) {
+      const newErrors = {};
+      err.inner.forEach((e) => {
+        newErrors[e.path] = e.message;
+      });
+      setErrors(newErrors);
+      return false;
+    }
+  };
+
   /* ================= CREATE ================= */
   const submitVendor = async () => {
+    if (!(await validateForm())) return;
+
     try {
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/vendors`,
@@ -88,6 +142,8 @@ export default function VendorManagement() {
 
   /* ================= UPDATE ================= */
   const updateVendor = async () => {
+    if (!(await validateForm())) return;
+
     try {
       const res = await axios.put(
         `${process.env.NEXT_PUBLIC_API_URL}/vendors/${editId}`,
@@ -146,10 +202,18 @@ export default function VendorManagement() {
   const closeModal = () => {
     setShowAdd(false);
     setEditId(null);
-    setForm({ crNo: "", companyName: "", contactPerson: "", mobile: "", shopId: "", floorNo: "" });
+    setErrors({});
+    setForm({
+      companyName: "",
+      contactPerson: "",
+      mobile: "",
+      shopId: "",
+      floorNo: "",
+      crNo: "",
+    });
   };
 
-  /* ================= UI ================= */
+  /* ================= UI (UNCHANGED) ================= */
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
@@ -206,42 +270,41 @@ export default function VendorManagement() {
           <table className="min-w-[720px] w-full">
             <thead className="bg-green-100">
               <tr>
-                {["Registration No","ShopId", "FloorNo", "Company", "Contact", "Mobile", "Status", "Actions"].map(
-                  (h) => (
-                    <th key={h} className="px-6 py-4 text-center text-sm">
-                      {h}
-                    </th>
-                  )
-                )}
+                {[
+                  "Registration No",
+                  "ShopId",
+                  "FloorNo",
+                  "Company",
+                  "Contact",
+                  "Mobile",
+                  "Status",
+                  "Actions",
+                ].map((h) => (
+                  <th key={h} className="px-6 py-4 text-center text-sm">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
 
             <tbody className="text-center">
               {vendors.map((v) => (
-                <tr
-                  key={v._id}
-                  onClick={() => {
-                    setSelected(v);
-                    setShowMobilePopup(true);
-                  }} className="shadow-sm hover:bg-green-50 cursor-pointer">
-                  <td className="px-6 py-4 font-medium">{v.crNo}</td>
-                  <td className="px-6 py-4 font-medium">{v.shopId}</td>
-                  <td className="px-6 py-4 font-medium">{v.floorNo}</td>
-                  <td className="px-6 py-4 font-medium">{v.companyName}</td>
+                <tr key={v._id} className="shadow-sm hover:bg-green-50">
+                  <td className="px-6 py-4">{v.crNo}</td>
+                  <td className="px-6 py-4">{v.shopId}</td>
+                  <td className="px-6 py-4">{v.floorNo}</td>
+                  <td className="px-6 py-4">{v.companyName}</td>
                   <td className="px-6 py-4">{v.contactPerson}</td>
                   <td className="px-6 py-4">{v.mobile}</td>
 
-
                   <td className="px-6 py-4">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleVendorStatus(v._id);
-                      }}
-                      className={`px-3 py-1 rounded-full text-xs ${v.status === "active"
+                      onClick={() => toggleVendorStatus(v._id)}
+                      className={`px-3 py-1 rounded-full text-xs ${
+                        v.status === "active"
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-gray-200 text-gray-600"
-                        }`}
+                      }`}
                     >
                       {v.status}
                     </button>
@@ -250,8 +313,7 @@ export default function VendorManagement() {
                   <td className="px-6 py-4">
                     <div className="flex justify-center gap-3">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           setEditId(v._id);
                           setForm({
                             crNo: v.crNo,
@@ -263,18 +325,17 @@ export default function VendorManagement() {
                           });
                           setShowAdd(true);
                         }}
-                        className="text-emerald-600 hover:text-emerald-800"
+                        className="text-emerald-600"
                       >
                         <Pencil size={18} />
                       </button>
 
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           setSelected(v);
                           setConfirmDelete(true);
                         }}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-red-600"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -295,6 +356,7 @@ export default function VendorManagement() {
           onSubmit={editId ? updateVendor : submitVendor}
           form={form}
           setForm={setForm}
+          errors={errors}
         />
       )}
 
@@ -321,7 +383,7 @@ const Stat = ({ title, value, icon: Icon }) => (
   </div>
 );
 
-const Modal = ({ title, onClose, onSubmit, form, setForm }) => (
+const Modal = ({ title, onClose, onSubmit, form, setForm, errors }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div className="bg-white rounded-2xl w-full max-w-md">
       <div className="px-6 py-4 border-b flex justify-between">
@@ -330,48 +392,12 @@ const Modal = ({ title, onClose, onSubmit, form, setForm }) => (
       </div>
 
       <div className="p-6 space-y-4">
-        <Field
-          label="Company Name"
-          value={form.companyName}
-          onChange={(e) =>
-            setForm({ ...form, companyName: e.target.value })
-          }
-        />
-        <Field
-          label="Company Registration Number"
-          value={form.crNo}
-          onChange={(e) =>
-            setForm({ ...form, crNo: e.target.value })
-          }
-        />
-        <Field
-          label="Contact Person"
-          value={form.contactPerson}
-          onChange={(e) =>
-            setForm({ ...form, contactPerson: e.target.value })
-          }
-        />
-        <Field
-          label="Mobile"
-          value={form.mobile}
-          onChange={(e) =>
-            setForm({ ...form, mobile: e.target.value })
-          }
-        />
-        <Field
-          label="Shop ID"
-          value={form.shopId}
-          onChange={(e) =>
-            setForm({ ...form, shopId: e.target.value })
-          }
-        />
-        <Field
-          label="Floor No"
-          value={form.floorNo}
-          onChange={(e) =>
-            setForm({ ...form, floorNo: e.target.value })
-          }
-        />
+        <Field label="Company Name" name="companyName" form={form} setForm={setForm} error={errors.companyName} />
+        <Field label="Company Registration Number" name="crNo" form={form} setForm={setForm} error={errors.crNo} />
+        <Field label="Contact Person" name="contactPerson" form={form} setForm={setForm} error={errors.contactPerson} />
+        <Field label="Mobile" name="mobile" form={form} setForm={setForm} error={errors.mobile} />
+        <Field label="Shop ID" name="shopId" form={form} setForm={setForm} error={errors.shopId} />
+        <Field label="Floor No" name="floorNo" form={form} setForm={setForm} error={errors.floorNo} />
       </div>
 
       <div className="px-6 py-4 border-t flex justify-end gap-3">
@@ -408,12 +434,16 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
   </div>
 );
 
-const Field = ({ label, ...props }) => (
+const Field = ({ label, name, form, setForm, error }) => (
   <div>
     <label className="block text-gray-600 mb-1">{label}</label>
     <input
-      {...props}
+      value={form[name]}
+      onChange={(e) =>
+        setForm({ ...form, [name]: e.target.value })
+      }
       className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
     />
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
   </div>
 );

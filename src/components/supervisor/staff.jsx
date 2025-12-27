@@ -1,4 +1,7 @@
 "use client";
+
+import * as yup from "yup";
+import { Plus } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import {
   Users,
@@ -24,6 +27,35 @@ const MyStaff = () => {
   const [staffData, setStaffData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [supervisor, setSupervisor] = useState(null);
+  // ADD STAFF
+  const [showAddStaff, setShowAddStaff] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    assignedBay: "",
+  });
+  const [errors, setErrors] = useState({});
+
+  const staffSchema = yup.object().shape({
+    name: yup
+      .string()
+      .matches(/^[A-Za-z ]+$/, "Only alphabets are allowed")
+      .required("Name is required"),
+    email: yup
+      .string()
+      .email("Invalid email format")
+      .required("Email is required"),
+    phone: yup
+      .string()
+      .matches(/^[0-9]{10}$/, "Phone must be exactly 10 digits")
+      .required("Phone is required"),
+    password: yup
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .required("Password is required"),
+  });
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -33,6 +65,49 @@ const MyStaff = () => {
   useEffect(() => {
     fetchStaff();
   }, []);
+  useEffect(() => {
+    if (supervisor?.assignedBay) {
+      setForm((prev) => ({
+        ...prev,
+        assignedBay:
+          typeof supervisor.assignedBay === "string"
+            ? supervisor.assignedBay
+            : supervisor.assignedBay._id,
+      }));
+    }
+  }, [supervisor]);
+
+  const saveStaff = async () => {
+    try {
+      await staffSchema.validate(form, { abortEarly: false });
+      setErrors({});
+
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/staff`, form, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+
+      setShowAddStaff(false);
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        password: "",
+        assignedBay: form.assignedBay,
+      });
+
+      fetchStaff();
+    } catch (err) {
+      if (err.inner) {
+        const e = {};
+        err.inner.forEach((x) => (e[x.path] = x.message));
+        setErrors(e);
+      } else {
+        console.error(err);
+      }
+    }
+  };
 
   const fetchStaff = async () => {
     try {
@@ -51,11 +126,26 @@ const MyStaff = () => {
   };
 
   const filteredStaff = staffData.filter((staff) => {
+    if (!supervisor?.assignedBay || !staff.assignedBay?._id) return false;
+
+    // ✅ normalize BOTH bay IDs correctly
+    const supervisorBayId =
+      typeof supervisor.assignedBay === "string"
+        ? supervisor.assignedBay
+        : supervisor.assignedBay._id;
+
+    const staffBayId = staff.assignedBay._id;
+
+    if (String(supervisorBayId) !== String(staffBayId)) return false;
+
+    // existing filters (unchanged)
     const matchesBay =
       filterBay === "all" || staff.assignedBay?.bayName === filterBay;
+
     const matchesSearch =
       staff.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       staff.phone?.includes(searchQuery);
+
     return matchesBay && matchesSearch;
   });
 
@@ -165,6 +255,15 @@ const MyStaff = () => {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* ✅ ADD STAFF BUTTON */}
+              <button
+                onClick={() => setShowAddStaff(true)}
+                className="px-4 h-10 bg-emerald-600 text-white rounded-lg flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Add Staff
+              </button>
+
               <div className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
                 {supervisor?.name?.[0]}
               </div>
@@ -180,22 +279,28 @@ const MyStaff = () => {
         <div className="px-4 md:px-8 py-4 md:py-6">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
-            <StatCard
-              title="Total Staff"
-              value={staffData.length}
-              icon={<Users />}
-            />
-            <StatCard
-              title="Active Staff"
-              value={staffData.filter((s) => s.isActive).length}
-              icon={<Activity />}
-            />
-            <StatCard
-              title="Today's Entries"
-              value="384"
-              icon={<TrendingUp />}
-            />
-          </div>
+  <StatCard
+    title="Total Staff"
+    value={filteredStaff.length}
+    icon={<Users />}
+  />
+
+  <StatCard
+    title="Active Staff"
+    value={filteredStaff.filter((s) => s.isActive).length}
+    icon={<Activity />}
+  />
+
+  <StatCard
+    title="Today's Entries"
+    value={filteredStaff.reduce(
+      (sum, s) => sum + (s.todayEntries || 0),
+      0
+    )}
+    icon={<TrendingUp />}
+  />
+</div>
+
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -227,14 +332,14 @@ const MyStaff = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search name or phone"
-                  className="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-emerald-500"
+                  className="pl-10 pr-4 py-2 bg-white border-gray-400  rounded-lg w-full focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <select
                 value={filterBay}
                 onChange={(e) => setFilterBay(e.target.value)}
-                className="border rounded-lg px-3 py-2"
+                className="bg-white border-gray-400 rounded-lg px-3 py-2"
               >
                 <option value="all">All Bays</option>
                 <option value="Bay A">Bay A</option>
@@ -316,6 +421,68 @@ const MyStaff = () => {
           onClose={() => setSelectedStaff(null)}
         />
       )}
+      {showAddStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl">
+            <div className="flex justify-between px-6 py-4 border-b">
+              <h2 className="font-semibold">Add New Staff</h2>
+              <X
+                onClick={() => setShowAddStaff(false)}
+                className="cursor-pointer"
+              />
+            </div>
+
+            <div className="px-6 py-5 space-y-4 text-sm">
+              <Field
+                label="Full Name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                error={errors.name}
+              />
+              <Field
+                label="Email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                error={errors.email}
+              />
+              <Field
+                label="Phone"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                error={errors.phone}
+              />
+              <Field
+                type="password"
+                label="Password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                error={errors.password}
+              />
+
+              <div>
+                <label className="block mb-1 font-medium text-gray-600">
+                  Assigned Bay
+                </label>
+                <input
+                  disabled
+                  value={supervisor?.assignedBay?.bayName || ""}
+                  className="w-full bg-gray-100 border rounded-md px-3 py-2"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t flex justify-end gap-3">
+              <button onClick={() => setShowAddStaff(false)}>Cancel</button>
+              <button
+                onClick={saveStaff}
+                className="px-5 py-2 bg-emerald-600 text-white rounded-lg"
+              >
+                Add Staff
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -328,6 +495,17 @@ const StatCard = ({ title, value, icon }) => (
       {icon}
     </div>
     <p className="text-3xl font-bold">{value}</p>
+  </div>
+);
+const Field = ({ label, error, ...props }) => (
+  <div>
+    <label className="block mb-1 font-medium text-gray-600">{label}</label>
+    <input
+      {...props}
+      className="w-full border border-gray-300 rounded-md px-3 py-2
+                 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+    />
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
   </div>
 );
 

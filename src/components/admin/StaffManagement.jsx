@@ -1,5 +1,5 @@
 "use client";
-
+import * as yup from "yup";
 import { useEffect, useState } from "react";
 import { Search, Plus, Filter, Users, Activity, X } from "lucide-react";
 import axios from "axios";
@@ -24,9 +24,37 @@ export default function StaffManagement() {
     assignedBay: "",
     password: "",
   });
+  const [errors, setErrors] = useState({});
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+
+  /* ================= YUP VALIDATION ================= */
+  const staffSchema = yup.object().shape({
+    name: yup
+      .string()
+      .matches(/^[A-Za-z ]+$/, "Only alphabets are allowed")
+      .required("Name is required"),
+
+    email: yup
+      .string()
+      .email("Invalid email format")
+      .required("Email is required"),
+
+    phone: yup
+      .string()
+      .matches(/^[0-9]{10}$/, "Phone must be exactly 10 digits")
+      .required("Phone is required"),
+
+    assignedBay: yup.string().required("Assigned bay is required"),
+
+    password: editId
+      ? yup.string()
+      : yup
+          .string()
+          .min(6, "Password must be at least 6 characters")
+          .required("Password is required"),
+  });
 
   /* ================= FETCH ================= */
   useEffect(() => {
@@ -64,62 +92,78 @@ export default function StaffManagement() {
     return found ? found.bayName : "-";
   };
 
-  /* ================= ADD STAFF ================= */
-const saveStaff = async () => {
-  try {
-    if (editId) {
-      // UPDATE STAFF
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/staff/${editId}`,
-        {
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          assignedBay: form.assignedBay,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-    } else {
-      // CREATE STAFF
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/staff`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  const validateForm = async () => {
+    try {
+      await staffSchema.validate(form, { abortEarly: false });
+      setErrors({});
+      return true;
+    } catch (err) {
+      const newErrors = {};
+      err.inner.forEach((e) => {
+        newErrors[e.path] = e.message;
+      });
+      setErrors(newErrors);
+      return false;
     }
+  };
 
-    setShowAdd(false);
-    setEditId(null);
-    setForm({
-      name: "",
-      email: "",
-      phone: "",
-      assignedBay: "",
-      password: "",
-    });
+  /* ================= ADD STAFF ================= */
+  const saveStaff = async () => {
+    const isValid = await validateForm();
+    if (!isValid) return;
 
-    fetchStaff();
-  } catch (err) {
-    console.error("Save staff error:", err);
-  }
-};
+    try {
+      if (editId) {
+        // UPDATE STAFF
+        await axios.put(
+          `${process.env.NEXT_PUBLIC_API_URL}/staff/${editId}`,
+          {
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            assignedBay: form.assignedBay,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        // CREATE STAFF
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/staff`, form, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
 
+      setShowAdd(false);
+      setEditId(null);
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        assignedBay: "",
+        password: "",
+      });
+
+      fetchStaff();
+    } catch (err) {
+      console.error("Save staff error:", err);
+    }
+  };
 
   const toggleStaffStatus = async (id) => {
-  try {
-    await axios.patch(
-      `${process.env.NEXT_PUBLIC_API_URL}/staff/${id}/status`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    fetchStaff();
-  } catch (err) {
-    console.error("Toggle staff status error:", err);
-  }
-};
+    try {
+      await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_URL}/staff/${id}/status`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchStaff();
+    } catch (err) {
+      console.error("Toggle staff status error:", err);
+    }
+  };
 
   /* ================= FILTER ================= */
   const filtered = staff.filter((s) => {
+    
     const matchesSearch = s.name?.toLowerCase().includes(search.toLowerCase());
 
     const matchesStatus =
@@ -247,14 +291,16 @@ const saveStaff = async () => {
               <table className="min-w-[720px] w-full">
                 <thead className="bg-green-100 border-b-2 border-gray-200">
                   <tr>
-                    {["Name", "Email", "Phone", "Bay", "Status", "Action"].map((h) => (
-                      <th
-                        key={h}
-                        className="px-6 py-4 text-[14px] font-medium text-center text-gray-600"
-                      >
-                        {h}
-                      </th>
-                    ))}
+                    {["Name", "Email", "Phone", "Bay", "Status", "Action"].map(
+                      (h) => (
+                        <th
+                          key={h}
+                          className="px-6 py-4 text-[14px] font-medium text-center text-gray-600"
+                        >
+                          {h}
+                        </th>
+                      )
+                    )}
                   </tr>
                 </thead>
 
@@ -272,41 +318,40 @@ const saveStaff = async () => {
                       <td className="px-6 py-4">{s.email}</td>
                       <td className="px-6 py-4">{s.phone}</td>
                       <td className="px-6 py-4">{getBayName(s.assignedBay)}</td>
-<td className="px-6 py-4">
-  <span
-    onClick={() => toggleStaffStatus(s._id)}
-    className={`cursor-pointer px-3 py-1 rounded-full text-[13px] ${
-      s.isActive
-        ? "bg-green-50 text-green-700"
-        : "bg-gray-100 text-gray-600"
-    }`}
-  >
-    {s.isActive ? "Active" : "Inactive"}
-  </span>
-</td>
+                      <td className="px-6 py-4">
+                        <span
+                          onClick={() => toggleStaffStatus(s._id)}
+                          className={`cursor-pointer px-3 py-1 rounded-full text-[13px] ${
+                            s.isActive
+                              ? "bg-green-50 text-green-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {s.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </td>
 
-<td className="px-6 py-4">
-  <button
-    onClick={() => {
-      setEditId(s._id);
-      setForm({
-        name: s.name,
-        email: s.email,
-        phone: s.phone,
-        assignedBay:
-          typeof s.assignedBay === "object"
-            ? s.assignedBay?._id
-            : s.assignedBay || "",
-        password: "",
-      });
-      setShowAdd(true);
-    }}
-    className="text-sm text-emerald-600 hover:underline"
-  >
-    Edit
-  </button>
-</td>
-
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => {
+                            setEditId(s._id);
+                            setForm({
+                              name: s.name,
+                              email: s.email,
+                              phone: s.phone,
+                              assignedBay:
+                                typeof s.assignedBay === "object"
+                                  ? s.assignedBay?._id
+                                  : s.assignedBay || "",
+                              password: "",
+                            });
+                            setShowAdd(true);
+                          }}
+                          className="text-sm text-emerald-600 hover:underline"
+                        >
+                          Edit
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -362,28 +407,32 @@ const saveStaff = async () => {
                 label="Full Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
+                error={errors.name}
               />
+
               <Field
                 label="Email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                error={errors.email}
               />
               <Field
                 label="Phone"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                error={errors.phone}
               />
-{!editId && (
-  <Field
-    type="password"
-    label="Password"
-    value={form.password}
-    onChange={(e) =>
-      setForm({ ...form, password: e.target.value })
-    }
-  />
-)}
-
+              {!editId && (
+                <Field
+                  type="password"
+                  label="Password"
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
+                  error={errors.password}
+                />
+              )}
 
               <div>
                 <label className="block mb-1 font-medium text-gray-600">
@@ -409,13 +458,12 @@ const saveStaff = async () => {
 
             <div className="px-6 py-4 border-t flex justify-end gap-3">
               <button onClick={() => setShowAdd(false)}>Cancel</button>
-<button
-  onClick={saveStaff}
-  className="px-5 py-2 bg-emerald-600 text-white rounded-lg"
->
-  {editId ? "Update Staff" : "Add Staff"}
-</button>
-
+              <button
+                onClick={saveStaff}
+                className="px-5 py-2 bg-emerald-600 text-white rounded-lg"
+              >
+                {editId ? "Update Staff" : "Add Staff"}
+              </button>
             </div>
           </div>
         </div>
@@ -463,7 +511,6 @@ const StaffDetails = ({ selected, getBayName }) => (
   </div>
 );
 
-
 const Stat = ({ title, value, icon: Icon }) => (
   <div className="bg-teal-50 border border-green rounded-2xl shadow-sm p-6">
     <div className="flex justify-between mb-2">
@@ -481,7 +528,7 @@ const Detail = ({ label, value }) => (
   </div>
 );
 
-const Field = ({ label, ...props }) => (
+const Field = ({ label, error, ...props }) => (
   <div>
     <label className="block mb-1 font-medium text-gray-600">{label}</label>
     <input
@@ -489,5 +536,6 @@ const Field = ({ label, ...props }) => (
       className="w-full border border-gray-300 rounded-md px-3 py-2
                  focus:outline-none focus:ring-2 focus:ring-emerald-500"
     />
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
   </div>
 );
