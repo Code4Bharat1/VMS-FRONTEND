@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function ManualEntry() {
+
+  
   const [visitorName, setVisitorName] = useState("");
   const [qidNumber, setQidNumber] = useState("");
   const [mobile, setMobile] = useState("");

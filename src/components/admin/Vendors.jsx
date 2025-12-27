@@ -32,6 +32,9 @@ export default function VendorManagement() {
     companyName: "",
     contactPerson: "",
     mobile: "",
+    shopId: "",
+    floorNo: "",
+    crNo: "",
   });
 
   const token =
@@ -143,7 +146,7 @@ export default function VendorManagement() {
   const closeModal = () => {
     setShowAdd(false);
     setEditId(null);
-    setForm({ companyName: "", contactPerson: "", mobile: "" });
+    setForm({ crNo: "", companyName: "", contactPerson: "", mobile: "", shopId: "", floorNo: "" });
   };
 
   /* ================= UI ================= */
@@ -203,7 +206,7 @@ export default function VendorManagement() {
           <table className="min-w-[720px] w-full">
             <thead className="bg-green-100">
               <tr>
-                {["Company", "Contact", "Mobile", "Status", "Actions"].map(
+                {["Registration No","ShopId", "FloorNo", "Company", "Contact", "Mobile", "Status", "Actions"].map(
                   (h) => (
                     <th key={h} className="px-6 py-4 text-center text-sm">
                       {h}
@@ -220,14 +223,14 @@ export default function VendorManagement() {
                   onClick={() => {
                     setSelected(v);
                     setShowMobilePopup(true);
-                  }}
-                  className="shadow-sm hover:bg-green-50 cursor-pointer"
-                >
-                  <td className="px-6 py-4 font-medium">
-                    {v.companyName}
-                  </td>
+                  }} className="shadow-sm hover:bg-green-50 cursor-pointer">
+                  <td className="px-6 py-4 font-medium">{v.crNo}</td>
+                  <td className="px-6 py-4 font-medium">{v.shopId}</td>
+                  <td className="px-6 py-4 font-medium">{v.floorNo}</td>
+                  <td className="px-6 py-4 font-medium">{v.companyName}</td>
                   <td className="px-6 py-4">{v.contactPerson}</td>
                   <td className="px-6 py-4">{v.mobile}</td>
+
 
                   <td className="px-6 py-4">
                     <button
@@ -235,11 +238,10 @@ export default function VendorManagement() {
                         e.stopPropagation();
                         toggleVendorStatus(v._id);
                       }}
-                      className={`px-3 py-1 rounded-full text-xs ${
-                        v.status === "active"
+                      className={`px-3 py-1 rounded-full text-xs ${v.status === "active"
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-gray-200 text-gray-600"
-                      }`}
+                        }`}
                     >
                       {v.status}
                     </button>
@@ -252,9 +254,12 @@ export default function VendorManagement() {
                           e.stopPropagation();
                           setEditId(v._id);
                           setForm({
+                            crNo: v.crNo,
                             companyName: v.companyName,
                             contactPerson: v.contactPerson,
                             mobile: v.mobile,
+                            shopId: v.shopId,
+                            floorNo: v.floorNo,
                           });
                           setShowAdd(true);
                         }}
@@ -333,6 +338,13 @@ const Modal = ({ title, onClose, onSubmit, form, setForm }) => (
           }
         />
         <Field
+          label="Company Registration Number"
+          value={form.crNo}
+          onChange={(e) =>
+            setForm({ ...form, crNo: e.target.value })
+          }
+        />
+        <Field
           label="Contact Person"
           value={form.contactPerson}
           onChange={(e) =>
@@ -344,6 +356,20 @@ const Modal = ({ title, onClose, onSubmit, form, setForm }) => (
           value={form.mobile}
           onChange={(e) =>
             setForm({ ...form, mobile: e.target.value })
+          }
+        />
+        <Field
+          label="Shop ID"
+          value={form.shopId}
+          onChange={(e) =>
+            setForm({ ...form, shopId: e.target.value })
+          }
+        />
+        <Field
+          label="Floor No"
+          value={form.floorNo}
+          onChange={(e) =>
+            setForm({ ...form, floorNo: e.target.value })
           }
         />
       </div>
