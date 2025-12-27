@@ -35,13 +35,6 @@ const MyBays = () => {
     fetchBays();
   }, []);
 
-  const recentBayActivity = [
-    { time: "09:22", bay: "Bay A", vrn: "QTR-58293", company: "Alpha Logistics", handledBy: "Ali Hassan", direction: "Entry", method: "OCR" },
-    { time: "09:18", bay: "Bay C", vrn: "QTR-99314", company: "FreshFoods", handledBy: "Sara Ibrahim", direction: "Exit", method: "Manual" },
-    { time: "09:10", bay: "Bay B", vrn: "QTR-44120", company: "Metro Supplies", handledBy: "John Peter", direction: "Entry", method: "QR" },
-    { time: "09:05", bay: "Bay A", vrn: "QTR-78110", company: "City Courier", handledBy: "Imran Khan", direction: "Exit", method: "OCR" },
-    { time: "08:58", bay: "Bay C", vrn: "QTR-66821", company: "Delta Cold Chain", handledBy: "Ravi Kumar", direction: "Entry", method: "Manual" },
-  ];
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -165,63 +158,6 @@ const MyBays = () => {
             ))}
           </div>
 
-          {/* RECENT ACTIVITY TABLE */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800">
-                Recent Bay Activity
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Latest entries and exits for your bays
-              </p>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-[900px] w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    {["Time", "Bay", "VRN", "Company", "Handled By", "Direction", "Method"].map(
-                      (h) => (
-                        <th
-                          key={h}
-                          className="px-6 py-4 text-left text-sm font-semibold text-gray-600"
-                        >
-                          {h}
-                        </th>
-                      )
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {recentBayActivity.map((a, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">{a.time}</td>
-                      <td className="px-6 py-4 font-semibold">{a.bay}</td>
-                      <td className="px-6 py-4">{a.vrn}</td>
-                      <td className="px-6 py-4">{a.company}</td>
-                      <td className="px-6 py-4">{a.handledBy}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            a.direction === "Entry"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-blue-100 text-blue-700"
-                          }`}
-                        >
-                          {a.direction}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">
-                          {a.method}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         {/* MODAL */}
