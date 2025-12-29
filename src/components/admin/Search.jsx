@@ -62,20 +62,18 @@ export default function SearchRecords() {
   }, [search, entries]);
 
   /* ================= FORMAT TIME ================= */
-  const formatTime = (inTime, outTime) => {
-    const i = new Date(inTime).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-            month:"short",
-            year:"2-digit",
+const formatTime = (inTime) => {
+  if (!inTime) return "—";
 
-      
-    });
+  return new Date(inTime).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
 
-
-
-    return ` ${i} `;
-  };
 
   /* ================= EXPORT CSV ================= */
   const exportToCSV = () => {
