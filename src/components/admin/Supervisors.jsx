@@ -32,9 +32,9 @@
         const supervisorsData = supRes.data.supervisors || [];
         const staffData = staffRes.data.staff || [];
         const baysData = bayRes.data.bays || bayRes.data || [];
-
         setBays(baysData);
 
+        
         const mapped = supervisorsData.map((u) => {
           const supervisorBayId =
             typeof u.assignedBay === "object"
