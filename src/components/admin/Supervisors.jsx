@@ -29,17 +29,17 @@ export default function Supervisors() {
         api.get("/bays"),
       ]);
 
-      const supervisorsData = supRes.data.supervisors || [];
-      const staffData = staffRes.data.staff || [];
-      const baysData = bayRes.data.bays || bayRes.data || [];
+        const supervisorsData = supRes.data.supervisors || [];
+        const staffData = staffRes.data.staff || [];
+        const baysData = bayRes.data.bays || bayRes.data || [];
 
-      setBays(baysData);
+        setBays(baysData);
 
-      const mapped = supervisorsData.map((u) => {
-        const supervisorBayId =
-          typeof u.assignedBay === "object"
-            ? u.assignedBay?._id
-            : u.assignedBay;
+        const mapped = supervisorsData.map((u) => {
+          const supervisorBayId =
+            typeof u.assignedBay === "object"
+              ? u.assignedBay?._id
+              : u.assignedBay;
 
         const staffCount = staffData.filter((s) => {
           const staffBayId =
