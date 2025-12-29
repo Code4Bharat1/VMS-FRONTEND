@@ -44,16 +44,7 @@ export default function Sidebar({
         ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
     >
-      {/* ================= MOBILE HEADER ================= */}
-      <div className="lg:hidden flex items-center justify-between px-4 h-14 border-b">
-        <span className="font-semibold text-gray-800">Menu</span>
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="p-1 rounded hover:bg-gray-100"
-        >
-          <X size={20} />
-        </button>
-      </div>
+     
 
       {/* ================= LOGO ================= */}
       <div className="h-16 px-4 flex items-center justify-between border-b border-gray-300">

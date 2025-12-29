@@ -27,6 +27,7 @@ const MyStaff = () => {
   const [staffData, setStaffData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [supervisor, setSupervisor] = useState(null);
+  
   // ADD STAFF
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [form, setForm] = useState({
@@ -37,25 +38,47 @@ const MyStaff = () => {
     assignedBay: "",
   });
   const [errors, setErrors] = useState({});
-
+  
   const staffSchema = yup.object().shape({
     name: yup
-      .string()
-      .matches(/^[A-Za-z ]+$/, "Only alphabets are allowed")
-      .required("Name is required"),
+    .string()
+    .matches(/^[A-Za-z ]+$/, "Only alphabets are allowed")
+    .required("Name is required"),
     email: yup
-      .string()
-      .email("Invalid email format")
-      .required("Email is required"),
+    .string()
+    .email("Invalid email format")
+    .required("Email is required"),
     phone: yup
-      .string()
-      .matches(/^[0-9]{10}$/, "Phone must be exactly 10 digits")
-      .required("Phone is required"),
+    .string()
+    .matches(/^[0-9]{10}$/, "Phone must be exactly 10 digits")
+    .required("Phone is required"),
     password: yup
-      .string()
-      .min(6, "Password must be at least 6 characters")
+    .string()
+    .min(6, "Password must be at least 6 characters")
       .required("Password is required"),
   });
+  const [entries, setEntries] = useState([]);
+  const today = new Date().toDateString();
+
+const todayEntries = entries.filter((e) => {
+  if (!supervisor?.assignedBay || !e.createdAt || !e.bayId) return false;
+
+  const entryDate = new Date(e.createdAt).toDateString();
+
+  const entryBayId =
+    typeof e.bayId === "string" ? e.bayId : e.bayId._id;
+
+  const supervisorBayId =
+    typeof supervisor.assignedBay === "string"
+      ? supervisor.assignedBay
+      : supervisor.assignedBay._id;
+
+  return (
+    entryDate === today &&
+    String(entryBayId) === String(supervisorBayId)
+  );
+});
+
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -63,8 +86,10 @@ const MyStaff = () => {
   }, []);
 
   useEffect(() => {
-    fetchStaff();
-  }, []);
+  fetchStaff();
+  fetchEntries();
+}, []);
+
   useEffect(() => {
     if (supervisor?.assignedBay) {
       setForm((prev) => ({
@@ -124,6 +149,23 @@ const MyStaff = () => {
       setLoading(false);
     }
   };
+  const fetchEntries = async () => {
+  try {
+    const res = await axios.get(
+      `${process.env.NEXT_PUBLIC_API_URL}/entries`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      }
+    );
+    setEntries(res.data.entries || []);
+  } catch (err) {
+    console.error("Failed to fetch entries", err);
+    setEntries([]);
+  }
+};
+
 
   const filteredStaff = staffData.filter((staff) => {
     if (!supervisor?.assignedBay || !staff.assignedBay?._id) return false;
@@ -177,7 +219,7 @@ const MyStaff = () => {
           {/* Body */}
           <div className="p-4 md:p-8 space-y-8">
             {/* Contact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div className="bg-blue-50 rounded-xl p-4">
                 <Phone className="mb-2 text-blue-600" />
                 <p className="font-semibold">{staff.mobile || "N/A"}</p>
@@ -240,7 +282,7 @@ const MyStaff = () => {
 
   /* ---------------- PAGE ---------------- */
   return (
-    <div className="flex min-h-[100dvh] bg-gray-50">
+    <div className="flex h-screen bg-gray-50">
       <Sidebar />
 
       <div className="flex-1 overflow-y-auto overscroll-contain">
@@ -279,28 +321,25 @@ const MyStaff = () => {
         <div className="px-4 md:px-8 py-4 md:py-6">
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
-  <StatCard
-    title="Total Staff"
-    value={filteredStaff.length}
-    icon={<Users />}
-  />
+            <StatCard
+              title="Total Staff"
+              value={filteredStaff.length}
+              icon={<Users />}
+            />
 
-  <StatCard
-    title="Active Staff"
-    value={filteredStaff.filter((s) => s.isActive).length}
-    icon={<Activity />}
-  />
+            <StatCard
+              title="Active Staff"
+              value={filteredStaff.filter((s) => s.isActive).length}
+              icon={<Activity />}
+            />
 
-  <StatCard
-    title="Today's Entries"
-    value={filteredStaff.reduce(
-      (sum, s) => sum + (s.todayEntries || 0),
-      0
-    )}
-    icon={<TrendingUp />}
-  />
-</div>
+            <StatCard
+  title="Today's Entries"
+  value={todayEntries.length}
+  icon={<TrendingUp />}
+/>
 
+          </div>
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -351,8 +390,8 @@ const MyStaff = () => {
 
           {/* Table (Desktop) */}
           <div className="hidden md:block bg-white rounded-xl shadow-md overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 shadow-sm">
+            <table className=" w-full">
+              <thead className="bg-green-200 shadow-sm">
                 <tr>
                   {[
                     "Name",
@@ -365,7 +404,7 @@ const MyStaff = () => {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-6 py-3 text-left text-sm text-gray-600"
+                      className="px-6 py-3 text-left text-sm text-gray-600 "
                     >
                       {h}
                     </th>
@@ -377,7 +416,7 @@ const MyStaff = () => {
                   <tr
                     key={s._id}
                     onClick={() => setSelectedStaff(s)}
-                    className="hover:bg-emerald-50 cursor-pointer"
+                    className="hover:bg-emerald-50 cursor-pointer border-b-2 border-gray-100"
                   >
                     <td className="px-6 py-4 font-semibold">{s.name}</td>
                     <td className="px-6 py-4">{s.phone}</td>
@@ -402,7 +441,7 @@ const MyStaff = () => {
               <div
                 key={s._id}
                 onClick={() => setSelectedStaff(s)}
-                className="bg-white p-4 rounded-xl border shadow-sm"
+                className="bg-white p-4 rounded-xl border-b-2 border-gray-200 shadow-sm"
               >
                 <p className="font-semibold">{s.name}</p>
                 <p className="text-sm text-gray-500">{s.role}</p>

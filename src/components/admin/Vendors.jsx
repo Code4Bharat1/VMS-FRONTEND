@@ -20,27 +20,22 @@ const vendorSchema = yup.object().shape({
     .string()
     .matches(/^[A-Za-z ]+$/, "Only alphabets allowed")
     .required("Company name is required"),
-
   contactPerson: yup
     .string()
     .matches(/^[A-Za-z ]+$/, "Only alphabets allowed")
     .required("Contact person is required"),
-
   mobile: yup
     .string()
     .matches(/^[0-9]{10,15}$/, "Only numbers (10–15 digits)")
     .required("Mobile number is required"),
-
   shopId: yup
     .string()
     .matches(/^[A-Za-z0-9]+$/, "Only letters & numbers allowed")
     .required("Shop ID is required"),
-
   floorNo: yup
     .string()
     .matches(/^[0-9]+$/, "Only numbers allowed")
     .required("Floor number is required"),
-
   crNo: yup
     .string()
     .matches(/^[A-Za-z0-9]+$/, "Only letters & numbers allowed")
@@ -55,10 +50,7 @@ export default function VendorManagement() {
 
   const [editId, setEditId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
   const [showAdd, setShowAdd] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [showMobilePopup, setShowMobilePopup] = useState(false);
 
   const [filters, setFilters] = useState({ status: "all" });
 
@@ -86,21 +78,13 @@ export default function VendorManagement() {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-
-      const query = new URLSearchParams({
-        search,
-        status: filters.status !== "all" ? filters.status : "",
-      });
-
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/vendors?${query.toString()}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/vendors`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setVendors(res.data.vendors || []);
-      setSelected(null);
     } catch (err) {
-      console.error("Failed to fetch vendors", err);
+      console.error("Fetch failed", err);
     } finally {
       setLoading(false);
     }
@@ -113,90 +97,52 @@ export default function VendorManagement() {
       setErrors({});
       return true;
     } catch (err) {
-      const newErrors = {};
-      err.inner.forEach((e) => {
-        newErrors[e.path] = e.message;
-      });
-      setErrors(newErrors);
+      const e = {};
+      err.inner.forEach((i) => (e[i.path] = i.message));
+      setErrors(e);
       return false;
     }
   };
 
-  /* ================= CREATE ================= */
+  /* ================= CREATE / UPDATE ================= */
   const submitVendor = async () => {
     if (!(await validateForm())) return;
-
-    try {
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/vendors`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setVendors((prev) => [res.data.vendor, ...prev]);
-      closeModal();
-    } catch (err) {
-      console.error("Add vendor failed", err);
-    }
+    await axios.post(
+      `${process.env.NEXT_PUBLIC_API_URL}/vendors`,
+      form,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    closeModal();
+    fetchVendors();
   };
 
-  /* ================= UPDATE ================= */
   const updateVendor = async () => {
     if (!(await validateForm())) return;
-
-    try {
-      const res = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/vendors/${editId}`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setVendors((prev) =>
-        prev.map((v) => (v._id === editId ? res.data.updated : v))
-      );
-
-      closeModal();
-    } catch (err) {
-      console.error("Update vendor failed", err);
-    }
+    await axios.put(
+      `${process.env.NEXT_PUBLIC_API_URL}/vendors/${editId}`,
+      form,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    closeModal();
+    fetchVendors();
   };
 
-  /* ================= STATUS ================= */
   const toggleVendorStatus = async (id) => {
-    try {
-      const res = await axios.patch(
-        `${process.env.NEXT_PUBLIC_API_URL}/vendors/${id}/status`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setVendors((prev) =>
-        prev.map((v) =>
-          v._id === id ? { ...v, status: res.data.status } : v
-        )
-      );
-    } catch (err) {
-      console.error("Toggle status failed", err);
-    }
+    await axios.patch(
+      `${process.env.NEXT_PUBLIC_API_URL}/vendors/${id}/status`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    fetchVendors();
   };
 
-  /* ================= DELETE ================= */
   const deleteVendor = async () => {
-    try {
-      await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/vendors/${selected._id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setVendors((prev) =>
-        prev.filter((v) => v._id !== selected._id)
-      );
-
-      setConfirmDelete(false);
-      setSelected(null);
-    } catch (err) {
-      console.error("Delete vendor failed", err);
-    }
+    await axios.delete(
+      `${process.env.NEXT_PUBLIC_API_URL}/vendors/${selected._id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setConfirmDelete(false);
+    fetchVendors();
   };
 
   const closeModal = () => {
@@ -213,41 +159,32 @@ export default function VendorManagement() {
     });
   };
 
-  /* ================= UI (UNCHANGED) ================= */
+  /* ================= UI ================= */
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
-      <div className="bg-white shadow-sm px-6 py-4 flex justify-between">
+      <div className="bg-white shadow-sm px-4 sm:px-6 py-4
+                      flex flex-col sm:flex-row gap-4 sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold">Vendor Management</h1>
           <p className="text-sm text-gray-500">Manage vendor profiles</p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-3 text-gray-400" size={16} />
             <input
-              className="pl-9 pr-4 h-10 border border-gray-400 rounded-lg"
+              className="pl-9 pr-4 h-10 border rounded-lg w-full"
               placeholder="Search vendor"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyUp={fetchVendors}
             />
           </div>
 
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-4 h-10 border border-gray-400 rounded-lg"
-          >
-            <Filter size={16} />
-          </button>
-
-          <button
-            onClick={() => {
-              setEditId(null);
-              setShowAdd(true);
-            }}
-            className="px-4 h-10 bg-emerald-600 text-white rounded-lg flex items-center gap-2"
+            onClick={() => setShowAdd(true)}
+            className="px-4 h-10 bg-emerald-600 text-white rounded-lg
+                       flex items-center justify-center gap-2"
           >
             <Plus size={16} /> Add Vendor
           </button>
@@ -255,7 +192,7 @@ export default function VendorManagement() {
       </div>
 
       {/* STATS */}
-      <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="px-4 sm:px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <Stat title="Total Vendors" value={vendors.length} icon={Users} />
         <Stat
           title="Active Vendors"
@@ -264,8 +201,8 @@ export default function VendorManagement() {
         />
       </div>
 
-      {/* TABLE */}
-      <div className="px-6">
+      {/* DESKTOP TABLE */}
+      <div className="hidden sm:block px-6">
         <div className="bg-white rounded-2xl shadow overflow-x-auto">
           <table className="min-w-[720px] w-full">
             <thead className="bg-green-100">
@@ -345,10 +282,55 @@ export default function VendorManagement() {
               ))}
             </tbody>
           </table>
+
         </div>
       </div>
 
-      {/* ADD / EDIT MODAL */}
+      {/* MOBILE CARDS */}
+      <div className="sm:hidden px-4 space-y-4">
+        {vendors.map((v) => (
+          <div key={v._id} className="bg-white p-4 rounded-xl shadow space-y-2">
+            <div className="flex justify-between">
+              <h3 className="font-medium">{v.companyName}</h3>
+              <button
+                onClick={() => toggleVendorStatus(v._id)}
+                className={`text-xs px-3 py-1 rounded-full ${
+                  v.status === "active"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-gray-200"
+                }`}
+              >
+                {v.status}
+              </button>
+            </div>
+
+            <p className="text-sm"><b>Reg:</b> {v.crNo}</p>
+            <p className="text-sm"><b>Shop:</b> {v.shopId} | <b>Floor:</b> {v.floorNo}</p>
+            <p className="text-sm"><b>Contact:</b> {v.contactPerson}</p>
+            <p className="text-sm"><b>Mobile:</b> {v.mobile}</p>
+
+            <div className="flex justify-end gap-4 pt-2">
+              <Pencil
+                className="text-emerald-600"
+                onClick={() => {
+                  setEditId(v._id);
+                  setForm(v);
+                  setShowAdd(true);
+                }}
+              />
+              <Trash2
+                className="text-red-600"
+                onClick={() => {
+                  setSelected(v);
+                  setConfirmDelete(true);
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* MODALS */}
       {showAdd && (
         <Modal
           title={editId ? "Edit Vendor" : "Add Vendor"}
@@ -360,7 +342,6 @@ export default function VendorManagement() {
         />
       )}
 
-      {/* DELETE CONFIRM */}
       {confirmDelete && (
         <ConfirmDelete
           onCancel={() => setConfirmDelete(false)}
@@ -392,20 +373,14 @@ const Modal = ({ title, onClose, onSubmit, form, setForm, errors }) => (
       </div>
 
       <div className="p-6 space-y-4">
-        <Field label="Company Name" name="companyName" form={form} setForm={setForm} error={errors.companyName} />
-        <Field label="Company Registration Number" name="crNo" form={form} setForm={setForm} error={errors.crNo} />
-        <Field label="Contact Person" name="contactPerson" form={form} setForm={setForm} error={errors.contactPerson} />
-        <Field label="Mobile" name="mobile" form={form} setForm={setForm} error={errors.mobile} />
-        <Field label="Shop ID" name="shopId" form={form} setForm={setForm} error={errors.shopId} />
-        <Field label="Floor No" name="floorNo" form={form} setForm={setForm} error={errors.floorNo} />
+        {["companyName","crNo","contactPerson","mobile","shopId","floorNo"].map((f) => (
+          <Field key={f} label={f} name={f} form={form} setForm={setForm} error={errors[f]} />
+        ))}
       </div>
 
       <div className="px-6 py-4 border-t flex justify-end gap-3">
         <button onClick={onClose}>Cancel</button>
-        <button
-          onClick={onSubmit}
-          className="bg-emerald-600 text-white px-4 py-2 rounded-lg"
-        >
+        <button onClick={onSubmit} className="bg-emerald-600 text-white px-4 py-2 rounded-lg">
           Save
         </button>
       </div>
@@ -417,16 +392,10 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div className="bg-white rounded-xl p-6 w-80">
       <h3 className="font-semibold mb-2">Delete Vendor?</h3>
-      <p className="text-sm text-gray-500 mb-4">
-        This action cannot be undone.
-      </p>
-
+      <p className="text-sm text-gray-500 mb-4">This action cannot be undone.</p>
       <div className="flex justify-end gap-3">
         <button onClick={onCancel}>Cancel</button>
-        <button
-          onClick={onDelete}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg"
-        >
+        <button onClick={onDelete} className="bg-red-600 text-white px-4 py-2 rounded-lg">
           Delete
         </button>
       </div>
@@ -438,10 +407,8 @@ const Field = ({ label, name, form, setForm, error }) => (
   <div>
     <label className="block text-gray-600 mb-1">{label}</label>
     <input
-      value={form[name]}
-      onChange={(e) =>
-        setForm({ ...form, [name]: e.target.value })
-      }
+      value={form[name] || ""}
+      onChange={(e) => setForm({ ...form, [name]: e.target.value })}
       className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}

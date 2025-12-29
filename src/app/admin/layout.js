@@ -54,7 +54,7 @@ export default function StaffLayout({ children }) {
         {/* ===== MAIN CONTENT ===== */}
         <div className="flex-1 flex flex-col">
           {/* MOBILE TOP BAR */}
-          <div className="lg:hidden h-[56px] bg-white border-b px-4 flex items-center justify-between">
+          <div className="lg:hidden h-[56px] bg-white shadow-md px-4 flex items-center justify-between">
             <button
               onClick={() => setMobileOpen(true)}
               className="p-2 rounded-md hover:bg-gray-100"
@@ -62,8 +62,7 @@ export default function StaffLayout({ children }) {
               <Menu size={22} />
             </button>
 
-            <span className="font-semibold text-gray-800">Admin Panel</span>
-
+            
             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-semibold">
               A
             </div>

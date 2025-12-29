@@ -186,7 +186,7 @@ const WeeklyBarChart = ({ data }) => {
             Visitors checked in over last 7 days
           </p>
         </div>
-        <span className="text-xs border px-2 py-1 rounded">Weekly</span>
+        <span className="text-xs px-2 py-1 rounded">Weekly</span>
       </div>
 
       <div className="flex items-end gap-4 h-44">

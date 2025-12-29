@@ -134,8 +134,8 @@ export default function StaffDashboardPage() {
 
           <div className="overflow-x-auto">
             <table className="min-w-[720px] w-full">
-              <thead className="border-b border-gray-200 bg-emerald-50">
-                <tr className="text-[14px] text-gray-600">
+              <thead className="border-b border-gray-200 bg-green-200">
+                <tr className="text-[14px] text-black">
                   {[
                     "Visitor Name",
                     "Vehicle Number",

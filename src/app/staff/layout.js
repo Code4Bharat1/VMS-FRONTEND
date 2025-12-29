@@ -30,12 +30,11 @@ export default function StaffLayout({ children }) {
 
         {/* ================= MAIN ================= */}
         <div className="flex-1 flex flex-col">
-          {/* MOBILE TOP BAR */}
-          <div className="lg:hidden h-14 bg-white border-b px-4 flex items-center gap-3">
+          <div className="lg:hidden h-14  shadow-md px-4 flex items-center gap-3">
             <button onClick={() => setMobileOpen(true)}>
               <Menu size={22} />
             </button>
-            <span className="font-semibold text-gray-800">Staff Panel</span>
+             
           </div>
 
           {/* PAGE CONTENT */}

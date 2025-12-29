@@ -15,7 +15,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  X,
 } from "lucide-react";
 
 /* ================= MENU ================= */
@@ -34,7 +33,7 @@ const menu = [
 export default function Sidebar({
   collapsed = false,
   setCollapsed = () => {},
-  onClose,
+  onClose, // 👈 mobile close handler
 }) {
   const pathname = usePathname();
 
@@ -50,16 +49,6 @@ export default function Sidebar({
         text-sm text-gray-700
       `}
     >
-      {/* MOBILE HEADER */}
-      {onClose && (
-        <div className="lg:hidden flex items-center justify-between px-4 h-14 border-b">
-          <span className="font-semibold text-gray-800">Menu</span>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-            <X size={20} />
-          </button>
-        </div>
-      )}
-
       {/* LOGO */}
       <div className="p-4 flex items-center justify-between border-b border-gray-300">
         <div className="flex items-center gap-3 overflow-hidden">
@@ -86,10 +75,18 @@ export default function Sidebar({
         {menu.map((item) => {
           const Icon = item.icon;
           const active =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            pathname === item.href ||
+            pathname.startsWith(item.href + "/");
 
           return (
-            <Link key={item.href} href={item.href}>
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => {
+                // ✅ CLOSE SIDEBAR ON MOBILE AFTER CLICK
+                if (onClose) onClose();
+              }}
+            >
               <div
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg
@@ -112,7 +109,12 @@ export default function Sidebar({
 
       {/* LOGOUT */}
       <div className="p-3 border-t border-gray-300">
-        <Link href="/">
+        <Link
+          href="/"
+          onClick={() => {
+            if (onClose) onClose();
+          }}
+        >
           <div
             className={`
               flex items-center gap-3 px-4 py-3 rounded-lg
