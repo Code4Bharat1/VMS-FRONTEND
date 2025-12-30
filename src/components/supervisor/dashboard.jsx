@@ -39,7 +39,7 @@ const SupervisorDashboard = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-teal-50">
       <Sidebar activeItem="overview" />
 
       {/* MAIN CONTENT */}
@@ -55,7 +55,7 @@ const SupervisorDashboard = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="w-12 h-12 bg-linear-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
                 {(supervisor?.name || "")
                   .split(" ")
                   .map((n) => n[0])

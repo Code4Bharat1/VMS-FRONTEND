@@ -58,7 +58,7 @@ export default function StaffDashboardPage() {
 
   /* ---------------- UI ---------------- */
   return (
-    <div className="min-h-screen bg-[#f6f8fa]">
+    <div className="min-h-screen bg-teal-50">
       {/* NAVBAR */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

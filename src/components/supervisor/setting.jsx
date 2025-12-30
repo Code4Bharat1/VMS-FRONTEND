@@ -21,7 +21,7 @@ useEffect(() => {
   }
 }, []);
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-teal-50">
       <Sidebar activePage={activePage} onPageChange={setActivePage} />
       
       <div className="flex-1 overflow-auto">

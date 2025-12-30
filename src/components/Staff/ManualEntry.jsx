@@ -157,7 +157,7 @@ export default function ManualEntry() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f8fa]">
+    <div className="min-h-screen bg-teal-50">
       {/* HEADER */}
       <div className="bg-white px-4 sm:px-8 py-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

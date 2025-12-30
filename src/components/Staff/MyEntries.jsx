@@ -63,7 +63,7 @@ export default function MyEntries() {
 
 
   return (
-    <div className="min-h-screen bg-[#f6f8fa]">
+    <div className="min-h-screen bg-teal-50">
       {/* HEADER */}
       <div className="bg-white px-4 sm:px-8 py-6 shadow-sm">
         <div className="flex items-center justify-between">
@@ -110,7 +110,7 @@ export default function MyEntries() {
             <p className="p-6 text-sm text-gray-500">Loading entries…</p>
           ) : (
             <table className="w-full text-sm ">
-              <thead className="text-black border-b-1 border-gray-100 bg-green-100">
+              <thead className="text-black border-b border-gray-100 bg-green-100">
                 <tr>
                   <th className="px-6 py-3 text-center">Time</th>
                   <th className="py-3 text-center">Vehicle No</th>

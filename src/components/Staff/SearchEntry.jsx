@@ -9,7 +9,7 @@ export default function SearchEntry() {
   const [quickFilter, setQuickFilter] = useState("today");
 
   return (
-    <div className="h-screen bg-[#f5f7fa] flex overflow-hidden text-[13px] text-gray-700">
+    <div className="h-screen bg-teal-50 flex overflow-hidden text-[13px] text-gray-700">
      
       {/* PAGE CONTENT */}
       <main className="flex-1 p-4 sm:p-6 space-y-6">

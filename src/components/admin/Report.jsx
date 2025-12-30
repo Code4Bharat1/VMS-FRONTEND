@@ -45,7 +45,7 @@ export default function ReportsDashboard() {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-[14px] text-gray-700">
+    <div className="flex min-h-screen bg-teal-50 text-[14px] text-gray-700">
       <div className="flex-1 overflow-x-hidden">
         {/* ================= HEADER ================= */}
         <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sticky top-0 z-40">

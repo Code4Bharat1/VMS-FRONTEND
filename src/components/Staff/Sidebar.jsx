@@ -104,9 +104,10 @@ export default function Sidebar({
             router.push("/");
           }}
           className={`
-            flex items-center gap-3 px-4 py-2.5 rounded-lg
-            bg-red-500 text-white hover:bg-red-600 cursor-pointer
-            ${collapsed ? "justify-center" : ""}
+            flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer
+              text-gray-600 hover:bg-red-50 hover:text-red-600
+              ${collapsed ? "justify-center" : ""}
+              active:scale-[0.98]
           `}
         >
           <LogOut size={20} />

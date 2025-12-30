@@ -177,7 +177,7 @@ export default function StaffManagement() {
 
   /* ================= UI ================= */
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-teal-50">
       <div className="flex-1 overflow-auto">
         {/* HEADER */}
         <div className="bg-white border-b border-gray-200 shadow-sm px-4 sm:px-8 py-4">
@@ -201,7 +201,7 @@ export default function StaffManagement() {
                   placeholder="Search staff"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 pr-4 h-[40px] w-full sm:w-64 rounded-lg
+                  className="pl-10 pr-4 h-10 w-full sm:w-64 rounded-lg
                              border border-gray-300 text-[14px]
                              focus:outline-none focus:ring-2
                              focus:ring-emerald-500"
@@ -210,7 +210,7 @@ export default function StaffManagement() {
 
               <button
                 onClick={() => setShowFilters((p) => !p)}
-                className="flex items-center gap-2 px-4 h-[40px]
+                className="flex items-center gap-2 px-4 h-10
                            rounded-lg border border-gray-300 bg-white text-[14px]"
               >
                 <Filter size={16} />
@@ -219,7 +219,7 @@ export default function StaffManagement() {
 
               <button
                 onClick={() => setShowAdd(true)}
-                className="flex items-center gap-2 px-4 h-[40px]
+                className="flex items-center gap-2 px-4 h-10
                            rounded-lg bg-emerald-600 text-white text-[14px]"
               >
                 <Plus size={16} />

@@ -216,7 +216,7 @@ const DistributionDonut = ({ total, segments }) => {
   let offset = 0;
 
   return (
-    <div className="bg-white rounded-2xl shadow shadow-sm p-6">
+    <div className="bg-white rounded-2xl  shadow-sm p-6">
       <h3 className="font-semibold mb-4">Total Distribution</h3>
 
       <div className="flex items-center gap-6">

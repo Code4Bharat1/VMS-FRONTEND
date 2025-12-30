@@ -112,7 +112,7 @@ export default function SearchRecords() {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-teal-50">
       {/* ================= HEADER ================= */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -137,7 +137,7 @@ export default function SearchRecords() {
                 placeholder="Search records"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 pr-4 h-[40px] w-full rounded-lg
+                className="pl-10 pr-4 h-10 w-full rounded-lg
                            border border-gray-300 text-[14px]
                            focus:outline-none focus:ring-2
                            focus:ring-emerald-500"
@@ -147,7 +147,7 @@ export default function SearchRecords() {
             {/* EXPORT */}
             <button
               onClick={exportToCSV}
-              className="flex items-center justify-center gap-2 px-4 h-[40px]
+              className="flex items-center justify-center gap-2 px-4 h-10
                          rounded-lg bg-emerald-600 text-white text-[14px]"
             >
               <FileDown size={16} />

@@ -166,7 +166,7 @@ export default function Supervisors() {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-teal-50">
       {/* HEADER */}
       <div className="sticky top-0 z-40 bg-white shadow-sm px-4 sm:px-8 py-4 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div>
@@ -427,7 +427,22 @@ export default function Supervisors() {
             </div>
 
             <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
-              <button onClick={() => setShowAdd(false)}>Cancel</button>
+              <button
+                onClick={() => {
+                  setForm({
+                    name: "",
+                    email: "",
+                    phone: "",
+                    password: "",
+                    assignedBay: "",
+                  });
+                  setErrors({});
+                  setEditId(null);
+                  setShowAdd(false);
+                }}
+              >
+                Cancel
+              </button>
               <button
                 onClick={saveSupervisor}
                 className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50"
