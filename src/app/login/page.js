@@ -54,7 +54,7 @@ export default function LoginPage() {
       login(accessToken, user);
 
       if (user.role === "admin") {
-        router.push("/admin-register");
+        router.push("/admin/dashboard");
       } else {
         router.push("/staff/dashboard");
       }

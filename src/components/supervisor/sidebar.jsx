@@ -22,11 +22,21 @@ const Sidebar = () => {
   const router = useRouter();
 
   const menuItems = [
-    { id: "overview", icon: LayoutDashboard, label: "Supervisor Overview", href: "/supervisor/dashboard" },
+    {
+      id: "overview",
+      icon: LayoutDashboard,
+      label: "Supervisor Overview",
+      href: "/supervisor/dashboard",
+    },
     { id: "staff", icon: Users, label: "My Staff", href: "/supervisor/staff" },
     { id: "bays", icon: Building2, label: "My Bays", href: "/supervisor/bays" },
     // { id: "search", icon: Search, label: "Search Entries", href: "/supervisor/search" },
-    { id: "settings", icon: Settings, label: "My Settings", href: "/supervisor/settings" },
+    {
+      id: "settings",
+      icon: Settings,
+      label: "My Settings",
+      href: "/supervisor/settings",
+    },
   ];
 
   return (
@@ -92,9 +102,11 @@ const Sidebar = () => {
               >
                 <div
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all cursor-pointer
-                    ${isActive
-                      ? "bg-emerald-100 text-emerald-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-100"}
+                    ${
+                      isActive
+                        ? "bg-emerald-100 text-emerald-700 font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }
                     ${collapsed ? "justify-center" : ""}
                     active:scale-[0.98]
                   `}
@@ -121,13 +133,17 @@ const Sidebar = () => {
           <div
             onClick={() => {
               setMobileOpen(false);
-              router.push("/");
+
+              localStorage.removeItem("accessToken");
+              localStorage.removeItem("user");
+
+              window.location.href = "/login";
             }}
             className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer
-              text-gray-600 hover:bg-red-50 hover:text-red-600
-              ${collapsed ? "justify-center" : ""}
-              active:scale-[0.98]
-            `}
+    text-gray-600 hover:bg-red-50 hover:text-red-600
+    ${collapsed ? "justify-center" : ""}
+    active:scale-[0.98]
+  `}
           >
             <LogOut size={20} />
             {!collapsed && <span>Logout</span>}
