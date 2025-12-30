@@ -163,7 +163,6 @@ export default function StaffManagement() {
 
   /* ================= FILTER ================= */
   const filtered = staff.filter((s) => {
-    
     const matchesSearch = s.name?.toLowerCase().includes(search.toLowerCase());
 
     const matchesStatus =
@@ -457,7 +456,23 @@ export default function StaffManagement() {
             </div>
 
             <div className="px-6 py-4 border-t flex justify-end gap-3">
-              <button onClick={() => setShowAdd(false)}>Cancel</button>
+              <button
+                onClick={() => {
+                  setForm({
+                    name: "",
+                    email: "",
+                    phone: "",
+                    password: "",
+                    assignedBay: "",
+                  });
+                  setErrors({});
+                  setEditId(null);
+                  setShowAdd(false);
+                }}
+              >
+                Cancel
+              </button>
+
               <button
                 onClick={saveStaff}
                 className="px-5 py-2 bg-emerald-600 text-white rounded-lg"

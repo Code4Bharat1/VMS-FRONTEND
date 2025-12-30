@@ -17,7 +17,7 @@ export default function StaffDashboardPage() {
   }, []);
 
   const fetchData = async () => {
-     try {
+    try {
       const token = localStorage.getItem("accessToken");
 
       const [entriesRes, baysRes] = await Promise.all([
@@ -53,7 +53,7 @@ export default function StaffDashboardPage() {
 
   const getBayName = (bayId) => {
     const bay = bays.find((b) => b._id === bayId);
-    return bay ? bay.bayName : "--";
+    return bay ? bay.bayId?.bayName : "--";
   };
 
   /* ---------------- UI ---------------- */
@@ -104,7 +104,7 @@ export default function StaffDashboardPage() {
             title="Active Bays"
             value={activeBays.length}
             subtitle={`Across bays ${activeBays
-              .map((b) => b.bayName)
+              .map((b) => b.bayId?.bayName)
               .join(", ")}`}
           />
           <Stat
@@ -141,7 +141,7 @@ export default function StaffDashboardPage() {
                     "Vehicle Number",
                     "Company",
                     "Bay",
-                    "Method",
+                    "Vehicle",
                     "Time In",
                   ].map((h) => (
                     <th key={h} className="px-6 py-4 text-left font-medium">
@@ -160,8 +160,8 @@ export default function StaffDashboardPage() {
                     <td className="px-6 py-4">{e.visitorName}</td>
                     <td className="px-6 py-4">{e.vehicleNumber}</td>
                     <td className="px-6 py-4">{e.visitorCompany}</td>
-                    <td className="px-6 py-4">{getBayName(e.bayId)}</td>
-                    <td className="px-6 py-4 capitalize">{e.entryMethod}</td>
+                    <td className="px-6 py-4">{e.bayId?.bayName || "--"}</td>
+                    <td className="px-6 py-4 capitalize">{e.vehicleType}</td>
                     <td className="px-6 py-4">
                       {new Date(e.inTime).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -178,13 +178,8 @@ export default function StaffDashboardPage() {
         {/* MOBILE CARDS */}
         <div className="sm:hidden space-y-4">
           {entries.map((e) => (
-            <div
-              key={e._id}
-              className="bg-white rounded-xl p-4 shadow-sm"
-            >
-              <p className="font-semibold text-gray-900">
-                {e.visitorName}
-              </p>
+            <div key={e._id} className="bg-white rounded-xl p-4 shadow-sm">
+              <p className="font-semibold text-gray-900">{e.visitorName}</p>
               <p className="text-sm text-gray-500">{e.visitorCompany}</p>
 
               <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
@@ -192,7 +187,7 @@ export default function StaffDashboardPage() {
                 <span>{e.vehicleNumber}</span>
 
                 <span className="text-gray-500">Bay</span>
-                <span>{getBayName(e.bayId)}</span>
+                <span>{e.bayId?.bayName || "--"}</span>
 
                 <span className="text-gray-500">Method</span>
                 <span className="capitalize">{e.entryMethod}</span>

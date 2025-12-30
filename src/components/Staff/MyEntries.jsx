@@ -57,9 +57,10 @@ export default function MyEntries() {
   };
 
   const filteredEntries = entries.filter((e) => {
-    if (bay !== "All bays" && e.bay !== bay) return false;
-    return true;
-  });
+  if (bay !== "All bays" && e.bayId?.bayName !== bay) return false;
+  return true;
+});
+
 
   return (
     <div className="min-h-screen bg-[#f6f8fa]">
@@ -109,14 +110,14 @@ export default function MyEntries() {
             <p className="p-6 text-sm text-gray-500">Loading entries…</p>
           ) : (
             <table className="w-full text-sm ">
-              <thead className="text-gray-500 border-b-1 border-gray-100 bg-green-100">
+              <thead className="text-black border-b-1 border-gray-100 bg-green-100">
                 <tr>
                   <th className="px-6 py-3 text-center">Time</th>
-                  <th className="py-3 text-center">Vehicle</th>
+                  <th className="py-3 text-center">Vehicle No</th>
                   <th className="py-3 text-center">Visitor</th>
                   <th className="py-3 text-center">Company</th>
                   <th className="py-3 text-center">Bay</th>
-                  <th className="py-3 text-center">Method</th>
+                  <th className="py-3 text-center">Vehicle</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,7 +133,8 @@ export default function MyEntries() {
                     <td className="py-3">{e.vehicleNumber}</td>
                     <td className="py-3">{e.visitorName}</td>
                     <td className="py-3">{e.visitorCompany}</td>
-                    <td className="py-3">{e.bayName}</td>
+                    <td className="py-3">{e.bayId?.bayName || "—"
+}</td>
                     <td className="py-3 capitalize">
                       {e.vehicleType}
                     </td>
@@ -162,13 +164,13 @@ export default function MyEntries() {
               </p>
 
               <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
-                <span className="text-gray-500">Vehicle</span>
+                <span className="text-gray-500">Vehicle No</span>
                 <span>{e.vehicleNumber}</span>
 
                 <span className="text-gray-500">Bay</span>
-                <span>{e.bayName}</span>
+                <span>{e.bayId?.bayName || "—"}</span>
 
-                <span className="text-gray-500">Method</span>
+                <span className="text-gray-500">Vehicle</span>
                 <span className="capitalize">{e.vehicleType}</span>
 
                 <span className="text-gray-500">Time</span>
@@ -194,7 +196,8 @@ export default function MyEntries() {
                 <Info label="Mobile" value={selected.visitorMobile} />
                 <Info label="QID" value={selected.qidNumber || "—"} />
                 <Info label="Vehicle" value={selected.vehicleNumber} />
-                <Info label="Bay" value={selected.bayName} />
+                <Info label="Bay" value={selected.bayId?.bayName || "—"
+} />
               </div>
             </div>
           )}
