@@ -27,6 +27,7 @@ const menu = [
   { label: "Staff", href: "/admin/Staff", icon: Users },
   { label: "Reports", href: "/admin/Report", icon: BarChart3 },
   { label: "Settings", href: "/admin/SettingPage", icon: Settings },
+  { label: "pending Staff", href: "/admin/Pending", icon: Users },
 ];
 
 /* ================= SIDEBAR ================= */

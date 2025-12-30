@@ -23,6 +23,13 @@ export default function ManualEntry() {
     if (storedUser) setStaff(JSON.parse(storedUser));
   }, []);
 
+  useEffect(() => {
+  if (staff?.role === "staff" && staff?.assignedBay?._id) {
+    setBayId(staff.assignedBay._id);
+  }
+}, [staff]);
+
+
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
@@ -231,28 +238,16 @@ export default function ManualEntry() {
           <Section title="Visit Details" withDivider>
             <Input label="Purpose" value={purpose} onChange={setPurpose} />
             <div>
-              <label className="text-xs text-gray-500">Destination Bay</label>
+              <label className="block mb-1 font-medium text-gray-600">
+                Assigned Bay
+              </label>
+              <input
+                disabled
+                value={staff?.assignedBay?.bayName || ""}
+                className="w-full bg-gray-100 border rounded-md px-3 py-2"
+              />
 
-              <select
-                className="
-      h-11 w-full rounded-xl px-4
-      bg-gray-50 border border-gray-200
-      focus:outline-none focus:ring-2 focus:ring-emerald-500
-    "
-                value={bayId}
-                onChange={(e) => setBayId(e.target.value)}
-              >
-                <option value="">Select Bay</option>
-                {bays.map((bay) => (
-                  <option key={bay._id} value={bay._id}>
-                    {bay.bayName}
-                  </option>
-                ))}
-              </select>
-
-              {errors.bayId && (
-                <p className="text-red-500 text-xs mt-1">{errors.bayId}</p>
-              )}
+              
             </div>
           </Section>
 

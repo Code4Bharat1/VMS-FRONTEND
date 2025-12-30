@@ -27,7 +27,7 @@ const MyStaff = () => {
   const [staffData, setStaffData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [supervisor, setSupervisor] = useState(null);
-  
+
   // ADD STAFF
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [form, setForm] = useState({
@@ -38,47 +38,44 @@ const MyStaff = () => {
     assignedBay: "",
   });
   const [errors, setErrors] = useState({});
-  
+
   const staffSchema = yup.object().shape({
     name: yup
-    .string()
-    .matches(/^[A-Za-z ]+$/, "Only alphabets are allowed")
-    .required("Name is required"),
+      .string()
+      .matches(/^[A-Za-z ]+$/, "Only alphabets are allowed")
+      .required("Name is required"),
     email: yup
-    .string()
-    .email("Invalid email format")
-    .required("Email is required"),
+      .string()
+      .email("Invalid email format")
+      .required("Email is required"),
     phone: yup
-    .string()
-    .matches(/^[0-9]{10}$/, "Phone must be exactly 10 digits")
-    .required("Phone is required"),
+      .string()
+      .matches(/^[0-9]{10}$/, "Phone must be exactly 10 digits")
+      .required("Phone is required"),
     password: yup
-    .string()
-    .min(6, "Password must be at least 6 characters")
+      .string()
+      .min(6, "Password must be at least 6 characters")
       .required("Password is required"),
   });
   const [entries, setEntries] = useState([]);
   const today = new Date().toDateString();
 
-const todayEntries = entries.filter((e) => {
-  if (!supervisor?.assignedBay || !e.createdAt || !e.bayId) return false;
+  const todayEntries = entries.filter((e) => {
+    if (!supervisor?.assignedBay || !e.createdAt || !e.bayId) return false;
 
-  const entryDate = new Date(e.createdAt).toDateString();
+    const entryDate = new Date(e.createdAt).toDateString();
 
-  const entryBayId =
-    typeof e.bayId === "string" ? e.bayId : e.bayId._id;
+    const entryBayId = typeof e.bayId === "string" ? e.bayId : e.bayId._id;
 
-  const supervisorBayId =
-    typeof supervisor.assignedBay === "string"
-      ? supervisor.assignedBay
-      : supervisor.assignedBay._id;
+    const supervisorBayId =
+      typeof supervisor.assignedBay === "string"
+        ? supervisor.assignedBay
+        : supervisor.assignedBay._id;
 
-  return (
-    entryDate === today &&
-    String(entryBayId) === String(supervisorBayId)
-  );
-});
-
+    return (
+      entryDate === today && String(entryBayId) === String(supervisorBayId)
+    );
+  });
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -86,9 +83,9 @@ const todayEntries = entries.filter((e) => {
   }, []);
 
   useEffect(() => {
-  fetchStaff();
-  fetchEntries();
-}, []);
+    fetchStaff();
+    fetchEntries();
+  }, []);
 
   useEffect(() => {
     if (supervisor?.assignedBay) {
@@ -112,6 +109,8 @@ const todayEntries = entries.filter((e) => {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       });
+
+      alert("Staff added successfully and sent for admin approval.");
 
       setShowAddStaff(false);
       setForm({
@@ -150,27 +149,28 @@ const todayEntries = entries.filter((e) => {
     }
   };
   const fetchEntries = async () => {
-  try {
-    const res = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/entries`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-      }
-    );
-    setEntries(res.data.entries || []);
-  } catch (err) {
-    console.error("Failed to fetch entries", err);
-    setEntries([]);
-  }
-};
-
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/entries`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+      setEntries(res.data.entries || []);
+    } catch (err) {
+      console.error("Failed to fetch entries", err);
+      setEntries([]);
+    }
+  };
 
   const filteredStaff = staffData.filter((staff) => {
     if (!supervisor?.assignedBay || !staff.assignedBay?._id) return false;
 
-    // ✅ normalize BOTH bay IDs correctly
+    // 🚫 HIDE PENDING STAFF
+    if (staff.approvalStatus !== "approved") return false;
+
     const supervisorBayId =
       typeof supervisor.assignedBay === "string"
         ? supervisor.assignedBay
@@ -180,7 +180,6 @@ const todayEntries = entries.filter((e) => {
 
     if (String(supervisorBayId) !== String(staffBayId)) return false;
 
-    // existing filters (unchanged)
     const matchesBay =
       filterBay === "all" || staff.assignedBay?.bayName === filterBay;
 
@@ -334,11 +333,10 @@ const todayEntries = entries.filter((e) => {
             />
 
             <StatCard
-  title="Today's Entries"
-  value={todayEntries.length}
-  icon={<TrendingUp />}
-/>
-
+              title="Today's Entries"
+              value={todayEntries.length}
+              icon={<TrendingUp />}
+            />
           </div>
 
           {/* Filters */}
