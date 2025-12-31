@@ -17,8 +17,19 @@ const loadImage = (src) =>
 const getCroppedImage = async (imageSrc, crop) => {
   const image = await loadImage(imageSrc);
   const canvas = document.createElement("canvas");
-  canvas.width = crop.width;
-  canvas.height = crop.height;
+
+  const MAX_WIDTH = 600;
+  let width = crop.width;
+  let height = crop.height;
+
+  if (width > MAX_WIDTH) {
+    const scale = MAX_WIDTH / width;
+    width = MAX_WIDTH;
+    height = height * scale;
+  }
+
+  canvas.width = width;
+  canvas.height = height;
 
   const ctx = canvas.getContext("2d");
   ctx.drawImage(
@@ -29,14 +40,15 @@ const getCroppedImage = async (imageSrc, crop) => {
     crop.height,
     0,
     0,
-    crop.width,
-    crop.height
+    width,
+    height
   );
 
-  return canvas.toDataURL("image/jpeg", 0.9);
+  // ✅ strong compression to avoid 413
+  return canvas.toDataURL("image/jpeg", 0.55);
 };
 
-// Simple blur detection (variance proxy)
+// Simple blur detection
 const isBlurry = async (base64) => {
   const img = await loadImage(base64);
   const canvas = document.createElement("canvas");
@@ -50,7 +62,7 @@ const isBlurry = async (base64) => {
   for (let i = 0; i < data.length; i += 4) sum += data[i];
   const variance = sum / (data.length / 4);
 
-  return variance < 20; // threshold
+  return variance < 20;
 };
 
 /* ================= COMPONENT ================= */
@@ -69,7 +81,6 @@ export default function ManualEntry() {
   const [errors, setErrors] = useState({});
   const [ocrLoading, setOcrLoading] = useState(false);
 
-  /* ---- OCR UI state ---- */
   const [preview, setPreview] = useState(null);
   const [showCrop, setShowCrop] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -79,7 +90,6 @@ export default function ManualEntry() {
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- USER ---------------- */
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) setStaff(JSON.parse(storedUser));
@@ -96,7 +106,7 @@ export default function ManualEntry() {
       ? localStorage.getItem("accessToken")
       : null;
 
-  /* ---------------- OCR FLOW ---------------- */
+  /* ================= OCR FLOW ================= */
 
   const handlePlateImage = (file) => {
     if (!file) return;
@@ -123,7 +133,7 @@ export default function ManualEntry() {
       }
 
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/ocr/scan`,
+        `${process.env.NEXT_PUBLIC_API_URL}/ocr/scan`, // ✅ FIXED PATH
         { imageBase64: croppedBase64 },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -135,24 +145,26 @@ export default function ManualEntry() {
         alert("Plate not detected. Try again.");
       }
     } catch (err) {
-      alert(`OCR failed. Try again. ${JSON.stringify(err)}`);  
+      const status = err.response?.status;
+
+      if (status === 413) {
+        alert("Image too large. Please retake closer photo.");
+      } else if (!err.response) {
+        alert("Network error. Check internet.");
+      } else {
+        alert(err.response?.data?.message || "OCR failed. Try again.");
+      }
     } finally {
       setOcrLoading(false);
     }
   };
 
-  /* ---------------- VALIDATION ---------------- */
+  /* ================= VALIDATION ================= */
 
   const entrySchema = yup.object().shape({
-    visitorName: yup
-      .string()
-      .matches(/^[A-Za-z ]*$/, "Only alphabets allowed")
-      .nullable(),
+    visitorName: yup.string().matches(/^[A-Za-z ]*$/, "Only alphabets allowed"),
     qidNumber: yup.string().nullable(),
-    mobile: yup
-      .string()
-      .matches(/^[0-9]{10}$/, "Mobile number must be 10 digits")
-      .nullable(),
+    mobile: yup.string().matches(/^[0-9]{10}$/, "Mobile number must be 10 digits"),
     company: yup.string().nullable(),
     vehicleNumber: yup
       .string()
@@ -191,17 +203,11 @@ export default function ManualEntry() {
     }
   };
 
-  /* ---------------- SAVE ---------------- */
+  /* ================= SAVE ================= */
 
   const saveEntry = async () => {
     const isValid = await validateForm();
     if (!isValid) return;
-
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user?.role !== "staff") {
-      alert("Only staff can create manual entries");
-      return;
-    }
 
     try {
       setLoading(true);
@@ -215,18 +221,13 @@ export default function ManualEntry() {
           vehicleNumber: vehicleNumber.toUpperCase(),
           vehicleType,
           bayId,
-          createdBy: user._id,
+          createdBy: staff._id,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       alert("Manual entry saved successfully");
-      setVisitorName("");
-      setQidNumber("");
-      setMobile("");
-      setCompany("");
       setVehicleNumber("");
-      setVehicleType("");
     } catch (err) {
       alert(err.response?.data?.message || "Failed to save entry");
     } finally {
@@ -240,16 +241,14 @@ export default function ManualEntry() {
     <div className="min-h-screen bg-teal-50 px-4 py-8">
       <div className="max-w-5xl bg-white rounded-xl p-6 shadow-sm mx-auto">
 
-        <Section title="Visitor Information">
-          <Input label="Visitor Name" value={visitorName} onChange={setVisitorName} error={errors.visitorName} />
-          <Input label="QID" value={qidNumber} onChange={setQidNumber} />
-          <Input label="Mobile Number" value={mobile} onChange={setMobile} error={errors.mobile} />
-          <Input label="Company / Tenant" value={company} onChange={setCompany} />
-        </Section>
-
         <Section title="Vehicle Information">
           <div className="relative">
-            <Input label="Vehicle Number" value={vehicleNumber} onChange={setVehicleNumber} error={errors.vehicleNumber} />
+            <Input
+              label="Vehicle Number"
+              value={vehicleNumber}
+              onChange={setVehicleNumber}
+              error={errors.vehicleNumber}
+            />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -260,7 +259,6 @@ export default function ManualEntry() {
 
             {vehicleNumber && (
               <button
-                type="button"
                 onClick={() => {
                   setVehicleNumber("");
                   setPreview(lastImage);
@@ -281,39 +279,19 @@ export default function ManualEntry() {
               onChange={(e) => handlePlateImage(e.target.files?.[0])}
             />
           </div>
-
-          <Select
-            label="Vehicle Type"
-            value={vehicleType}
-            onChange={setVehicleType}
-            options={["Truck", "Van", "Car"]}
-          />
-        </Section>
-
-        <Section title="Visit Details">
-          <Input label="Purpose" value={purpose} onChange={setPurpose} />
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Assigned Bay</label>
-            <input
-              disabled
-              value={staff?.assignedBay?.bayName || ""}
-              className="w-full h-11 rounded-xl px-4 bg-gray-100 border"
-            />
-          </div>
         </Section>
 
         <div className="flex justify-end mt-10">
           <button
             onClick={saveEntry}
             disabled={loading}
-            className="px-8 py-2.5 rounded-xl bg-emerald-600 text-white font-medium disabled:opacity-60"
+            className="px-8 py-2.5 rounded-xl bg-emerald-600 text-white"
           >
             {loading ? "Saving..." : "Save Entry"}
           </button>
         </div>
       </div>
 
-      {/* ===== CROP MODAL ===== */}
       {showCrop && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
           <div className="bg-white w-full max-w-md p-4 rounded-xl">
@@ -329,17 +307,17 @@ export default function ManualEntry() {
               />
             </div>
 
-            <div className="flex justify-between mt-4 gap-2">
+            <div className="flex justify-between mt-4">
               <button
                 onClick={() => setShowCrop(false)}
-                className="px-4 py-2 rounded-lg bg-gray-200"
+                className="px-4 py-2 bg-gray-200 rounded-lg"
               >
                 Cancel
               </button>
               <button
                 onClick={runOCR}
                 disabled={ocrLoading}
-                className="px-4 py-2 rounded-lg bg-emerald-600 text-white"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
               >
                 {ocrLoading ? "Scanning..." : "Scan Plate"}
               </button>
@@ -356,8 +334,8 @@ export default function ManualEntry() {
 function Section({ title, children }) {
   return (
     <div className="mb-8">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">{title}</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">{children}</div>
+      <h3 className="text-sm font-semibold mb-4">{title}</h3>
+      {children}
     </div>
   );
 }
@@ -365,31 +343,13 @@ function Section({ title, children }) {
 function Input({ label, value, onChange, error }) {
   return (
     <div>
-      <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+      <label className="text-xs text-gray-500">{label}</label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full rounded-xl px-4 bg-gray-50 border focus:ring-2 focus:ring-emerald-500"
+        className="h-11 w-full rounded-xl px-4 bg-gray-50 border"
       />
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-    </div>
-  );
-}
-
-function Select({ label, value, onChange, options }) {
-  return (
-    <div>
-      <label className="text-xs text-gray-500 mb-1 block">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full rounded-xl px-4 bg-gray-50 border focus:ring-2 focus:ring-emerald-500"
-      >
-        <option value="">Select</option>
-        {options.map((o) => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
+      {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
 }
