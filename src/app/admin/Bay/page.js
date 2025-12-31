@@ -1,7 +1,5 @@
-import Bay from "@/components/admin/Bay";
-import React from "react";
-const Page = () => {
-  return <Bay />;
-};
+import BayManagement from "@/components/admin/Bay.jsx";
 
-export default Page;
+export default function Page() {
+  return <BayManagement />;
+}
