@@ -116,16 +116,29 @@ export default function Sidebar({
             if (onClose) onClose();
           }}
         >
-          <div
-            className={`
-              flex items-center gap-3 px-4 py-3 rounded-lg
-              text-gray-600 hover:bg-red-50 hover:text-red-600
-              ${collapsed ? "justify-center" : ""}
-            `}
-          >
-            <LogOut size={20} />
-            {!collapsed && <span>Logout</span>}
-          </div>
+          {/* LOGOUT */}
+<div className="p-3 border-t border-gray-300">
+  <div
+    onClick={() => {
+      if (onClose) onClose();
+
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+
+      window.location.href = "/login";
+    }}
+    className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer
+      text-gray-600 hover:bg-red-50 hover:text-red-600
+      ${collapsed ? "justify-center" : ""}
+      active:scale-[0.98]
+    `}
+  >
+    <LogOut size={20} />
+    {!collapsed && <span>Logout</span>}
+  </div>
+</div>
+
+
         </Link>
       </div>
     </aside>
