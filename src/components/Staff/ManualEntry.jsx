@@ -1,8 +1,59 @@
 "use client";
 import * as yup from "yup";
-
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { Camera } from "lucide-react";
+import Cropper from "react-easy-crop";
+
+/* ================= IMAGE HELPERS ================= */
+
+const loadImage = (src) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => resolve(img);
+  });
+
+const getCroppedImage = async (imageSrc, crop) => {
+  const image = await loadImage(imageSrc);
+  const canvas = document.createElement("canvas");
+  canvas.width = crop.width;
+  canvas.height = crop.height;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(
+    image,
+    crop.x,
+    crop.y,
+    crop.width,
+    crop.height,
+    0,
+    0,
+    crop.width,
+    crop.height
+  );
+
+  return canvas.toDataURL("image/jpeg", 0.9);
+};
+
+// Simple blur detection (variance proxy)
+const isBlurry = async (base64) => {
+  const img = await loadImage(base64);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let sum = 0;
+  for (let i = 0; i < data.length; i += 4) sum += data[i];
+  const variance = sum / (data.length / 4);
+
+  return variance < 20; // threshold
+};
+
+/* ================= COMPONENT ================= */
 
 export default function ManualEntry() {
   const [visitorName, setVisitorName] = useState("");
@@ -14,60 +65,104 @@ export default function ManualEntry() {
   const [purpose, setPurpose] = useState("");
   const [bayId, setBayId] = useState("");
   const [staff, setStaff] = useState(null);
-  const [bays, setBays] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [ocrLoading, setOcrLoading] = useState(false);
 
+  /* ---- OCR UI state ---- */
+  const [preview, setPreview] = useState(null);
+  const [showCrop, setShowCrop] = useState(false);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedArea, setCroppedArea] = useState(null);
+  const [lastImage, setLastImage] = useState(null);
+
+  const fileInputRef = useRef(null);
+
+  /* ---------------- USER ---------------- */
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) setStaff(JSON.parse(storedUser));
   }, []);
 
   useEffect(() => {
-  if (staff?.role === "staff" && staff?.assignedBay?._id) {
-    setBayId(staff.assignedBay._id);
-  }
-}, [staff]);
-
+    if (staff?.role === "staff" && staff?.assignedBay?._id) {
+      setBayId(staff.assignedBay._id);
+    }
+  }, [staff]);
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    typeof window !== "undefined"
+      ? localStorage.getItem("accessToken")
+      : null;
 
-  useEffect(() => {
-    if (!token) return;
-    axios
-      .get(`${process.env.NEXT_PUBLIC_API_URL}/bays`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setBays(res.data.bays || []));
-  }, [token]);
+  /* ---------------- OCR FLOW ---------------- */
+
+  const handlePlateImage = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreview(reader.result);
+      setLastImage(reader.result);
+      setShowCrop(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const runOCR = async () => {
+    if (!croppedArea || !preview) return;
+
+    setOcrLoading(true);
+    try {
+      const croppedBase64 = await getCroppedImage(preview, croppedArea);
+
+      const blurry = await isBlurry(croppedBase64);
+      if (blurry) {
+        alert("Image is blurry. Please retake.");
+        return;
+      }
+
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/ocr/scan`,
+        { imageBase64: croppedBase64 },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data?.vehicleNumber) {
+        setVehicleNumber(res.data.vehicleNumber);
+        setShowCrop(false);
+      } else {
+        alert("Plate not detected. Try again.");
+      }
+    } catch (err) {
+      alert("OCR failed. Try again.");  
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
+  /* ---------------- VALIDATION ---------------- */
+
   const entrySchema = yup.object().shape({
     visitorName: yup
       .string()
       .matches(/^[A-Za-z ]*$/, "Only alphabets allowed")
       .nullable(),
-
     qidNumber: yup.string().nullable(),
-
     mobile: yup
       .string()
       .matches(/^[0-9]{10}$/, "Mobile number must be 10 digits")
       .nullable(),
-
     company: yup.string().nullable(),
-
     vehicleNumber: yup
       .string()
       .matches(
-        /^[A-Z]{2}[0-9]{2}[A-Z]{1,2}[0-9]{4}$/,
+        /^[A-Z]{2}[0-9]{1,2}[A-Z]{1,2}[0-9]{3,4}$/,
         "Vehicle number must be in format like KA01AB1234"
       )
       .required("Vehicle number is required"),
-
     vehicleType: yup.string().required("Vehicle type is required"),
-
     bayId: yup.string().required("Please select a bay"),
-
     purpose: yup.string().nullable(),
   });
 
@@ -86,39 +181,30 @@ export default function ManualEntry() {
         },
         { abortEarly: false }
       );
-
       setErrors({});
       return true;
     } catch (err) {
       const newErrors = {};
-      err.inner.forEach((e) => {
-        newErrors[e.path] = e.message;
-      });
+      err.inner.forEach((e) => (newErrors[e.path] = e.message));
       setErrors(newErrors);
       return false;
     }
   };
+
+  /* ---------------- SAVE ---------------- */
 
   const saveEntry = async () => {
     const isValid = await validateForm();
     if (!isValid) return;
 
     const user = JSON.parse(localStorage.getItem("user"));
-
     if (user?.role !== "staff") {
       alert("Only staff can create manual entries");
       return;
     }
 
-    const staffId = user?._id;
-    if (!staffId) {
-      alert("Staff not logged in");
-      return;
-    }
-
     try {
       setLoading(true);
-
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/entries/manual`,
         {
@@ -129,158 +215,147 @@ export default function ManualEntry() {
           vehicleNumber: vehicleNumber.toUpperCase(),
           vehicleType,
           bayId,
-          createdBy: staffId,
+          createdBy: user._id,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       alert("Manual entry saved successfully");
-
-      // optional reset
       setVisitorName("");
       setQidNumber("");
       setMobile("");
       setCompany("");
       setVehicleNumber("");
       setVehicleType("");
-      setBayId("");
     } catch (err) {
-      console.error("Save entry error:", err.response || err);
       alert(err.response?.data?.message || "Failed to save entry");
     } finally {
       setLoading(false);
     }
   };
 
+  /* ================= UI ================= */
+
   return (
-    <div className="min-h-screen bg-teal-50">
-      {/* HEADER */}
-      <div className="bg-white px-4 sm:px-8 py-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-[22px] sm:text-[24px] font-semibold text-gray-900">
-              Manual Entry
-            </h1>
-            <p className="text-[13px] sm:text-[14px] text-gray-500 mt-1">
-              Capture visitor and vehicle details manually
-            </p>
-          </div>
+    <div className="min-h-screen bg-teal-50 px-4 py-8">
+      <div className="max-w-5xl bg-white rounded-xl p-6 shadow-sm mx-auto">
 
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white font-semibold">
-              {(staff?.name || "")
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()}
-            </div>
-            <div className="leading-tight">
-              <p className="text-[14px] sm:text-[18px] font-semibold text-gray-900">
-                {staff?.name}
-              </p>
-              <p className="text-[12px] sm:text-[14px] text-gray-500 capitalize">
-                {staff?.role}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+        <Section title="Visitor Information">
+          <Input label="Visitor Name" value={visitorName} onChange={setVisitorName} error={errors.visitorName} />
+          <Input label="QID" value={qidNumber} onChange={setQidNumber} />
+          <Input label="Mobile Number" value={mobile} onChange={setMobile} error={errors.mobile} />
+          <Input label="Company / Tenant" value={company} onChange={setCompany} />
+        </Section>
 
-      {/* FORM CARD */}
-      <div className="px-4 sm:px-8 py-8">
-        <div className="max-w-5xl bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
-          <Section title="Visitor Information">
-            <Input
-              label="Visitor Name"
-              value={visitorName}
-              onChange={setVisitorName}
-              error={errors.visitorName}
-            />
-            <Input
-              label="QID"
-              value={qidNumber}
-              onChange={setQidNumber}
-              error={errors.qidNumber}
-            />
-            <Input
-              label="Mobile Number"
-              value={mobile}
-              onChange={setMobile}
-              error={errors.mobile}
-            />
-            <Input
-              label="Company / Tenant"
-              value={company}
-              onChange={setCompany}
-              error={errors.company}
-            />
-          </Section>
-
-          <Section title="Vehicle Information">
-            <Input
-              label="Vehicle Number"
-              value={vehicleNumber}
-              onChange={setVehicleNumber}
-              error={errors.vehicleNumber}
-            />
-            <Select
-              label="Vehicle Type"
-              value={vehicleType}
-              onChange={setVehicleType}
-              options={["Truck", "Van", "Car"]}
-            />
-          </Section>
-
-          <Section title="Visit Details" withDivider>
-            <Input label="Purpose" value={purpose} onChange={setPurpose} />
-            <div>
-              <label className="block mb-1 font-medium text-gray-600">
-                Assigned Bay
-              </label>
-              <input
-                disabled
-                value={staff?.assignedBay?.bayName || ""}
-                className="w-full bg-gray-100 border rounded-md px-3 py-2"
-              />
-
-              
-            </div>
-          </Section>
-
-          {/* ACTION */}
-          <div className="flex flex-col sm:flex-row justify-end mt-10 pt-6 border-t border-gray-100">
+        <Section title="Vehicle Information">
+          <div className="relative">
+            <Input label="Vehicle Number" value={vehicleNumber} onChange={setVehicleNumber} error={errors.vehicleNumber} />
             <button
-              onClick={saveEntry}
-              disabled={loading}
-              className="
-                w-full sm:w-auto
-                px-8 py-2.5 rounded-xl
-                bg-emerald-600 text-white text-sm font-medium
-                transition-all duration-300
-                hover:-translate-y-0.5 hover:shadow-lg
-                disabled:opacity-60
-              "
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute right-3 top-[34px] p-2 rounded-lg bg-emerald-100 text-emerald-700"
             >
-              {loading ? "Saving..." : "Save Entry"}
+              <Camera size={18} />
             </button>
+
+            {vehicleNumber && (
+              <button
+                type="button"
+                onClick={() => {
+                  setVehicleNumber("");
+                  setPreview(lastImage);
+                  setShowCrop(true);
+                }}
+                className="text-xs text-emerald-600 mt-1"
+              >
+                Retry scan
+              </button>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => handlePlateImage(e.target.files?.[0])}
+            />
           </div>
+
+          <Select
+            label="Vehicle Type"
+            value={vehicleType}
+            onChange={setVehicleType}
+            options={["Truck", "Van", "Car"]}
+          />
+        </Section>
+
+        <Section title="Visit Details">
+          <Input label="Purpose" value={purpose} onChange={setPurpose} />
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Assigned Bay</label>
+            <input
+              disabled
+              value={staff?.assignedBay?.bayName || ""}
+              className="w-full h-11 rounded-xl px-4 bg-gray-100 border"
+            />
+          </div>
+        </Section>
+
+        <div className="flex justify-end mt-10">
+          <button
+            onClick={saveEntry}
+            disabled={loading}
+            className="px-8 py-2.5 rounded-xl bg-emerald-600 text-white font-medium disabled:opacity-60"
+          >
+            {loading ? "Saving..." : "Save Entry"}
+          </button>
         </div>
       </div>
+
+      {/* ===== CROP MODAL ===== */}
+      {showCrop && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+          <div className="bg-white w-full max-w-md p-4 rounded-xl">
+            <div className="relative w-full h-64 bg-black">
+              <Cropper
+                image={preview}
+                crop={crop}
+                zoom={zoom}
+                aspect={4 / 1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(_, area) => setCroppedArea(area)}
+              />
+            </div>
+
+            <div className="flex justify-between mt-4 gap-2">
+              <button
+                onClick={() => setShowCrop(false)}
+                className="px-4 py-2 rounded-lg bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={runOCR}
+                disabled={ocrLoading}
+                className="px-4 py-2 rounded-lg bg-emerald-600 text-white"
+              >
+                {ocrLoading ? "Scanning..." : "Scan Plate"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-/* ---------------- UI HELPERS ---------------- */
+/* ================= UI HELPERS ================= */
 
-function Section({ title, children, withDivider }) {
+function Section({ title, children }) {
   return (
-    <div
-      className={`mb-8 ${withDivider ? "pt-8 border-t border-gray-100" : ""}`}
-    >
+    <div className="mb-8">
       <h3 className="text-sm font-semibold text-gray-900 mb-4">{title}</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">{children}</div>
     </div>
@@ -294,11 +369,7 @@ function Input({ label, value, onChange, error }) {
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="
-          h-11 w-full rounded-xl px-4
-          bg-gray-50 border border-gray-200
-          focus:outline-none focus:ring-2 focus:ring-emerald-500
-        "
+        className="h-11 w-full rounded-xl px-4 bg-gray-50 border focus:ring-2 focus:ring-emerald-500"
       />
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
@@ -312,17 +383,11 @@ function Select({ label, value, onChange, options }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="
-          h-11 w-full rounded-xl px-4
-          bg-gray-50 border border-gray-200
-          focus:outline-none focus:ring-2 focus:ring-emerald-500
-        "
+        className="h-11 w-full rounded-xl px-4 bg-gray-50 border focus:ring-2 focus:ring-emerald-500"
       >
         <option value="">Select</option>
         {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
+          <option key={o} value={o}>{o}</option>
         ))}
       </select>
     </div>

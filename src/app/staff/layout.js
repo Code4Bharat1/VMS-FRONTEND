@@ -10,7 +10,7 @@ export default function StaffLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <ProtectedRoute role="staff">
+    // <ProtectedRoute role="staff">
       <div className="h-screen flex bg-[#f5f7fa] text-[13px] text-gray-700 overflow-hidden">
         {/* ================= SIDEBAR ================= */}
         <Sidebar
@@ -48,6 +48,6 @@ export default function StaffLayout({ children }) {
           </main>
         </div>
       </div>
-    </ProtectedRoute>
+    // </ProtectedRoute>
   );
 }

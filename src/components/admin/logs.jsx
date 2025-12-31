@@ -130,7 +130,7 @@ export default function ActivityLogs() {
         >
           <option value="all">All Modules</option>
           <option value="AUTH">Auth</option>
-          <option value="USER">User</option>
+          <option value="STAFF">Staff</option>
           <option value="ENTRY">Entry</option>
           <option value="BAY">Bay</option>
           <option value="SECURITY">Security</option>
