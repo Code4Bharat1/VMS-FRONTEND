@@ -44,11 +44,9 @@ const getCroppedImage = async (imageSrc, crop) => {
     height
   );
 
-  // ✅ strong compression to avoid 413
   return canvas.toDataURL("image/jpeg", 0.55);
 };
 
-// Simple blur detection
 const isBlurry = async (base64) => {
   const img = await loadImage(base64);
   const canvas = document.createElement("canvas");
@@ -60,9 +58,7 @@ const isBlurry = async (base64) => {
   const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
   let sum = 0;
   for (let i = 0; i < data.length; i += 4) sum += data[i];
-  const variance = sum / (data.length / 4);
-
-  return variance < 20;
+  return sum / (data.length / 4) < 20;
 };
 
 /* ================= COMPONENT ================= */
@@ -91,14 +87,12 @@ export default function ManualEntry() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) setStaff(JSON.parse(storedUser));
+    const u = localStorage.getItem("user");
+    if (u) setStaff(JSON.parse(u));
   }, []);
 
   useEffect(() => {
-    if (staff?.role === "staff" && staff?.assignedBay?._id) {
-      setBayId(staff.assignedBay._id);
-    }
+    if (staff?.assignedBay?._id) setBayId(staff.assignedBay._id);
   }, [staff]);
 
   const token =
@@ -106,7 +100,7 @@ export default function ManualEntry() {
       ? localStorage.getItem("accessToken")
       : null;
 
-  /* ================= OCR FLOW ================= */
+  /* ================= OCR ================= */
 
   const handlePlateImage = (file) => {
     if (!file) return;
@@ -126,14 +120,13 @@ export default function ManualEntry() {
     try {
       const croppedBase64 = await getCroppedImage(preview, croppedArea);
 
-      const blurry = await isBlurry(croppedBase64);
-      if (blurry) {
+      if (await isBlurry(croppedBase64)) {
         alert("Image is blurry. Please retake.");
         return;
       }
 
       const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/ocr/scan`, // ✅ FIXED PATH
+        `${process.env.NEXT_PUBLIC_API_URL}/ocr/scan`,
         { imageBase64: croppedBase64 },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -146,14 +139,9 @@ export default function ManualEntry() {
       }
     } catch (err) {
       const status = err.response?.status;
-
-      if (status === 413) {
-        alert("Image too large. Please retake closer photo.");
-      } else if (!err.response) {
-        alert("Network error. Check internet.");
-      } else {
-        alert(err.response?.data?.message || "OCR failed. Try again.");
-      }
+      if (status === 413) alert("Image too large. Retake closer.");
+      else if (!err.response) alert("Network error.");
+      else alert(err.response?.data?.message || "OCR failed.");
     } finally {
       setOcrLoading(false);
     }
@@ -161,44 +149,22 @@ export default function ManualEntry() {
 
   /* ================= VALIDATION ================= */
 
-  const entrySchema = yup.object().shape({
-    visitorName: yup.string().matches(/^[A-Za-z ]*$/, "Only alphabets allowed"),
-    qidNumber: yup.string().nullable(),
-    mobile: yup.string().matches(/^[0-9]{10}$/, "Mobile number must be 10 digits"),
-    company: yup.string().nullable(),
+  const schema = yup.object().shape({
     vehicleNumber: yup
       .string()
-      .matches(
-        /^[A-Z]{2}[0-9]{1,2}[A-Z]{1,2}[0-9]{3,4}$/,
-        "Vehicle number must be in format like KA01AB1234"
-      )
-      .required("Vehicle number is required"),
-    vehicleType: yup.string().required("Vehicle type is required"),
-    bayId: yup.string().required("Please select a bay"),
-    purpose: yup.string().nullable(),
+      .matches(/^[A-Z]{2}[0-9]{1,2}[A-Z]{1,2}[0-9]{3,4}$/)
+      .required(),
+    vehicleType: yup.string().required(),
+    bayId: yup.string().required(),
   });
 
   const validateForm = async () => {
     try {
-      await entrySchema.validate(
-        {
-          visitorName,
-          qidNumber,
-          mobile,
-          company,
-          vehicleNumber,
-          vehicleType,
-          bayId,
-          purpose,
-        },
-        { abortEarly: false }
-      );
+      await schema.validate({ vehicleNumber, vehicleType, bayId });
       setErrors({});
       return true;
     } catch (err) {
-      const newErrors = {};
-      err.inner.forEach((e) => (newErrors[e.path] = e.message));
-      setErrors(newErrors);
+      setErrors({ [err.path]: err.message });
       return false;
     }
   };
@@ -206,8 +172,7 @@ export default function ManualEntry() {
   /* ================= SAVE ================= */
 
   const saveEntry = async () => {
-    const isValid = await validateForm();
-    if (!isValid) return;
+    if (!(await validateForm())) return;
 
     try {
       setLoading(true);
@@ -218,18 +183,17 @@ export default function ManualEntry() {
           visitorMobile: mobile,
           visitorCompany: company,
           qidNumber,
-          vehicleNumber: vehicleNumber.toUpperCase(),
+          vehicleNumber,
           vehicleType,
           bayId,
           createdBy: staff._id,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      alert("Manual entry saved successfully");
+      alert("Manual entry saved");
       setVehicleNumber("");
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to save entry");
+    } catch {
+      alert("Failed to save entry");
     } finally {
       setLoading(false);
     }
@@ -239,7 +203,14 @@ export default function ManualEntry() {
 
   return (
     <div className="min-h-screen bg-teal-50 px-4 py-8">
-      <div className="max-w-5xl bg-white rounded-xl p-6 shadow-sm mx-auto">
+      <div className="max-w-5xl bg-white rounded-xl p-6 shadow mx-auto">
+
+        <Section title="Visitor Information">
+          <Input label="Visitor Name" value={visitorName} onChange={setVisitorName} />
+          <Input label="QID" value={qidNumber} onChange={setQidNumber} />
+          <Input label="Mobile" value={mobile} onChange={setMobile} />
+          <Input label="Company" value={company} onChange={setCompany} />
+        </Section>
 
         <Section title="Vehicle Information">
           <div className="relative">
@@ -252,19 +223,19 @@ export default function ManualEntry() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute right-3 top-[34px] p-2 rounded-lg bg-emerald-100 text-emerald-700"
+              className="absolute right-3 top-[34px] p-2 bg-emerald-100 rounded-lg"
             >
               <Camera size={18} />
             </button>
 
             {vehicleNumber && (
               <button
+                className="text-xs text-emerald-600 mt-1"
                 onClick={() => {
                   setVehicleNumber("");
                   setPreview(lastImage);
                   setShowCrop(true);
                 }}
-                className="text-xs text-emerald-600 mt-1"
               >
                 Retry scan
               </button>
@@ -279,13 +250,25 @@ export default function ManualEntry() {
               onChange={(e) => handlePlateImage(e.target.files?.[0])}
             />
           </div>
+
+          <Select
+            label="Vehicle Type"
+            value={vehicleType}
+            onChange={setVehicleType}
+            options={["Truck", "Van", "Car"]}
+          />
         </Section>
 
-        <div className="flex justify-end mt-10">
+        <Section title="Visit Details">
+          <Input label="Purpose" value={purpose} onChange={setPurpose} />
+          <Input label="Assigned Bay" value={staff?.assignedBay?.bayName || ""} disabled />
+        </Section>
+
+        <div className="flex justify-end">
           <button
             onClick={saveEntry}
             disabled={loading}
-            className="px-8 py-2.5 rounded-xl bg-emerald-600 text-white"
+            className="px-8 py-2.5 bg-emerald-600 text-white rounded-xl"
           >
             {loading ? "Saving..." : "Save Entry"}
           </button>
@@ -294,8 +277,8 @@ export default function ManualEntry() {
 
       {showCrop && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-          <div className="bg-white w-full max-w-md p-4 rounded-xl">
-            <div className="relative w-full h-64 bg-black">
+          <div className="bg-white p-4 rounded-xl max-w-md w-full">
+            <div className="relative h-64 bg-black">
               <Cropper
                 image={preview}
                 crop={crop}
@@ -306,19 +289,9 @@ export default function ManualEntry() {
                 onCropComplete={(_, area) => setCroppedArea(area)}
               />
             </div>
-
             <div className="flex justify-between mt-4">
-              <button
-                onClick={() => setShowCrop(false)}
-                className="px-4 py-2 bg-gray-200 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={runOCR}
-                disabled={ocrLoading}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
-              >
+              <button onClick={() => setShowCrop(false)}>Cancel</button>
+              <button onClick={runOCR} disabled={ocrLoading}>
                 {ocrLoading ? "Scanning..." : "Scan Plate"}
               </button>
             </div>
@@ -335,21 +308,40 @@ function Section({ title, children }) {
   return (
     <div className="mb-8">
       <h3 className="text-sm font-semibold mb-4">{title}</h3>
-      {children}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">{children}</div>
     </div>
   );
 }
 
-function Input({ label, value, onChange, error }) {
+function Input({ label, value, onChange, error, disabled }) {
   return (
     <div>
       <label className="text-xs text-gray-500">{label}</label>
       <input
+        disabled={disabled}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value)}
         className="h-11 w-full rounded-xl px-4 bg-gray-50 border"
       />
       {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+function Select({ label, value, onChange, options }) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-11 w-full rounded-xl px-4 bg-gray-50 border"
+      >
+        <option value="">Select</option>
+        {options.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
     </div>
   );
 }
