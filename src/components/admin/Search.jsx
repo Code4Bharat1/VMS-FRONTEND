@@ -1,8 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, FileDown } from "lucide-react";
+import { Search, FileDown, UserX, UserCheck,Users,Shield } from "lucide-react";
 import axios from "axios";
+
+
+const Stat = ({ title, value, icon: Icon }) => (
+  <div className="bg-white rounded-md shadow-sm p-6">
+    <div className="flex justify-between mb-2">
+      <Icon className="text-emerald-600" />
+      <span className="text-xs text-emerald-600">Live</span>
+    </div>
+    <p className="text-gray-500 text-sm">{title}</p>
+    <p className="text-3xl font-bold text-gray-800">{value}</p>
+  </div>
+);
+
 
 export default function SearchRecords() {
   const [entries, setEntries] = useState([]);
@@ -112,7 +125,7 @@ export default function SearchRecords() {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-teal-50">
+    <div className="min-h-screen bg-gray-50">
       {/* ================= HEADER ================= */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -137,7 +150,7 @@ export default function SearchRecords() {
                 placeholder="Search records"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 pr-4 h-10 w-full rounded-lg
+                className="pl-10 pr-4 h-10 w-full rounded-md
                            border border-gray-300 text-[14px]
                            focus:outline-none focus:ring-2
                            focus:ring-emerald-500"
@@ -148,7 +161,7 @@ export default function SearchRecords() {
             <button
               onClick={exportToCSV}
               className="flex items-center justify-center gap-2 px-4 h-10
-                         rounded-lg bg-emerald-600 text-white text-[14px]"
+                         rounded-md bg-gray-900 cursor-pointer text-white text-[14px]"
             >
               <FileDown size={16} />
               Export CSV
@@ -159,8 +172,19 @@ export default function SearchRecords() {
 
       {/* ================= CONTENT ================= */}
       <div className="px-4 sm:px-8 py-6">
+              {/* STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6">
+        <Stat title="Total Entries" value={5} icon={Users} />
+        <Stat title="Active Entries" value={7} icon={UserCheck} />
+        <Stat title="Inactive Entries" value={8} icon={UserX} />
+        <Stat
+          title="Supervisors"
+          value={5%15}
+          icon={Shield}
+        />
+      </div>
         {/* ========== DESKTOP TABLE ========== */}
-        <div className="hidden sm:block bg-white rounded-2xl shadow-sm overflow-x-auto">
+        <div className="hidden sm:block bg-white rounded-md shadow-sm overflow-x-auto">
           <table className="min-w-[900px] w-full">
             <thead className="border-b border-gray-200 bg-green-100">
               <tr>
@@ -232,7 +256,7 @@ export default function SearchRecords() {
           {filtered.map((e) => (
             <div
               key={e._id}
-              className="bg-white rounded-xl shadow-sm p-4 space-y-2"
+              className="bg-white rounded-md shadow-sm p-4 space-y-2"
             >
               <div className="text-[13px] text-gray-500">
                 {formatTime(e.inTime)}

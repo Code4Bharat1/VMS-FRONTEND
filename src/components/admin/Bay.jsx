@@ -90,7 +90,7 @@ export default function BayManagement() {
   }
 
   return (
-    <div className="flex min-h-screen bg-teal-50">
+    <div className="flex min-h-screen bg-gray-50">
       <div className="flex-1 overflow-x-hidden">
 
         {/* ================= NAVBAR ================= */}
@@ -107,7 +107,7 @@ export default function BayManagement() {
 
             <button
               onClick={() => setShowAddBay(true)}
-              className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700"
+              className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium cursor-pointer hover:bg-gray-800"
             >
               + Add Bay
             </button>
@@ -123,7 +123,7 @@ export default function BayManagement() {
               return (
                 <div
                   key={bay._id}
-                  className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-white rounded-md border border-gray-200 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div className="mb-3">
                     <h2 className="text-[15px] sm:text-lg font-semibold text-gray-800">
@@ -138,14 +138,14 @@ export default function BayManagement() {
                     <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 font-medium">
                       Free: --
                     </span>
-                    <span className="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700 font-medium">
+                    <span className="px-3 py-1 text-xs rounded-full bg-[#EECD59] text-gray-700 font-medium">
                       Occupied: {occupied}
                     </span>
                   </div>
 
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className="h-2 bg-emerald-600 rounded-full transition-all"
+                      className="h-2 bg-emerald-900 rounded-full transition-all"
                       style={{ width: occupied > 0 ? "60%" : "0%" }}
                     />
                   </div>
