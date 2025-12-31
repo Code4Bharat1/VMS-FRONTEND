@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Plus, X } from "lucide-react";
+import { Search, Plus, X, Pencil, Trash2 } from "lucide-react";
 import api from "@/lib/axios";
 
 export default function Supervisors() {
@@ -10,7 +10,8 @@ export default function Supervisors() {
   const [bays, setBays] = useState([]);
   const [editId, setEditId] = useState(null);
   const [errors, setErrors] = useState({});
-
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [selected, setSelected] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -29,17 +30,17 @@ export default function Supervisors() {
         api.get("/bays"),
       ]);
 
-        const supervisorsData = supRes.data.supervisors || [];
-        const staffData = staffRes.data.staff || [];
-        const baysData = bayRes.data.bays || bayRes.data || [];
+      const supervisorsData = supRes.data.supervisors || [];
+      const staffData = staffRes.data.staff || [];
+      const baysData = bayRes.data.bays || bayRes.data || [];
 
-        setBays(baysData);
+      setBays(baysData);
 
-        const mapped = supervisorsData.map((u) => {
-          const supervisorBayId =
-            typeof u.assignedBay === "object"
-              ? u.assignedBay?._id
-              : u.assignedBay;
+      const mapped = supervisorsData.map((u) => {
+        const supervisorBayId =
+          typeof u.assignedBay === "object"
+            ? u.assignedBay?._id
+            : u.assignedBay;
 
         const staffCount = staffData.filter((s) => {
           const staffBayId =
@@ -163,6 +164,20 @@ export default function Supervisors() {
     (s) => s.status === "Inactive"
   ).length;
   const totalStaff = supervisors.reduce((sum, s) => sum + s.staffCount, 0);
+  const deleteSupervisor = async () => {
+  if (!selected) return;
+
+  try {
+    await api.delete(`/supervisors/${selected.id}`);
+    setConfirmDelete(false);
+    setSelected(null);
+    loadData();
+  } catch (err) {
+    alert(err.response?.data?.message || "Delete failed");
+    console.error("Delete supervisor error:", err);
+  }
+};
+
 
   /* ================= UI ================= */
   return (
@@ -200,7 +215,7 @@ export default function Supervisors() {
 
       {/* CONTENT */}
       <div className="p-4 sm:p-6">
-        <div className="bg-white rounded-2xl shadow-md">
+        <div className="bg-white rounded-xl shadow-md">
           {/* SEARCH */}
           <div className="p-4">
             <div className="relative">
@@ -233,7 +248,7 @@ export default function Supervisors() {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-6 py-4 text-sm font-semibold text-center text-gray-600"
+                      className="px-6 py-4 text-[16px]] font-bold text-center text-black"
                     >
                       {h}
                     </th>
@@ -257,7 +272,7 @@ export default function Supervisors() {
                     <td className="px-6 py-4">
                       <span
                         onClick={() => toggleStatus(s.id)}
-                        className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
+                        className={`cursor-pointer px-3 py-1 rounded-xl text-xs font-medium ${
                           s.status === "Active"
                             ? "bg-emerald-100 text-emerald-700"
                             : "bg-gray-200 text-gray-600"
@@ -267,22 +282,35 @@ export default function Supervisors() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => {
-                          setEditId(s.id);
-                          setForm({
-                            name: s.name,
-                            email: s.email,
-                            phone: s.mobile,
-                            assignedBay: s.assignedBay?._id || "",
-                            password: "",
-                          });
-                          setShowAdd(true);
-                        }}
-                        className="text-sm text-emerald-600 hover:underline"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex items-center justify-center gap-4">
+                        <button
+                          onClick={() => {
+                            setEditId(s.id);
+                            setForm({
+                              name: s.name,
+                              email: s.email,
+                              phone: s.mobile,
+                              assignedBay: s.assignedBay?._id || "",
+                              password: "",
+                            });
+                            setShowAdd(true);
+                          }}
+                          className="text-sm text-emerald-600 hover:underline"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+  onClick={() => {
+    setSelected(s);
+    setShowAdd(false);       // 🔥 important
+    setConfirmDelete(true);
+  }}
+  className="text-red-600"
+>
+  <Trash2 size={18} />
+</button>
+
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -294,7 +322,7 @@ export default function Supervisors() {
             {filtered.map((s) => (
               <div
                 key={s.id}
-                className="bg-white rounded-2xl shadow p-4 space-y-2"
+                className="bg-white rounded-xs shadow p-4 space-y-2"
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -356,7 +384,7 @@ export default function Supervisors() {
             )}
           </div>
 
-          <div className="px-4 py-3 text-sm text-gray-500 bg-gray-50 rounded-b-2xl">
+          <div className="px-4 py-3 text-sm text-gray-500 bg-gray-50 rounded-b-xl">
             Showing {filtered.length} supervisors
           </div>
         </div>
@@ -365,7 +393,7 @@ export default function Supervisors() {
       {/* MODAL */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl">
+          <div className="bg-white w-full max-w-md rounded-xs shadow-xl">
             <div className="flex justify-between items-center px-6 py-4 border-b">
               <h2 className="font-semibold">
                 {editId ? "Edit Supervisor" : "Add Supervisor"}
@@ -445,13 +473,21 @@ export default function Supervisors() {
               </button>
               <button
                 onClick={saveSupervisor}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-xs text-sm disabled:opacity-50"
               >
                 {editId ? "Update" : "Create"}
               </button>
             </div>
           </div>
+          
         </div>
+      )}
+      {confirmDelete && (
+        <ConfirmDelete
+          onCancel={() => setConfirmDelete(false)}
+          onDelete={deleteSupervisor}
+
+        />
       )}
     </div>
   );
@@ -477,7 +513,7 @@ function StatCard({ title, value }) {
   return (
     <div
       className={
-        "rounded-2xl p-5 text-green-900 shadow-md border border-green bg-teal-50 "
+        "rounded-xl p-5 text-green-900 shadow-md border border-green bg-teal-50 "
       }
     >
       <p className="text-sm opacity-90">{title}</p>
@@ -485,3 +521,22 @@ function StatCard({ title, value }) {
     </div>
   );
 }
+const ConfirmDelete = ({ onCancel, onDelete }) => (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl p-6 w-80">
+      <h3 className="font-semibold mb-2">Delete Vendor?</h3>
+      <p className="text-sm text-gray-500 mb-4">
+        This action cannot be undone.
+      </p>
+      <div className="flex justify-end gap-3">
+        <button onClick={onCancel}>Cancel</button>
+        <button
+          onClick={onDelete}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);

@@ -57,10 +57,16 @@ export default function MyEntries() {
   };
 
   const filteredEntries = entries.filter((e) => {
-  if (bay !== "All bays" && e.bayId?.bayName !== bay) return false;
-  return true;
-});
+    // 🔒 Only entries of staff's assigned bay
+    if (staff?.assignedBay?.bayName) {
+      if (e.bayId?.bayName !== staff.assignedBay.bayName) return false;
+    }
 
+    // (optional) dropdown filter if you use it later
+    if (bay !== "All bays" && e.bayId?.bayName !== bay) return false;
+
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-teal-50">
@@ -68,9 +74,7 @@ export default function MyEntries() {
       <div className="bg-white px-4 sm:px-8 py-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              My Entries
-            </h1>
+            <h1 className="text-2xl font-semibold text-gray-900">My Entries</h1>
             <p className="text-sm text-gray-500 mt-1">
               Entries captured by you
             </p>
@@ -88,9 +92,7 @@ export default function MyEntries() {
               <p className="text-lg font-semibold text-gray-900">
                 {staff?.name}
               </p>
-              <p className="text-sm text-gray-500 capitalize">
-                {staff?.role}
-              </p>
+              <p className="text-sm text-gray-500 capitalize">{staff?.role}</p>
             </div>
           </div>
         </div>
@@ -99,7 +101,8 @@ export default function MyEntries() {
       {/* CONTENT */}
       <div className="px-4 sm:px-8 py-6 grid grid-cols-12 gap-6">
         {/* DESKTOP TABLE */}
-        <div className="hidden lg:block col-span-8 bg-white rounded-xl shadow-sm">
+        <div className="hidden w-full lg:block col-span-12 bg-white rounded-xl shadow-sm">
+
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between">
             <h3 className="font-semibold text-gray-900">
               Entries captured by you
@@ -110,9 +113,10 @@ export default function MyEntries() {
             <p className="p-6 text-sm text-gray-500">Loading entries…</p>
           ) : (
             <table className="w-full text-sm ">
-              <thead className="text-black border-b border-gray-100 bg-green-100">
+              <thead className="text-black text-[16px] border-b border-gray-100 bg-green-100">
                 <tr>
-                  <th className="px-6 py-3 text-center">Time</th>
+                  <th className="px-3  text-center">Time</th>
+                  <th className="px-3 text-center">QID</th>
                   <th className="py-3 text-center">Vehicle No</th>
                   <th className="py-3 text-center">Visitor</th>
                   <th className="py-3 text-center">Company</th>
@@ -125,19 +129,15 @@ export default function MyEntries() {
                   <tr
                     key={e._id}
                     onClick={() => setSelected(e)}
-                    className=" cursor-pointer border-b-2 border-gray-200 hover:bg-gray-50 text-center"
+                    className=" cursor-pointer border-b-2 text-[16px] border-gray-200 hover:bg-gray-50 text-center"
                   >
-                    <td className="px-6 py-3">
-                      {formatDateTime(e.createdAt)}
-                    </td>
+                    <td className="px-3">{formatDateTime(e.createdAt)}</td>
+                    <td className="py-3">{e.qidNumber}</td>
                     <td className="py-3">{e.vehicleNumber}</td>
                     <td className="py-3">{e.visitorName}</td>
                     <td className="py-3">{e.visitorCompany}</td>
-                    <td className="py-3">{e.bayId?.bayName || "—"
-}</td>
-                    <td className="py-3 capitalize">
-                      {e.vehicleType}
-                    </td>
+                    <td className="py-3">{e.bayId?.bayName || "—"}</td>
+                    <td className="py-3">{e.vehicleType}</td>
                   </tr>
                 ))}
               </tbody>
@@ -156,12 +156,8 @@ export default function MyEntries() {
               }}
               className="bg-white rounded-xl shadow-sm p-4"
             >
-              <p className="font-semibold text-gray-900">
-                {e.visitorName}
-              </p>
-              <p className="text-sm text-gray-500">
-                {e.visitorCompany}
-              </p>
+              <p className="font-semibold text-gray-900">{e.visitorName}</p>
+              <p className="text-sm text-gray-500">{e.visitorCompany}</p>
 
               <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
                 <span className="text-gray-500">Vehicle No</span>
@@ -180,7 +176,7 @@ export default function MyEntries() {
           ))}
         </div>
 
-        {/* RIGHT PANEL (DESKTOP ONLY) */}
+        {/* RIGHT PANEL (DESKTOP ONLY)
         <div className="hidden lg:block col-span-4 space-y-4">
           {selected && (
             <div className="bg-white rounded-xl shadow-sm p-6">
@@ -196,8 +192,7 @@ export default function MyEntries() {
                 <Info label="Mobile" value={selected.visitorMobile} />
                 <Info label="QID" value={selected.qidNumber || "—"} />
                 <Info label="Vehicle" value={selected.vehicleNumber} />
-                <Info label="Bay" value={selected.bayId?.bayName || "—"
-} />
+                <Info label="Bay" value={selected.bayId?.bayName || "—"} />
               </div>
             </div>
           )}
@@ -219,45 +214,42 @@ export default function MyEntries() {
               />
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* ✅ MOBILE POPUP — SAME JSX, JUST OVERLAY */}
-    {showMobilePopup && selected && (
-  <div
-    className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center lg:hidden"
-    onClick={() => setShowMobilePopup(false)}
-  >
-    <div
-      className="bg-white rounded-xl shadow-sm p-6 w-[92%] max-w-sm transition-all duration-300 scale-100 relative"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* CLOSE BUTTON */}
-      <button
-        onClick={() => setShowMobilePopup(false)}
-        className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-lg"
-      >
-        ✕
-      </button>
+      {showMobilePopup && selected && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center lg:hidden"
+          onClick={() => setShowMobilePopup(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-sm p-6 w-[92%] max-w-sm transition-all duration-300 scale-100 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* CLOSE BUTTON */}
+            <button
+              onClick={() => setShowMobilePopup(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-lg"
+            >
+              ✕
+            </button>
 
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">
-        Selected Entry
-      </h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+              Selected Entry
+            </h3>
 
-      <p className="text-lg font-semibold mb-4">
-        {selected.visitorName}
-      </p>
+            <p className="text-lg font-semibold mb-4">{selected.visitorName}</p>
 
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <Info label="Mobile" value={selected.visitorMobile} />
-        <Info label="QID" value={selected.qidNumber || "—"} />
-        <Info label="Vehicle" value={selected.vehicleNumber} />
-        <Info label="Bay" value={selected.bayName} />
-      </div>
-    </div>
-  </div>
-)}
-
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <Info label="Mobile" value={selected.visitorMobile} />
+              <Info label="QID" value={selected.qidNumber || "—"} />
+              <Info label="Vehicle" value={selected.vehicleNumber} />
+              <Info label="Bay" value={selected.bayName} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -277,9 +269,7 @@ function Stat({ label, value }) {
   return (
     <div className="bg-gray-50 rounded-lg p-3">
       <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-lg font-semibold text-gray-900">
-        {value}
-      </p>
+      <p className="text-lg font-semibold text-gray-900">{value}</p>
     </div>
   );
 }

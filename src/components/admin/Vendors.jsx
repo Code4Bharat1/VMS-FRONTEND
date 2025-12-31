@@ -231,7 +231,7 @@ export default function VendorManagement() {
                   "Status",
                   "Actions",
                 ].map((h) => (
-                  <th key={h} className="px-6 py-4 text-center text-sm">
+                  <th key={h} className="px-6 py-4 text-center text-[16px]]">
                     {h}
                   </th>
                 ))}
@@ -454,6 +454,8 @@ const Field = ({ label, name, form, setForm, error }) => (
       onChange={(e) => setForm({ ...form, [name]: e.target.value })}
       className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
     />
-    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    {error && (
+      <p className="text-red-500 text-xs mt-1">{error}</p>
+    )}
   </div>
 );

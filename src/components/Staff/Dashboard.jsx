@@ -55,6 +55,12 @@ export default function StaffDashboardPage() {
     const bay = bays.find((b) => b._id === bayId);
     return bay ? bay.bayId?.bayName : "--";
   };
+const staffBayName = staff?.assignedBay?.bayName;
+
+const filteredEntries = entries.filter((e) => {
+  if (!staffBayName) return false;
+  return e.bayId?.bayName === staffBayName;
+});
 
   /* ---------------- UI ---------------- */
   return (
@@ -152,7 +158,7 @@ export default function StaffDashboardPage() {
               </thead>
 
               <tbody>
-                {entries.map((e) => (
+                {filteredEntries.map((e) => (
                   <tr
                     key={e._id}
                     className="border-b border-gray-100 text-[14px] hover:bg-gray-50"
@@ -177,7 +183,7 @@ export default function StaffDashboardPage() {
 
         {/* MOBILE CARDS */}
         <div className="sm:hidden space-y-4">
-          {entries.map((e) => (
+          {filteredEntries.map((e) => (
             <div key={e._id} className="bg-white rounded-xl p-4 shadow-sm">
               <p className="font-semibold text-gray-900">{e.visitorName}</p>
               <p className="text-sm text-gray-500">{e.visitorCompany}</p>
