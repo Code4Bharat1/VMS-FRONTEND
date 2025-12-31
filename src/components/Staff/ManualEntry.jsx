@@ -135,7 +135,7 @@ export default function ManualEntry() {
         alert("Plate not detected. Try again.");
       }
     } catch (err) {
-      alert("OCR failed. Try again.");  
+      alert(`OCR failed. Try again. ${JSON.stringify(err)}`);  
     } finally {
       setOcrLoading(false);
     }
