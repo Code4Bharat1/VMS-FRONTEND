@@ -137,6 +137,9 @@ export default function Supervisors() {
 
       loadData();
     } catch (err) {
+      const message = err.response?.data?.message || "Something went wrong";
+
+      alert(message); // or toast if you use one
       console.error("Save supervisor error:", err);
     }
   };
@@ -294,6 +297,7 @@ export default function Supervisors() {
                         <button
                           onClick={() => {
                             setSelected(s);
+                            setShowAdd(false);
                             setConfirmDelete(true);
                           }}
                           className="text-red-600 hover:scale-110 transition cursor-pointer"
@@ -306,6 +310,76 @@ export default function Supervisors() {
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* ================= MOBILE VIEW ================= */}
+          <div className="md:hidden space-y-4 px-4 pb-4">
+            {filtered.map((s) => (
+              <div
+                key={s.id}
+                className="bg-white rounded-xs shadow p-4 space-y-2"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-semibold text-gray-900">{s.name}</p>
+                    <p className="text-xs text-gray-500">{s.email}</p>
+                  </div>
+                  <span
+                    onClick={() => toggleStatus(s.id)}
+                    className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
+                      s.status === "Active"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {s.status}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-700">
+                  <p>
+                    <span className="font-medium">Mobile:</span> {s.mobile}
+                  </p>
+                  <p>
+                    <span className="font-medium">Bay:</span>{" "}
+                    {s.assignedBay?.bayName || "-"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Staff Count:</span>{" "}
+                    {s.staffCount}
+                  </p>
+                </div>
+                <div className="flex justify-end gap-4 pt-2">
+                  <Pencil
+                    className="text-emerald-600 cursor-pointer"
+                    size={18}
+                    onClick={() => {
+                      setEditId(s.id);
+                      setForm({
+                        name: s.name,
+                        email: s.email,
+                        phone: s.mobile,
+                        assignedBay: s.assignedBay?._id || "",
+                        password: "",
+                      });
+                      setShowAdd(true);
+                    }}
+                  />
+
+                  <Trash2
+                    className="text-red-600 cursor-pointer"
+                    size={18}
+                    onClick={() => {
+                      setSelected(s);
+                      setConfirmDelete(true);
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-sm text-gray-400">
+                No supervisors found
+              </p>
+            )}
           </div>
 
           <div className="px-4 py-3 text-sm text-emerald-600 bg-emerald-50 rounded-b-xl">
@@ -356,7 +430,19 @@ function Modal({ editId, form, setForm, errors, bays, onClose, onSubmit }) {
           <h2 className="font-semibold text-emerald-800">
             {editId ? "Edit Supervisor" : "Add Supervisor"}
           </h2>
-          <X onClick={onClose} className="cursor-pointer text-emerald-600" />
+          <X
+            onClick={() => {
+              setForm({
+                name: "",
+                email: "",
+                phone: "",
+                password: "",
+                assignedBay: "",
+              });
+              onClose();
+            }}
+            className="cursor-pointer text-emerald-600"
+          />
         </div>
 
         <div className="p-6 space-y-4">
@@ -396,7 +482,9 @@ function Modal({ editId, form, setForm, errors, bays, onClose, onSubmit }) {
               </option>
             ))}
           </select>
-
+          {errors.assignedBay && (
+            <p className="text-xs text-red-500 mt-1">{errors.assignedBay}</p>
+          )}
           {!editId && (
             <Input
               label="Password"
@@ -409,9 +497,36 @@ function Modal({ editId, form, setForm, errors, bays, onClose, onSubmit }) {
         </div>
 
         <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3">
-          <button onClick={onClose} className="text-emerald-600">
+          <button
+            onClick={() => {
+              setForm({
+                name: "",
+                email: "",
+                phone: "",
+                password: "",
+                assignedBay: "",
+              });
+              setErrors({});
+              setEditId(null);
+              setShowAdd(false);
+            }}
+          ></button>
+          <button
+            onClick={() => {
+              setForm({
+                name: "",
+                email: "",
+                phone: "",
+                password: "",
+                assignedBay: "",
+              });
+              onClose();
+            }}
+            className="text-emerald-600"
+          >
             Cancel
           </button>
+
           <button
             onClick={onSubmit}
             className="px-4 cursor-pointer py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition"

@@ -1,7 +1,17 @@
 "use client";
 import * as yup from "yup";
 import { useEffect, useState } from "react";
-import { Search, Plus, Filter, Users, Activity, X } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Filter,
+  Users,
+  Activity,
+  X,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+
 import axios from "axios";
 
 export default function StaffManagement() {
@@ -13,6 +23,8 @@ export default function StaffManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [nameFilter, setNameFilter] = useState("all");
   const [editId, setEditId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
 
   const [showAdd, setShowAdd] = useState(false);
   const [showMobilePopup, setShowMobilePopup] = useState(false);
@@ -154,6 +166,48 @@ export default function StaffManagement() {
       console.error("Toggle staff status error:", err);
     }
   };
+const deleteStaff = async () => {
+  if (!selected) return;
+
+  try {
+    await axios.delete(
+      `${process.env.NEXT_PUBLIC_API_URL}/staff/${selected._id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setConfirmDelete(false);
+    setSelected(null);
+    fetchStaff();
+  } catch (err) {
+    alert(err.response?.data?.message || "Delete failed");
+    console.error("Delete staff error:", err);
+  }
+};
+
+const ConfirmDelete = ({ onCancel, onDelete }) => (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl p-6 w-80">
+      <h3 className="font-semibold text-emerald-800 mb-2">
+        Delete Staff?
+      </h3>
+      <p className="text-sm text-emerald-600 mb-4">
+        This action cannot be undone.
+      </p>
+      <div className="flex justify-end gap-3">
+        <button onClick={onCancel} className="text-emerald-600">
+          Cancel
+        </button>
+        <button
+          onClick={onDelete}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 
   /* ================= FILTER ================= */
   const filtered = staff.filter((s) => {
@@ -209,9 +263,20 @@ export default function StaffManagement() {
               </button>
 
               <button
-                onClick={() => setShowAdd(true)}
+                onClick={() => {
+                  setEditId(null);
+                  setErrors({});
+                  setForm({
+                    name: "",
+                    email: "",
+                    phone: "",
+                    assignedBay: "",
+                    password: "",
+                  });
+                  setShowAdd(true);
+                }}
                 className="flex items-center gap-2 px-4 h-10
-                           rounded-lg bg-emerald-600 text-white text-[14px]"
+             rounded-lg bg-emerald-600 text-white text-[14px]"
               >
                 <Plus size={16} />
                 Add Staff
@@ -253,6 +318,12 @@ export default function StaffManagement() {
             </div>
           </div>
         )}
+{confirmDelete && (
+  <ConfirmDelete
+    onCancel={() => setConfirmDelete(false)}
+    onDelete={deleteStaff}
+  />
+)}
 
         {/* CONTENT */}
         <div className="px-4 sm:px-8 py-6">
@@ -277,7 +348,8 @@ export default function StaffManagement() {
 
           {/* TABLE + DETAILS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-x-auto">
+            <div className="hidden lg:block lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-x-auto">
+
               <table className="min-w-[720px] w-full">
                 <thead className="bg-green-100 border-b-2 border-emerald-200">
                   <tr>
@@ -322,25 +394,37 @@ export default function StaffManagement() {
                       </td>
 
                       <td className="px-6 py-4">
-                        <button
-                          onClick={() => {
-                            setEditId(s._id);
-                            setForm({
-                              name: s.name,
-                              email: s.email,
-                              phone: s.phone,
-                              assignedBay:
-                                typeof s.assignedBay === "object"
-                                  ? s.assignedBay?._id
-                                  : s.assignedBay || "",
-                              password: "",
-                            });
-                            setShowAdd(true);
-                          }}
-                          className="text-sm text-emerald-600 hover:underline"
-                        >
-                          Edit
-                        </button>
+                        <div className="flex justify-center gap-4">
+                          <Pencil
+                            size={18}
+                            className="text-emerald-600 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditId(s._id);
+                              setForm({
+                                name: s.name,
+                                email: s.email,
+                                phone: s.phone,
+                                assignedBay:
+                                  typeof s.assignedBay === "object"
+                                    ? s.assignedBay?._id
+                                    : s.assignedBay || "",
+                                password: "",
+                              });
+                              setShowAdd(true);
+                            }}
+                          />
+
+                          <Trash2
+                            size={18}
+                            className="text-red-600 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelected(s);
+                              setConfirmDelete(true);
+                            }}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -359,6 +443,81 @@ export default function StaffManagement() {
               )}
             </div>
           </div>
+          {/* ================= MOBILE STAFF LIST ================= */}
+<div className="lg:hidden px-4 space-y-4 pb-6">
+  {filtered.map((s) => (
+    <div
+      key={s._id}
+      className="bg-white rounded-xl shadow-sm p-4 space-y-3"
+    >
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="font-semibold text-emerald-900">{s.name}</p>
+          <p className="text-xs text-emerald-600">{s.email}</p>
+        </div>
+
+        <span
+          onClick={() => toggleStaffStatus(s._id)}
+          className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
+            s.isActive
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-red-100 text-red-600"
+          }`}
+        >
+          {s.isActive ? "Active" : "Inactive"}
+        </span>
+      </div>
+
+      <div className="text-sm text-gray-700 space-y-1">
+        <p>
+          <span className="font-medium">Phone:</span> {s.phone}
+        </p>
+        <p>
+          <span className="font-medium">Bay:</span>{" "}
+          {getBayName(s.assignedBay)}
+        </p>
+      </div>
+
+      {/* ✏️ 🗑️ ACTIONS */}
+      <div className="flex justify-end gap-4 pt-2">
+        <Pencil
+          size={18}
+          className="text-emerald-600 cursor-pointer"
+          onClick={() => {
+            setEditId(s._id);
+            setForm({
+              name: s.name,
+              email: s.email,
+              phone: s.phone,
+              assignedBay:
+                typeof s.assignedBay === "object"
+                  ? s.assignedBay?._id
+                  : s.assignedBay || "",
+              password: "",
+            });
+            setShowAdd(true);
+          }}
+        />
+
+        <Trash2
+          size={18}
+          className="text-red-600 cursor-pointer"
+          onClick={() => {
+            setSelected(s);
+            setConfirmDelete(true);
+          }}
+        />
+      </div>
+    </div>
+  ))}
+
+  {filtered.length === 0 && (
+    <p className="text-center text-sm text-gray-400">
+      No staff found
+    </p>
+  )}
+</div>
+
         </div>
       </div>
 
@@ -389,7 +548,21 @@ export default function StaffManagement() {
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
             <div className="flex justify-between px-6 py-4 border-b border-emerald-200">
               <h2 className="font-semibold">Add New Staff</h2>
-              <X onClick={() => setShowAdd(false)} className="cursor-pointer" />
+              <X
+                onClick={() => {
+                  setForm({
+                    name: "",
+                    email: "",
+                    phone: "",
+                    assignedBay: "",
+                    password: "",
+                  });
+                  setErrors({});
+                  setEditId(null);
+                  setShowAdd(false);
+                }}
+                className="cursor-pointer"
+              />
             </div>
 
             <div className="px-6 py-5 space-y-4 text-sm">
