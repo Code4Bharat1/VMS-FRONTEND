@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Search,
@@ -16,6 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import authService from "@/services/authService";
+import { useAuth } from "@/context/AuthContext";
 
 /* ================= MENU ================= */
 const menu = [
@@ -34,9 +36,20 @@ const menu = [
 export default function Sidebar({
   collapsed = false,
   setCollapsed = () => {},
-  onClose, // mobile close handler
+  onClose,
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } finally {
+      logout();
+    }
+  };
 
   return (
     <aside
@@ -44,7 +57,7 @@ export default function Sidebar({
         h-screen
         ${collapsed ? "w-20" : "w-64"}
         flex flex-col
-bg-white
+        bg-white
         border-r border-gray-200
         transition-[width] duration-300 ease-in-out
         text-sm text-gray-700
@@ -57,7 +70,7 @@ bg-white
         }`}
       >
         <div
-          className={`flex items-center justify-center gap-3 overflow-hidden ${
+          className={`flex items-center gap-3 overflow-hidden ${
             collapsed && "hidden"
           }`}
         >
@@ -76,7 +89,7 @@ bg-white
         {!onClose && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-1.5 rounded-md hover:bg-emerald-100 transition cursor-pointer"
+            className="p-1.5 rounded-md hover:bg-emerald-100 transition"
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
@@ -84,7 +97,7 @@ bg-white
       </div>
 
       {/* ================= NAVIGATION ================= */}
-      <nav className="flex-1 flex flex-col px-2 py-4 space-y-2 scrollbar-thin">
+      <nav className="flex-1 flex flex-col px-2 py-4 space-y-2">
         {menu.map((item) => {
           const Icon = item.icon;
           const active =
@@ -94,15 +107,13 @@ bg-white
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => {
-                if (onClose) onClose();
-              }}
+              onClick={() => onClose && onClose()}
             >
               <div
                 className={`
-                  group flex items-center gap-3
+                  flex items-center gap-3
                   px-4 py-2.5 rounded-lg
-                  transition-all duration-200
+                  transition-all
                   ${
                     active
                       ? "bg-emerald-100 text-emerald-700 font-medium"
@@ -113,14 +124,9 @@ bg-white
               >
                 <Icon
                   size={20}
-                  className={`shrink-0 ${
-                    active ? "text-emerald-600" : "text-gray-500"
-                  }`}
+                  className={active ? "text-emerald-600" : "text-gray-500"}
                 />
-
-                {!collapsed && (
-                  <span className="whitespace-nowrap">{item.label}</span>
-                )}
+                {!collapsed && <span>{item.label}</span>}
               </div>
             </Link>
           );
@@ -128,25 +134,17 @@ bg-white
       </nav>
 
       {/* ================= LOGOUT ================= */}
-      <div className="px-2 py-3 border-t border-gray-200 text-red-500">
+      <div className="px-2 py-3 border-t border-gray-200">
         <div
-          onClick={() => {
-            if (onClose) onClose();
-
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("user");
-
-            window.location.href = "/login";
-          }}
+          onClick={handleLogout}
           className={`
             flex items-center gap-3
             px-4 py-2.5 rounded-lg
             cursor-pointer
-            text-gray-600
+            text-red-500
             hover:bg-red-50 hover:text-red-600
-            transition-all duration-200
+            transition
             ${collapsed ? "justify-center px-2" : ""}
-            active:scale-[0.97]
           `}
         >
           <LogOut size={20} />

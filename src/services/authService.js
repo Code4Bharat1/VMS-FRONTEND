@@ -8,9 +8,9 @@ class AuthService {
 
     const { accessToken, user } = res.data;
 
-    if (res.data) {
-      localStorage.setItem("user", JSON.stringify(user));
+    if (accessToken) {
       localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("user", JSON.stringify(user));
     }
 
     return { accessToken, user };
@@ -19,14 +19,14 @@ class AuthService {
   /* ---------------- LOGOUT ---------------- */
   async logout() {
     try {
+      // Clears refresh token cookie on backend
       await axiosInstance.post("/auth/logout");
+    } catch (err) {
+      // Even if API fails, client state must be cleared
+      console.error("Logout error:", err);
     } finally {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("user");
-
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
-      }
     }
   }
 }
