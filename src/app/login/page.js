@@ -30,7 +30,7 @@ export default function LoginPage() {
         router.push("/admin/dashboard");
       } else if (user.role === "staff") {
         router.push("/staff/dashboard");
-      }else {
+      } else {
         router.push("/supervisor/dashboard");
       }
     }
@@ -68,7 +68,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-b from-emerald-50 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
         <div className="flex flex-col items-center gap-3 mb-6">
           <div className="bg-green-100 text-green-700 p-3 rounded-xl">
