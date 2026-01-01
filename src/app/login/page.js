@@ -60,7 +60,8 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error(err);
-      const msg = err.message || "Login failed. Please try again.";
+      const msg =
+        err.response?.data?.message || "Login failed. Please try again.";
       setServerError(msg);
     } finally {
       setLoading(false);
