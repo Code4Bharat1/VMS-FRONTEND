@@ -83,11 +83,7 @@ export default function StaffManagement() {
   /* ================= BAY NAME RESOLVER (FIX) ================= */
   const getBayName = (bay) => {
     if (!bay) return "-";
-
-    // populated object
     if (typeof bay === "object") return bay.bayName || "-";
-
-    // string ID
     const found = bays.find((b) => b._id === bay);
     return found ? found.bayName : "-";
   };
@@ -114,7 +110,6 @@ export default function StaffManagement() {
 
     try {
       if (editId) {
-        // UPDATE STAFF
         await axios.put(
           `${process.env.NEXT_PUBLIC_API_URL}/staff/${editId}`,
           {
@@ -126,7 +121,6 @@ export default function StaffManagement() {
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
-        // CREATE STAFF
         await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/staff`, form, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -164,29 +158,26 @@ export default function StaffManagement() {
   /* ================= FILTER ================= */
   const filtered = staff.filter((s) => {
     const matchesSearch = s.name?.toLowerCase().includes(search.toLowerCase());
-
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "active" && s.isActive) ||
       (statusFilter === "inactive" && !s.isActive);
-
     const matchesName = nameFilter === "all" || s.name === nameFilter;
-
     return matchesSearch && matchesStatus && matchesName;
   });
 
   /* ================= UI ================= */
   return (
-    <div className="flex min-h-screen bg-teal-50">
+    <div className="flex min-h-screen bg-emerald-50/60">
       <div className="flex-1 overflow-auto">
         {/* HEADER */}
-        <div className="bg-white border-b border-gray-200 shadow-sm px-4 sm:px-8 py-4">
+        <div className="bg-white border-b border-emerald-200 shadow-sm px-4 sm:px-8 py-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-[18px] sm:text-[22px] font-semibold text-gray-800">
+              <h1 className="text-[18px] sm:text-[22px] font-semibold text-emerald-800">
                 Staff Management
               </h1>
-              <p className="text-[13px] sm:text-[14px] text-gray-500 mt-1">
+              <p className="text-[13px] sm:text-[14px] text-emerald-600 mt-1">
                 Manage security staff and supervisors
               </p>
             </div>
@@ -195,14 +186,14 @@ export default function StaffManagement() {
               <div className="relative w-full sm:w-auto">
                 <Search
                   size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"
                 />
                 <input
                   placeholder="Search staff"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 pr-4 h-10 w-full sm:w-64 rounded-lg
-                             border border-gray-300 text-[14px]
+                             border border-emerald-300 text-[14px]
                              focus:outline-none focus:ring-2
                              focus:ring-emerald-500"
                 />
@@ -211,7 +202,7 @@ export default function StaffManagement() {
               <button
                 onClick={() => setShowFilters((p) => !p)}
                 className="flex items-center gap-2 px-4 h-10
-                           rounded-lg border border-gray-300 bg-white text-[14px]"
+                           rounded-lg border border-emerald-300 bg-white text-[14px]"
               >
                 <Filter size={16} />
                 Filters
@@ -231,13 +222,13 @@ export default function StaffManagement() {
 
         {/* FILTER PANEL */}
         {showFilters && (
-          <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-4 flex flex-col sm:flex-row gap-4 text-[14px]">
+          <div className="bg-white border-b border-emerald-200 px-4 sm:px-8 py-4 flex flex-col sm:flex-row gap-4 text-[14px]">
             <div>
-              <label className="block text-gray-500 mb-1">Status</label>
+              <label className="block text-emerald-600 mb-1">Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 w-full sm:w-40"
+                className="border border-emerald-300 rounded-lg px-3 py-2 w-full sm:w-40"
               >
                 <option value="all">All</option>
                 <option value="active">Active</option>
@@ -246,11 +237,11 @@ export default function StaffManagement() {
             </div>
 
             <div>
-              <label className="block text-gray-500 mb-1">Staff Name</label>
+              <label className="block text-emerald-600 mb-1">Staff Name</label>
               <select
                 value={nameFilter}
                 onChange={(e) => setNameFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 w-full sm:w-48"
+                className="border border-emerald-300 rounded-lg px-3 py-2 w-full sm:w-48"
               >
                 <option value="all">All</option>
                 {staff.map((s) => (
@@ -288,13 +279,13 @@ export default function StaffManagement() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-x-auto">
               <table className="min-w-[720px] w-full">
-                <thead className="bg-green-100 border-b-2 border-gray-200">
+                <thead className="bg-green-100 border-b-2 border-emerald-200">
                   <tr>
                     {["Name", "Email", "Phone", "Bay", "Status", "Action"].map(
                       (h) => (
                         <th
                           key={h}
-                          className="px-6 py-4 text-[14px] font-medium text-center text-gray-600"
+                          className="px-6 py-4 text-[14px] font-medium text-center text-emerald-700"
                         >
                           {h}
                         </th>
@@ -303,7 +294,7 @@ export default function StaffManagement() {
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-emerald-200">
                   {filtered.map((s) => (
                     <tr
                       key={s._id}
@@ -322,8 +313,8 @@ export default function StaffManagement() {
                           onClick={() => toggleStaffStatus(s._id)}
                           className={`cursor-pointer px-3 py-1 rounded-full text-[13px] ${
                             s.isActive
-                              ? "bg-green-50 text-green-700"
-                              : "bg-gray-100 text-gray-600"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-600"
                           }`}
                         >
                           {s.isActive ? "Active" : "Inactive"}
@@ -360,7 +351,7 @@ export default function StaffManagement() {
             {/* DESKTOP DETAILS */}
             <div className="hidden lg:block bg-white rounded-2xl shadow-sm p-6">
               {!selected ? (
-                <p className="text-gray-400 text-center">
+                <p className="text-emerald-400 text-center">
                   Select a staff member to view details
                 </p>
               ) : (
@@ -383,7 +374,7 @@ export default function StaffManagement() {
           >
             <button
               onClick={() => setShowMobilePopup(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+              className="absolute top-3 right-3 text-emerald-400"
             >
               ✕
             </button>
@@ -392,11 +383,11 @@ export default function StaffManagement() {
         </div>
       )}
 
-      {/* ADD STAFF MODAL (UNCHANGED) */}
+      {/* ADD STAFF MODAL */}
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex justify-between px-6 py-4 border-b">
+            <div className="flex justify-between px-6 py-4 border-b border-emerald-200">
               <h2 className="font-semibold">Add New Staff</h2>
               <X onClick={() => setShowAdd(false)} className="cursor-pointer" />
             </div>
@@ -434,7 +425,7 @@ export default function StaffManagement() {
               )}
 
               <div>
-                <label className="block mb-1 font-medium text-gray-600">
+                <label className="block mb-1 font-medium text-emerald-700">
                   Assigned Bay
                 </label>
                 <select
@@ -442,7 +433,7 @@ export default function StaffManagement() {
                   onChange={(e) =>
                     setForm({ ...form, assignedBay: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-md px-3 py-2
+                  className="w-full border border-emerald-300 rounded-md px-3 py-2
                              focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="">Select Bay</option>
@@ -455,7 +446,7 @@ export default function StaffManagement() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-emerald-200 flex justify-end gap-3">
               <button
                 onClick={() => {
                   setForm({
@@ -491,9 +482,8 @@ export default function StaffManagement() {
 
 const StaffDetails = ({ selected, getBayName }) => (
   <div className="space-y-5 text-[14px]">
-    {/* Header */}
     <div className="flex items-center justify-between">
-      <h3 className="text-[17px] font-semibold text-gray-900">
+      <h3 className="text-[17px] font-semibold text-emerald-900">
         {selected.name}
       </h3>
 
@@ -501,17 +491,15 @@ const StaffDetails = ({ selected, getBayName }) => (
         className={`px-3 py-1 rounded-full text-xs font-medium ${
           selected.isActive
             ? "bg-emerald-100 text-emerald-700"
-            : "bg-gray-200 text-gray-600"
+            : "bg-red-100 text-red-600"
         }`}
       >
         {selected.isActive ? "Active" : "Inactive"}
       </span>
     </div>
 
-    {/* Divider */}
-    <div className="h-px bg-gray-200" />
+    <div className="h-px bg-emerald-200" />
 
-    {/* Details */}
     <div className="space-y-3">
       <Detail label="Email" value={selected.email} />
       <Detail label="Phone" value={selected.phone} />
@@ -519,7 +507,6 @@ const StaffDetails = ({ selected, getBayName }) => (
       <Detail label="Role" value={selected.role} />
     </div>
 
-    {/* Accent Footer */}
     <div className="pt-3">
       <div className="h-1 w-12 rounded-full bg-emerald-500" />
     </div>
@@ -527,28 +514,28 @@ const StaffDetails = ({ selected, getBayName }) => (
 );
 
 const Stat = ({ title, value, icon: Icon }) => (
-  <div className="bg-teal-50 border border-green rounded-2xl shadow-sm p-6">
+  <div className="bg-white border border-emerald-300 rounded-2xl shadow-sm p-6">
     <div className="flex justify-between mb-2">
-      <p className="text-gray-500">{title}</p>
+      <p className="text-emerald-600">{title}</p>
       <Icon size={18} className="text-emerald-600" />
     </div>
-    <p className="text-[26px] font-semibold">{value}</p>
+    <p className="text-[26px] font-semibold text-emerald-800">{value}</p>
   </div>
 );
 
 const Detail = ({ label, value }) => (
   <div>
-    <p className="text-gray-500">{label}</p>
+    <p className="text-emerald-600">{label}</p>
     <p className="font-medium">{value}</p>
   </div>
 );
 
 const Field = ({ label, error, ...props }) => (
   <div>
-    <label className="block mb-1 font-medium text-gray-600">{label}</label>
+    <label className="block mb-1 font-medium text-emerald-700">{label}</label>
     <input
       {...props}
-      className="w-full border border-gray-300 rounded-md px-3 py-2
+      className="w-full border border-emerald-300 rounded-md px-3 py-2
                  focus:outline-none focus:ring-2 focus:ring-emerald-500"
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}

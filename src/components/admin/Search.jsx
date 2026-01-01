@@ -1,21 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, FileDown, UserX, UserCheck,Users,Shield } from "lucide-react";
+import {
+  Search,
+  FileDown,
+  UserX,
+  UserCheck,
+  Users,
+  Shield,
+} from "lucide-react";
 import axios from "axios";
 
+/* ================= STAT CARD ================= */
 
 const Stat = ({ title, value, icon: Icon }) => (
-  <div className="bg-white rounded-md shadow-sm p-6">
-    <div className="flex justify-between mb-2">
+  <div className="bg-white rounded-xl border border-emerald-100 p-6 shadow-sm">
+    <div className="flex justify-between mb-3">
       <Icon className="text-emerald-600" />
-      <span className="text-xs text-emerald-600">Live</span>
+      <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+        Live
+      </span>
     </div>
-    <p className="text-gray-500 text-sm">{title}</p>
-    <p className="text-3xl font-bold text-gray-800">{value}</p>
+    <p className="text-emerald-600 text-sm">{title}</p>
+    <p className="text-3xl font-bold text-emerald-800">{value}</p>
   </div>
 );
 
+/* ================= MAIN ================= */
 
 export default function SearchRecords() {
   const [entries, setEntries] = useState([]);
@@ -125,15 +136,15 @@ export default function SearchRecords() {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-emerald-50/60">
       {/* ================= HEADER ================= */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-4">
+      <div className="bg-white border-b border-emerald-100 px-4 sm:px-8 py-5">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-[18px] sm:text-[22px] font-semibold text-gray-800">
+            <h1 className="text-xl sm:text-2xl font-semibold text-emerald-800">
               Search Records
             </h1>
-            <p className="text-[13px] sm:text-[14px] text-gray-500 mt-1">
+            <p className="text-sm text-emerald-600 mt-1">
               Search across visitor, staff, supervisor and tenant records
             </p>
           </div>
@@ -143,25 +154,26 @@ export default function SearchRecords() {
             <div className="relative w-full sm:w-72">
               <Search
                 size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"
               />
               <input
                 type="text"
                 placeholder="Search records"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 pr-4 h-10 w-full rounded-md
-                           border border-gray-300 text-[14px]
+                className="pl-10 pr-4 h-10 w-full rounded-lg
+                           border border-emerald-200 text-sm
                            focus:outline-none focus:ring-2
-                           focus:ring-emerald-500"
+                           focus:ring-emerald-500 bg-white"
               />
             </div>
 
             {/* EXPORT */}
             <button
               onClick={exportToCSV}
-              className="flex items-center justify-center gap-2 px-4 h-10
-                         rounded-md bg-gray-900 cursor-pointer text-white text-[14px]"
+              className="flex items-center justify-center gap-2 px-5 h-10
+                         rounded-lg bg-emerald-600 hover:bg-emerald-700
+                         transition text-white text-sm font-medium"
             >
               <FileDown size={16} />
               Export CSV
@@ -171,22 +183,19 @@ export default function SearchRecords() {
       </div>
 
       {/* ================= CONTENT ================= */}
-      <div className="px-4 sm:px-8 py-6">
-              {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6">
-        <Stat title="Total Entries" value={5} icon={Users} />
-        <Stat title="Active Entries" value={7} icon={UserCheck} />
-        <Stat title="Inactive Entries" value={8} icon={UserX} />
-        <Stat
-          title="Supervisors"
-          value={5%15}
-          icon={Shield}
-        />
-      </div>
+      <div className="px-4 sm:px-8 py-6 space-y-6">
+        {/* STATS */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Stat title="Total Entries" value={5} icon={Users} />
+          <Stat title="Active Entries" value={7} icon={UserCheck} />
+          <Stat title="Inactive Entries" value={8} icon={UserX} />
+          <Stat title="Supervisors" value={5 % 15} icon={Shield} />
+        </div>
+
         {/* ========== DESKTOP TABLE ========== */}
-        <div className="hidden sm:block bg-white rounded-md shadow-sm overflow-x-auto">
+        <div className="hidden sm:block bg-white rounded-xl border border-emerald-100 shadow-sm overflow-x-auto">
           <table className="min-w-[900px] w-full">
-            <thead className="border-b border-gray-200 bg-green-100">
+            <thead className="bg-emerald-100 border-b border-emerald-200">
               <tr>
                 {[
                   "Time",
@@ -198,8 +207,8 @@ export default function SearchRecords() {
                 ].map((h) => (
                   <th
                     key={h}
-                    className="px-6 py-4 text-left text-[14px]
-                               font-medium text-gray-600"
+                    className="px-6 py-4 text-left text-sm
+                               font-medium text-emerald-700"
                   >
                     {h}
                   </th>
@@ -207,12 +216,12 @@ export default function SearchRecords() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-emerald-100">
               {!loading && filtered.length === 0 && (
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-6 py-6 text-center text-[14px] text-gray-400"
+                    className="px-6 py-8 text-center text-sm text-emerald-500"
                   >
                     No records found
                   </td>
@@ -220,23 +229,23 @@ export default function SearchRecords() {
               )}
 
               {filtered.map((e) => (
-                <tr key={e._id} className="hover:bg-green-50">
-                  <td className="px-6 py-4 text-[14px]">
+                <tr key={e._id} className="hover:bg-emerald-50 transition">
+                  <td className="px-6 py-4 text-sm text-emerald-800">
                     {formatTime(e.inTime)}
                   </td>
-                  <td className="px-6 py-4 text-[14px]">
+                  <td className="px-6 py-4 text-sm text-emerald-800">
                     {e.bayId?.bayName || "—"}
                   </td>
-                  <td className="px-6 py-4 text-[14px]">
+                  <td className="px-6 py-4 text-sm text-emerald-800">
                     {e.vehicleNumber}
                   </td>
-                  <td className="px-6 py-4 text-[14px]">
+                  <td className="px-6 py-4 text-sm text-emerald-800">
                     {e.visitorName || "—"}
                   </td>
-                  <td className="px-6 py-4 text-[14px]">
+                  <td className="px-6 py-4 text-sm text-emerald-800">
                     {e.visitorCompany || "—"}
                   </td>
-                  <td className="px-6 py-4 text-[14px]">
+                  <td className="px-6 py-4 text-sm text-emerald-800">
                     {e.createdBy?.name || "—"}
                   </td>
                 </tr>
@@ -248,7 +257,7 @@ export default function SearchRecords() {
         {/* ========== MOBILE CARDS ========== */}
         <div className="sm:hidden space-y-4">
           {!loading && filtered.length === 0 && (
-            <div className="text-center text-[14px] text-gray-400">
+            <div className="text-center text-sm text-emerald-500">
               No records found
             </div>
           )}
@@ -256,32 +265,32 @@ export default function SearchRecords() {
           {filtered.map((e) => (
             <div
               key={e._id}
-              className="bg-white rounded-md shadow-sm p-4 space-y-2"
+              className="bg-white rounded-xl border border-emerald-100 shadow-sm p-4 space-y-2"
             >
-              <div className="text-[13px] text-gray-500">
+              <div className="text-xs text-emerald-600">
                 {formatTime(e.inTime)}
               </div>
 
-              <div className="text-[14px] font-medium text-gray-800">
+              <div className="text-sm font-medium text-emerald-800">
                 {e.visitorName || "—"}
               </div>
 
-              <div className="text-[13px] text-gray-600">
+              <div className="text-sm text-emerald-700">
                 <span className="font-medium">VRN:</span>{" "}
                 {e.vehicleNumber || "—"}
               </div>
 
-              <div className="text-[13px] text-gray-600">
+              <div className="text-sm text-emerald-700">
                 <span className="font-medium">Company:</span>{" "}
                 {e.visitorCompany || "—"}
               </div>
 
-              <div className="text-[13px] text-gray-600">
+              <div className="text-sm text-emerald-700">
                 <span className="font-medium">Bay:</span>{" "}
                 {e.bayId?.bayName || "—"}
               </div>
 
-              <div className="text-[13px] text-gray-600">
+              <div className="text-sm text-emerald-700">
                 <span className="font-medium">Handled By:</span>{" "}
                 {e.createdBy?.name || "—"}
               </div>

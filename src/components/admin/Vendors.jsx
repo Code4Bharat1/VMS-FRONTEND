@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Search,
-  Filter,
-  Plus,
-  X,
-  Users,
-  Activity,
-  Trash2,
-  Pencil,
-} from "lucide-react";
+import { Search, Plus, Users, Activity, Trash2, Pencil, X } from "lucide-react";
 import axios from "axios";
 import * as yup from "yup";
 
@@ -52,8 +43,6 @@ export default function VendorManagement() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
 
-  const [filters, setFilters] = useState({ status: "all" });
-
   const [form, setForm] = useState({
     companyName: "",
     contactPerson: "",
@@ -87,19 +76,15 @@ export default function VendorManagement() {
       setLoading(false);
     }
   };
-  /* ================= SEARCH (THIS WAS MISSING) ================= */
+
+  /* ================= SEARCH ================= */
   const filteredVendors = vendors.filter((v) =>
-    [
-      v.companyName,
-      v.contactPerson,
-      v.mobile,
-      v.shopId,
-      v.crNo,
-    ]
+    [v.companyName, v.contactPerson, v.mobile, v.shopId, v.crNo]
       .join(" ")
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
   /* ================= VALIDATION ================= */
   const validateForm = async () => {
     try {
@@ -169,26 +154,25 @@ export default function VendorManagement() {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-teal-50">
+    <div className="min-h-screen bg-emerald-50/60">
       {/* HEADER */}
-      <div
-        className="bg-white shadow-sm px-4 sm:px-6 py-4
-                      flex flex-col sm:flex-row gap-4 sm:justify-between"
-      >
+      <div className="bg-white border-b border-emerald-100 px-4 sm:px-6 py-5 flex flex-col sm:flex-row gap-4 sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Vendor Management</h1>
-          <p className="text-sm text-gray-500">Manage vendor profiles</p>
+          <h1 className="text-xl font-semibold text-emerald-800">
+            Vendor Management
+          </h1>
+          <p className="text-sm text-emerald-600">Manage vendor profiles</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative w-full sm:w-72">
             <Search
-              className="absolute left-3 top-2.5 text-gray-400"
+              className="absolute left-3 top-2.5 text-emerald-400"
               size={16}
             />
             <input
-              className="w-full bg-gray-100 pl-9 pr-3 py-2 rounded-xl text-sm
-               focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full bg-white border border-emerald-200 pl-9 pr-3 py-2 rounded-lg text-sm
+                         focus:outline-none focus:ring-2 focus:ring-emerald-500"
               placeholder="Search vendors"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -197,8 +181,8 @@ export default function VendorManagement() {
 
           <button
             onClick={() => setShowAdd(true)}
-            className="px-4 h-10 bg-emerald-600 text-white rounded-lg
-                       flex items-center justify-center gap-2"
+            className="px-4 h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg
+                       flex items-center justify-center gap-2 transition"
           >
             <Plus size={16} /> Add Vendor
           </button>
@@ -206,7 +190,7 @@ export default function VendorManagement() {
       </div>
 
       {/* STATS */}
-      <div className="px-4 sm:px-6 py-6 grid grid-cols-1  sm:grid-cols-2 gap-6">
+      <div className="px-4 sm:px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <Stat title="Total Vendors" value={vendors.length} icon={Users} />
         <Stat
           title="Active Vendors"
@@ -217,9 +201,9 @@ export default function VendorManagement() {
 
       {/* DESKTOP TABLE */}
       <div className="hidden sm:block px-6">
-        <div className="bg-white rounded-2xl shadow overflow-x-auto">
+        <div className="bg-white rounded-xl border border-emerald-100 shadow-sm overflow-x-auto">
           <table className="min-w-[720px] w-full">
-            <thead className="bg-green-100">
+            <thead className="bg-emerald-100">
               <tr>
                 {[
                   "Registration No",
@@ -231,16 +215,19 @@ export default function VendorManagement() {
                   "Status",
                   "Actions",
                 ].map((h) => (
-                  <th key={h} className="px-6 py-4 text-center text-[16px]]">
+                  <th
+                    key={h}
+                    className="px-6 py-4 text-center text-sm font-medium text-emerald-700"
+                  >
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
 
-            <tbody className="text-center">
+            <tbody className="divide-y divide-emerald-100 text-center">
               {filteredVendors.map((v) => (
-                <tr key={v._id} className="shadow-sm hover:bg-green-50">
+                <tr key={v._id} className="hover:bg-emerald-50 transition">
                   <td className="px-6 py-4">{v.crNo}</td>
                   <td className="px-6 py-4">{v.shopId}</td>
                   <td className="px-6 py-4">{v.floorNo}</td>
@@ -251,10 +238,10 @@ export default function VendorManagement() {
                   <td className="px-6 py-4">
                     <button
                       onClick={() => toggleVendorStatus(v._id)}
-                      className={`px-3 py-1 rounded-full text-xs ${
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
                         v.status === "active"
                           ? "bg-emerald-100 text-emerald-700"
-                          : "bg-gray-200 text-gray-600"
+                          : "bg-red-100 text-red-600"
                       }`}
                     >
                       {v.status}
@@ -276,7 +263,7 @@ export default function VendorManagement() {
                           });
                           setShowAdd(true);
                         }}
-                        className="text-emerald-600"
+                        className="text-emerald-600 hover:scale-110 transition"
                       >
                         <Pencil size={18} />
                       </button>
@@ -286,7 +273,7 @@ export default function VendorManagement() {
                           setSelected(v);
                           setConfirmDelete(true);
                         }}
-                        className="text-red-600"
+                        className="text-red-600 hover:scale-110 transition"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -302,31 +289,34 @@ export default function VendorManagement() {
       {/* MOBILE CARDS */}
       <div className="sm:hidden px-4 space-y-4">
         {filteredVendors.map((v) => (
-          <div key={v._id} className="bg-white p-4 rounded-xl shadow space-y-2">
+          <div
+            key={v._id}
+            className="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm space-y-2"
+          >
             <div className="flex justify-between">
-              <h3 className="font-medium">{v.companyName}</h3>
+              <h3 className="font-medium text-emerald-800">{v.companyName}</h3>
               <button
                 onClick={() => toggleVendorStatus(v._id)}
                 className={`text-xs px-3 py-1 rounded-full ${
                   v.status === "active"
                     ? "bg-emerald-100 text-emerald-700"
-                    : "bg-gray-200"
+                    : "bg-red-100 text-red-600"
                 }`}
               >
                 {v.status}
               </button>
             </div>
 
-            <p className="text-sm">
+            <p className="text-sm text-emerald-700">
               <b>Reg:</b> {v.crNo}
             </p>
-            <p className="text-sm">
+            <p className="text-sm text-emerald-700">
               <b>Shop:</b> {v.shopId} | <b>Floor:</b> {v.floorNo}
             </p>
-            <p className="text-sm">
+            <p className="text-sm text-emerald-700">
               <b>Contact:</b> {v.contactPerson}
             </p>
-            <p className="text-sm">
+            <p className="text-sm text-emerald-700">
               <b>Mobile:</b> {v.mobile}
             </p>
 
@@ -376,21 +366,21 @@ export default function VendorManagement() {
 /* ================= COMPONENTS ================= */
 
 const Stat = ({ title, value, icon: Icon }) => (
-  <div className="bg-teal-50 border border-green-600 rounded-2xl shadow-md p-6">
+  <div className="bg-white border border-emerald-100 rounded-xl shadow-sm p-6">
     <div className="flex justify-between mb-2">
-      <p className="text-gray-500">{title}</p>
+      <p className="text-emerald-600">{title}</p>
       <Icon size={18} className="text-emerald-600" />
     </div>
-    <p className="text-2xl font-semibold">{value}</p>
+    <p className="text-2xl font-semibold text-emerald-800">{value}</p>
   </div>
 );
 
 const Modal = ({ title, onClose, onSubmit, form, setForm, errors }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div className="bg-white rounded-2xl w-full max-w-md">
-      <div className="px-6 py-4 border-b flex justify-between">
-        <h2 className="font-semibold">{title}</h2>
-        <X onClick={onClose} className="cursor-pointer" />
+    <div className="bg-white rounded-xl w-full max-w-md">
+      <div className="px-6 py-4 border-b border-emerald-100 flex justify-between">
+        <h2 className="font-semibold text-emerald-800">{title}</h2>
+        <X onClick={onClose} className="cursor-pointer text-emerald-600" />
       </div>
 
       <div className="p-6 space-y-4">
@@ -413,11 +403,16 @@ const Modal = ({ title, onClose, onSubmit, form, setForm, errors }) => (
         ))}
       </div>
 
-      <div className="px-6 py-4 border-t flex justify-end gap-3">
-        <button onClick={onClose}>Cancel</button>
+      <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3">
+        <button
+          onClick={onClose}
+          className="px-4 py-2 rounded-lg text-emerald-600"
+        >
+          Cancel
+        </button>
         <button
           onClick={onSubmit}
-          className="bg-emerald-600 text-white px-4 py-2 rounded-lg"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition"
         >
           Save
         </button>
@@ -429,15 +424,20 @@ const Modal = ({ title, onClose, onSubmit, form, setForm, errors }) => (
 const ConfirmDelete = ({ onCancel, onDelete }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div className="bg-white rounded-xl p-6 w-80">
-      <h3 className="font-semibold mb-2">Delete Vendor?</h3>
-      <p className="text-sm text-gray-500 mb-4">
+      <h3 className="font-semibold text-emerald-800 mb-2">Delete Vendor?</h3>
+      <p className="text-sm text-emerald-600 mb-4">
         This action cannot be undone.
       </p>
       <div className="flex justify-end gap-3">
-        <button onClick={onCancel}>Cancel</button>
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 rounded-lg text-emerald-600"
+        >
+          Cancel
+        </button>
         <button
           onClick={onDelete}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg"
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition"
         >
           Delete
         </button>
@@ -448,14 +448,13 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
 
 const Field = ({ label, name, form, setForm, error }) => (
   <div>
-    <label className="block text-gray-600 mb-1">{label}</label>
+    <label className="block text-sm text-emerald-700 mb-1">{label}</label>
     <input
       value={form[name] || ""}
       onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500"
+      className="w-full border border-emerald-200 rounded-lg px-3 py-2
+                 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
     />
-    {error && (
-      <p className="text-red-500 text-xs mt-1">{error}</p>
-    )}
+    {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
   </div>
 );

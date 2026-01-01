@@ -2,12 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import {
-  Users,
-  UserCheck,
-  UserX,
-  Shield,
-} from "lucide-react";
+import { Users, UserCheck, UserX, Shield } from "lucide-react";
 
 /* ================= HELPERS ================= */
 
@@ -52,9 +47,9 @@ const getDistributionData = ({ staff, supervisors, entries }) => {
   return {
     total,
     segments: [
-      { label: "Staff Members", value: staffCount, color: "#22c55e" },
-      { label: "Visitors", value: visitorCount, color: "#86efac" },
-      { label: "Supervisors", value: supervisorCount, color: "#a7f3d0" },
+      { label: "Staff Members", value: staffCount, color: "#16a34a" },
+      { label: "Visitors", value: visitorCount, color: "#22c55e" },
+      { label: "Supervisors", value: supervisorCount, color: "#4ade80" },
     ],
   };
 };
@@ -82,7 +77,9 @@ export default function Dashboard() {
 
       const [staffRes, supervisorRes, entryRes] = await Promise.all([
         axios.get(`${process.env.NEXT_PUBLIC_API_URL}/staff`, { headers }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/supervisors`, { headers }),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL}/supervisors`, {
+          headers,
+        }),
         axios.get(`${process.env.NEXT_PUBLIC_API_URL}/entries`, { headers }),
       ]);
 
@@ -102,7 +99,6 @@ export default function Dashboard() {
   const totalStaff = staff.length;
   const activeStaff = staff.filter((s) => s.isActive).length;
   const inactiveStaff = totalStaff - activeStaff;
-
   const activeSupervisors = supervisors.filter((s) => s.isActive).length;
 
   const weeklyData = getWeeklyEntryData(entries);
@@ -114,21 +110,21 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-teal-100">
+      <div className="min-h-screen flex items-center justify-center bg-emerald-50">
         <div className="animate-spin h-12 w-12 border-4 border-emerald-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-teal-50">
+    <div className="min-h-screen bg-emerald-50/60">
       {/* HEADER */}
-      <div className="bg-white shadow-sm px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-800">
+      <div className="bg-white px-6 py-5 border-b border-emerald-100">
+        <h1 className="text-2xl font-semibold text-emerald-800">
           Admin Dashboard
         </h1>
-        <p className="text-sm text-gray-500">
-          Real-time visitor & staff analytics
+        <p className="text-sm text-emerald-600">
+          Real-time visitor & workforce analytics
         </p>
       </div>
 
@@ -145,7 +141,7 @@ export default function Dashboard() {
       </div>
 
       {/* CHARTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-6 pb-6">
         <div className="lg:col-span-2">
           <WeeklyBarChart data={weeklyData} />
         </div>
@@ -162,13 +158,15 @@ export default function Dashboard() {
 /* ================= COMPONENTS ================= */
 
 const Stat = ({ title, value, icon: Icon }) => (
-  <div className="bg-white rounded-2xl shadow-sm p-6">
-    <div className="flex justify-between mb-2">
+  <div className="bg-white rounded-2xl p-6 shadow-sm border border-emerald-100">
+    <div className="flex justify-between mb-3">
       <Icon className="text-emerald-600" />
-      <span className="text-xs text-emerald-600">Live</span>
+      <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+        Live
+      </span>
     </div>
-    <p className="text-gray-500 text-sm">{title}</p>
-    <p className="text-3xl font-bold text-gray-800">{value}</p>
+    <p className="text-emerald-600 text-sm">{title}</p>
+    <p className="text-3xl font-bold text-emerald-800">{value}</p>
   </div>
 );
 
@@ -178,15 +176,17 @@ const WeeklyBarChart = ({ data }) => {
   const max = Math.max(...data.map((d) => d.value), 1);
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6">
-      <div className="flex justify-between mb-4">
+    <div className="bg-white rounded-2xl p-6 border border-emerald-100 shadow-sm">
+      <div className="flex justify-between mb-5">
         <div>
-          <h3 className="font-semibold">Visitor Traffic Trends</h3>
-          <p className="text-xs text-gray-500">
-            Visitors checked in over last 7 days
-          </p>
+          <h3 className="font-semibold text-emerald-800">
+            Visitor Traffic Trends
+          </h3>
+          <p className="text-xs text-emerald-600">Last 7 days entry activity</p>
         </div>
-        <span className="text-xs px-2 py-1 rounded">Weekly</span>
+        <span className="text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+          Weekly
+        </span>
       </div>
 
       <div className="flex items-end gap-4 h-44">
@@ -194,13 +194,13 @@ const WeeklyBarChart = ({ data }) => {
           <div key={d.day} className="flex flex-col items-center w-full">
             <div className="h-full flex items-end">
               <div
-                className={`w-8 rounded-md ${
-                  d.active ? "bg-emerald-500" : "bg-gray-200"
+                className={`w-8 rounded-lg ${
+                  d.active ? "bg-emerald-500" : "bg-emerald-200"
                 }`}
                 style={{ height: `${(d.value / max) * 100}%` }}
               />
             </div>
-            <span className="mt-2 text-xs text-gray-500">{d.day}</span>
+            <span className="mt-2 text-xs text-emerald-700">{d.day}</span>
           </div>
         ))}
       </div>
@@ -216,8 +216,10 @@ const DistributionDonut = ({ total, segments }) => {
   let offset = 0;
 
   return (
-    <div className="bg-white rounded-2xl  shadow-sm p-6">
-      <h3 className="font-semibold mb-4">Total Distribution</h3>
+    <div className="bg-white rounded-2xl p-6 border border-emerald-100 shadow-sm">
+      <h3 className="font-semibold mb-4 text-emerald-800">
+        Distribution Overview
+      </h3>
 
       <div className="flex items-center gap-6">
         <svg width="120" height="120" viewBox="0 0 120 120">
@@ -247,7 +249,7 @@ const DistributionDonut = ({ total, segments }) => {
             y="50%"
             textAnchor="middle"
             dy="-2"
-            className="text-xl font-bold fill-gray-800"
+            className="text-xl font-bold fill-emerald-800"
           >
             {total}
           </text>
@@ -256,21 +258,21 @@ const DistributionDonut = ({ total, segments }) => {
             y="50%"
             dy="14"
             textAnchor="middle"
-            className="text-xs fill-gray-500"
+            className="text-xs fill-emerald-600"
           >
-            Total Entries
+            Total Records
           </text>
         </svg>
 
-        <div className="space-y-2 w-full">
+        <div className="space-y-3 w-full">
           {segments.map((s) => (
             <div key={s.label} className="flex items-center text-sm">
               <span
                 className="w-3 h-3 rounded-full mr-2"
                 style={{ background: s.color }}
               />
-              <span className="text-gray-600">{s.label}</span>
-              <span className="ml-auto font-medium">
+              <span className="text-emerald-700">{s.label}</span>
+              <span className="ml-auto font-semibold text-emerald-800">
                 {Math.round((s.value / total) * 100)}%
               </span>
             </div>
