@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { label: "Security Dashboard", href: "/staff/dashboard", icon: LayoutDashboard },
-  { label: "OCR / ANPR", href: "/staff/ocr-anpr", icon: ScanLine },
+  { label: "Security Dashboard", href: "/staff/dashboard", icon: LayoutDashboard },    
   { label: "Manual Entry", href: "/staff/ManualEntry", icon: Edit },
   { label: "My Entries", href: "/staff/MyEntries", icon: List },
   { label: "My Settings", href: "/staff/SettingPage", icon: Settings },
@@ -37,37 +36,48 @@ export default function Sidebar({
       className={`
         fixed lg:static inset-y-0 left-0 z-50
         ${collapsed ? "w-20" : "w-64"}
-        bg-gradient-to-b from-emerald-50 to-white
+        bg-white
         border-r border-gray-200
         flex flex-col
         transform transition-all duration-300 ease-in-out
         ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        text-sm text-gray-700
       `}
     >
-     
-
       {/* ================= LOGO ================= */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-gray-300">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+      <div
+        className={`h-16 px-4 flex items-center border-b border-gray-200 ${
+          collapsed ? "justify-center" : "justify-between"
+        }`}
+      >
+        <div
+          className={`flex items-center justify-center gap-3 overflow-hidden ${
+            collapsed && "hidden"
+          }`}
+        >
+          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center shrink-0">
             <span className="text-white font-bold text-lg">V</span>
           </div>
+
           {!collapsed && (
-            <span className="font-bold text-gray-800 text-lg">VMS</span>
+            <div className="flex flex-col leading-tight">
+              <span className="font-semibold text-gray-800 text-lg">VMS</span>
+              <span className="text-[11px] text-gray-500">Staff Panel</span>
+            </div>
           )}
         </div>
 
         {/* DESKTOP COLLAPSE */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:block p-1 rounded hover:bg-gray-100"
+          className="hidden lg:block p-1.5 rounded-md hover:bg-emerald-100 transition cursor-pointer"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
       {/* ================= MENU ================= */}
-      <nav className="flex-1 p-3 space-y-1 text-[15px] overflow-y-auto">
+      <nav className="flex-1 flex flex-col px-2 py-4 space-y-2 overflow-y-auto scrollbar-thin">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const active =
@@ -78,18 +88,27 @@ export default function Sidebar({
               <div
                 onClick={() => setMobileOpen(false)}
                 className={`
-                  flex items-center gap-3 px-4 py-2.5 rounded-lg
-                  transition-colors
+                  group flex items-center gap-3
+                  px-4 py-2.5 rounded-lg
+                  transition-all duration-200
                   ${
                     active
                       ? "bg-emerald-100 text-emerald-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-100"
+                      : "text-gray-600 hover:bg-emerald-50"
                   }
-                  ${collapsed ? "justify-center" : ""}
+                  ${collapsed ? "justify-center px-2" : ""}
+                  active:scale-[0.97]
                 `}
               >
-                <Icon size={20} />
-                {!collapsed && <span>{item.label}</span>}
+                <Icon
+                  size={20}
+                  className={`shrink-0 ${
+                    active ? "text-emerald-600" : "text-gray-500"
+                  }`}
+                />
+                {!collapsed && (
+                  <span className="whitespace-nowrap">{item.label}</span>
+                )}
               </div>
             </Link>
           );
@@ -97,26 +116,30 @@ export default function Sidebar({
       </nav>
 
       {/* ================= LOGOUT ================= */}
-      <div className="p-3 ">
+      <div className="px-2 py-3 border-t border-gray-200">
         <div
-  onClick={() => {
-    setMobileOpen(false);
+          onClick={() => {
+            setMobileOpen(false);
 
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("user");
 
-    window.location.href = "/login";
-  }}
-  className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer
-    text-gray-600 hover:bg-red-50 hover:text-red-600
-    ${collapsed ? "justify-center" : ""}
-    active:scale-[0.98]
-  `}
->
-  <LogOut size={20} />
-  {!collapsed && <span>Logout</span>}
-</div>
-
+            window.location.href = "/login";
+          }}
+          className={`
+            flex items-center gap-3
+            px-4 py-2.5 rounded-lg
+            cursor-pointer
+            text-gray-600
+            hover:bg-red-50 hover:text-red-600
+            transition-all duration-200
+            ${collapsed ? "justify-center px-2" : ""}
+            active:scale-[0.97]
+          `}
+        >
+          <LogOut size={20} />
+          {!collapsed && <span>Logout</span>}
+        </div>
       </div>
     </aside>
   );

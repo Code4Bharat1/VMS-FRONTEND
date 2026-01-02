@@ -8,6 +8,8 @@ import {
   UserCheck,
   Users,
   Shield,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import axios from "axios";
 
@@ -33,6 +35,10 @@ export default function SearchRecords() {
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+
+  /* ✅ PAGINATION (ONLY ADDITION) */
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
@@ -63,6 +69,7 @@ export default function SearchRecords() {
   useEffect(() => {
     if (!search.trim()) {
       setFiltered(entries);
+      setCurrentPage(1);
       return;
     }
 
@@ -84,7 +91,18 @@ export default function SearchRecords() {
           .includes(q)
       )
     );
+    setCurrentPage(1);
   }, [search, entries]);
+
+  /* ================= PAGINATION LOGIC ================= */
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedEntries = filtered.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
 
   /* ================= FORMAT TIME ================= */
   const formatTime = (inTime) => {
@@ -137,7 +155,7 @@ export default function SearchRecords() {
   /* ================= UI ================= */
   return (
     <div className="min-h-screen bg-emerald-50/60">
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <div className="bg-white border-b border-emerald-100 px-4 sm:px-8 py-5">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
@@ -150,7 +168,6 @@ export default function SearchRecords() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            {/* SEARCH */}
             <div className="relative w-full sm:w-72">
               <Search
                 size={18}
@@ -168,7 +185,6 @@ export default function SearchRecords() {
               />
             </div>
 
-            {/* EXPORT */}
             <button
               onClick={exportToCSV}
               className="flex items-center justify-center gap-2 px-5 h-10
@@ -182,7 +198,7 @@ export default function SearchRecords() {
         </div>
       </div>
 
-      {/* ================= CONTENT ================= */}
+      {/* CONTENT */}
       <div className="px-4 sm:px-8 py-6 space-y-6">
         {/* STATS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -192,7 +208,7 @@ export default function SearchRecords() {
           <Stat title="Supervisors" value={5 % 15} icon={Shield} />
         </div>
 
-        {/* ========== DESKTOP TABLE ========== */}
+        {/* DESKTOP TABLE */}
         <div className="hidden sm:block bg-white rounded-xl border border-emerald-100 shadow-sm overflow-x-auto">
           <table className="min-w-[900px] w-full">
             <thead className="bg-emerald-100 border-b border-emerald-200">
@@ -207,8 +223,7 @@ export default function SearchRecords() {
                 ].map((h) => (
                   <th
                     key={h}
-                    className="px-6 py-4 text-left text-sm
-                               font-medium text-emerald-700"
+                    className="px-6 py-4 text-left text-sm font-medium text-emerald-700"
                   >
                     {h}
                   </th>
@@ -217,18 +232,15 @@ export default function SearchRecords() {
             </thead>
 
             <tbody className="divide-y divide-emerald-100">
-              {!loading && filtered.length === 0 && (
+              {!loading && paginatedEntries.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-6 py-8 text-center text-sm text-emerald-500"
-                  >
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-emerald-500">
                     No records found
                   </td>
                 </tr>
               )}
 
-              {filtered.map((e) => (
+              {paginatedEntries.map((e) => (
                 <tr key={e._id} className="hover:bg-emerald-50 transition">
                   <td className="px-6 py-4 text-sm text-emerald-800">
                     {formatTime(e.inTime)}
@@ -252,17 +264,43 @@ export default function SearchRecords() {
               ))}
             </tbody>
           </table>
+
+          {/* PAGINATION */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 bg-emerald-50 border-t border-emerald-100 flex items-center justify-between">
+              <span className="text-sm text-emerald-600">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 border rounded-lg disabled:opacity-50"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 border rounded-lg disabled:opacity-50"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* ========== MOBILE CARDS ========== */}
+        {/* MOBILE CARDS */}
         <div className="sm:hidden space-y-4">
-          {!loading && filtered.length === 0 && (
+          {!loading && paginatedEntries.length === 0 && (
             <div className="text-center text-sm text-emerald-500">
               No records found
             </div>
           )}
 
-          {filtered.map((e) => (
+          {paginatedEntries.map((e) => (
             <div
               key={e._id}
               className="bg-white rounded-xl border border-emerald-100 shadow-sm p-4 space-y-2"
@@ -296,6 +334,28 @@ export default function SearchRecords() {
               </div>
             </div>
           ))}
+
+          {totalPages > 1 && (
+            <div className="bg-white rounded-xl border p-4 flex justify-between">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border rounded-lg disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-emerald-600">
+                {currentPage}/{totalPages}
+              </span>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 border rounded-lg disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

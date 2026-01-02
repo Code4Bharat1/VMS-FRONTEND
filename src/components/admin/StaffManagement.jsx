@@ -25,7 +25,6 @@ export default function StaffManagement() {
   const [editId, setEditId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-
   const [showAdd, setShowAdd] = useState(false);
   const [showMobilePopup, setShowMobilePopup] = useState(false);
 
@@ -166,48 +165,24 @@ export default function StaffManagement() {
       console.error("Toggle staff status error:", err);
     }
   };
-const deleteStaff = async () => {
-  if (!selected) return;
 
-  try {
-    await axios.delete(
-      `${process.env.NEXT_PUBLIC_API_URL}/staff/${selected._id}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  const deleteStaff = async () => {
+    if (!selected) return;
 
-    setConfirmDelete(false);
-    setSelected(null);
-    fetchStaff();
-  } catch (err) {
-    alert(err.response?.data?.message || "Delete failed");
-    console.error("Delete staff error:", err);
-  }
-};
+    try {
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_URL}/staff/${selected._id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-const ConfirmDelete = ({ onCancel, onDelete }) => (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div className="bg-white rounded-xl p-6 w-80">
-      <h3 className="font-semibold text-emerald-800 mb-2">
-        Delete Staff?
-      </h3>
-      <p className="text-sm text-emerald-600 mb-4">
-        This action cannot be undone.
-      </p>
-      <div className="flex justify-end gap-3">
-        <button onClick={onCancel} className="text-emerald-600">
-          Cancel
-        </button>
-        <button
-          onClick={onDelete}
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
+      setConfirmDelete(false);
+      setSelected(null);
+      fetchStaff();
+    } catch (err) {
+      alert(err.response?.data?.message || "Delete failed");
+      console.error("Delete staff error:", err);
+    }
+  };
 
   /* ================= FILTER ================= */
   const filtered = staff.filter((s) => {
@@ -222,320 +197,308 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
 
   /* ================= UI ================= */
   return (
-    <div className="flex min-h-screen bg-emerald-50/60">
-      <div className="flex-1 overflow-auto">
-        {/* HEADER */}
-        <div className="bg-white border-b border-emerald-200 shadow-sm px-4 sm:px-8 py-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className="text-[18px] sm:text-[22px] font-semibold text-emerald-800">
-                Staff Management
-              </h1>
-              <p className="text-[13px] sm:text-[14px] text-emerald-600 mt-1">
-                Manage security staff and supervisors
-              </p>
+    <div className="min-h-screen bg-emerald-50/60">
+      {/* HEADER */}
+      <div className="sticky top-0 z-40 bg-white border-b border-emerald-100 shadow-sm px-4 sm:px-8 py-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-emerald-800">
+              Staff Management
+            </h1>
+            <p className="text-sm text-emerald-600 mt-1">
+              Manage security staff and supervisors
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative w-full sm:w-auto">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"
+              />
+              <input
+                placeholder="Search staff"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 pr-4 h-10 w-full sm:w-64 rounded-lg
+                           border border-emerald-200 text-sm
+                           focus:outline-none focus:ring-2
+                           focus:ring-emerald-500"
+              />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative w-full sm:w-auto">
-                <Search
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"
-                />
-                <input
-                  placeholder="Search staff"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 pr-4 h-10 w-full sm:w-64 rounded-lg
-                             border border-emerald-300 text-[14px]
-                             focus:outline-none focus:ring-2
-                             focus:ring-emerald-500"
-                />
+            <button
+              onClick={() => setShowFilters((p) => !p)}
+              className="flex items-center gap-2 px-4 h-10
+                         rounded-lg border border-emerald-200 bg-white text-sm hover:bg-emerald-50 transition"
+            >
+              <Filter size={16} />
+              Filters
+            </button>
+
+            <button
+              onClick={() => {
+                setEditId(null);
+                setErrors({});
+                setForm({
+                  name: "",
+                  email: "",
+                  phone: "",
+                  assignedBay: "",
+                  password: "",
+                });
+                setShowAdd(true);
+              }}
+              className="flex items-center gap-2 px-4 h-10
+             rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition"
+            >
+              <Plus size={16} />
+              Add Staff
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* FILTER PANEL */}
+      {showFilters && (
+        <div className="bg-white border-b border-emerald-100 px-4 sm:px-8 py-4 flex flex-col sm:flex-row gap-4 text-sm">
+          <div>
+            <label className="block text-emerald-700 font-medium mb-1">
+              Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-emerald-200 rounded-lg px-3 py-2 w-full sm:w-40 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-emerald-700 font-medium mb-1">
+              Staff Name
+            </label>
+            <select
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+              className="border border-emerald-200 rounded-lg px-3 py-2 w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="all">All</option>
+              {staff.map((s) => (
+                <option key={s._id} value={s.name}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* CONTENT */}
+      <div className="px-4 sm:px-8 py-6">
+        {/* STATS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+          <Stat title="Total Staff" value={staff.length} icon={Users} />
+          <Stat
+            title="Active Staff"
+            value={staff.filter((s) => s.isActive).length}
+            icon={Activity}
+          />
+          <Stat
+            title="Assigned Bays"
+            value={
+              new Set(
+                staff.map((s) => getBayName(s.assignedBay)).filter(Boolean)
+              ).size
+            }
+            icon={Users}
+          />
+        </div>
+
+        {/* TABLE */}
+        <div className="hidden md:block bg-white rounded-xl border border-emerald-100 shadow-sm overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-emerald-100">
+              <tr>
+                {["Name", "Email", "Phone", "Bay", "Status", "Action"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="px-6 py-4 text-sm font-semibold text-center text-emerald-700"
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-emerald-100">
+              {filtered.map((s) => (
+                <tr
+                  key={s._id}
+                  onClick={() => {
+                    setSelected(s);
+                    setShowMobilePopup(true);
+                  }}
+                  className="hover:bg-emerald-50 cursor-pointer text-center transition"
+                >
+                  <td className="px-6 py-4 font-medium text-emerald-800">
+                    {s.name}
+                  </td>
+                  <td className="px-6 py-4">{s.email}</td>
+                  <td className="px-6 py-4">{s.phone}</td>
+                  <td className="px-6 py-4">{getBayName(s.assignedBay)}</td>
+                  <td className="px-6 py-4">
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleStaffStatus(s._id);
+                      }}
+                      className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
+                        s.isActive
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-red-100 text-red-600"
+                      }`}
+                    >
+                      {s.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center gap-4">
+                      <Pencil
+                        size={18}
+                        className="text-emerald-600 hover:scale-110 cursor-pointer transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditId(s._id);
+                          setForm({
+                            name: s.name,
+                            email: s.email,
+                            phone: s.phone,
+                            assignedBay:
+                              typeof s.assignedBay === "object"
+                                ? s.assignedBay?._id
+                                : s.assignedBay || "",
+                            password: "",
+                          });
+                          setShowAdd(true);
+                        }}
+                      />
+
+                      <Trash2
+                        size={18}
+                        className="text-red-600 hover:scale-110 cursor-pointer transition"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelected(s);
+                          setConfirmDelete(true);
+                        }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="px-4 py-3 text-sm text-emerald-600 bg-emerald-50">
+            Showing {filtered.length} staff members
+          </div>
+        </div>
+
+        {/* MOBILE STAFF LIST */}
+        <div className="md:hidden space-y-4">
+          {filtered.map((s) => (
+            <div
+              key={s._id}
+              className="bg-white rounded-lg border border-emerald-100 shadow-sm p-4 space-y-3"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-semibold text-emerald-800">{s.name}</p>
+                  <p className="text-xs text-emerald-600">{s.email}</p>
+                </div>
+
+                <span
+                  onClick={() => toggleStaffStatus(s._id)}
+                  className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
+                    s.isActive
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-red-100 text-red-600"
+                  }`}
+                >
+                  {s.isActive ? "Active" : "Inactive"}
+                </span>
               </div>
 
-              <button
-                onClick={() => setShowFilters((p) => !p)}
-                className="flex items-center gap-2 px-4 h-10
-                           rounded-lg border border-emerald-300 bg-white text-[14px]"
-              >
-                <Filter size={16} />
-                Filters
-              </button>
-
-              <button
-                onClick={() => {
-                  setEditId(null);
-                  setErrors({});
-                  setForm({
-                    name: "",
-                    email: "",
-                    phone: "",
-                    assignedBay: "",
-                    password: "",
-                  });
-                  setShowAdd(true);
-                }}
-                className="flex items-center gap-2 px-4 h-10
-             rounded-lg bg-emerald-600 text-white text-[14px]"
-              >
-                <Plus size={16} />
-                Add Staff
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* FILTER PANEL */}
-        {showFilters && (
-          <div className="bg-white border-b border-emerald-200 px-4 sm:px-8 py-4 flex flex-col sm:flex-row gap-4 text-[14px]">
-            <div>
-              <label className="block text-emerald-600 mb-1">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-emerald-300 rounded-lg px-3 py-2 w-full sm:w-40"
-              >
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-emerald-600 mb-1">Staff Name</label>
-              <select
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
-                className="border border-emerald-300 rounded-lg px-3 py-2 w-full sm:w-48"
-              >
-                <option value="all">All</option>
-                {staff.map((s) => (
-                  <option key={s._id} value={s.name}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
-{confirmDelete && (
-  <ConfirmDelete
-    onCancel={() => setConfirmDelete(false)}
-    onDelete={deleteStaff}
-  />
-)}
-
-        {/* CONTENT */}
-        <div className="px-4 sm:px-8 py-6">
-          {/* STATS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <Stat title="Total Staff" value={staff.length} icon={Users} />
-            <Stat
-              title="Active Staff"
-              value={staff.filter((s) => s.isActive).length}
-              icon={Activity}
-            />
-            <Stat
-              title="Assigned Bays"
-              value={
-                new Set(
-                  staff.map((s) => getBayName(s.assignedBay)).filter(Boolean)
-                ).size
-              }
-              icon={Users}
-            />
-          </div>
-
-          {/* TABLE + DETAILS */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="hidden lg:block lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-x-auto">
-
-              <table className="min-w-[720px] w-full">
-                <thead className="bg-green-100 border-b-2 border-emerald-200">
-                  <tr>
-                    {["Name", "Email", "Phone", "Bay", "Status", "Action"].map(
-                      (h) => (
-                        <th
-                          key={h}
-                          className="px-6 py-4 text-[14px] font-medium text-center text-emerald-700"
-                        >
-                          {h}
-                        </th>
-                      )
-                    )}
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-emerald-200">
-                  {filtered.map((s) => (
-                    <tr
-                      key={s._id}
-                      onClick={() => {
-                        setSelected(s);
-                        setShowMobilePopup(true);
-                      }}
-                      className="hover:bg-green-50 cursor-pointer text-center"
-                    >
-                      <td className="px-6 py-4 font-medium">{s.name}</td>
-                      <td className="px-6 py-4">{s.email}</td>
-                      <td className="px-6 py-4">{s.phone}</td>
-                      <td className="px-6 py-4">{getBayName(s.assignedBay)}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          onClick={() => toggleStaffStatus(s._id)}
-                          className={`cursor-pointer px-3 py-1 rounded-full text-[13px] ${
-                            s.isActive
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-600"
-                          }`}
-                        >
-                          {s.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <div className="flex justify-center gap-4">
-                          <Pencil
-                            size={18}
-                            className="text-emerald-600 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditId(s._id);
-                              setForm({
-                                name: s.name,
-                                email: s.email,
-                                phone: s.phone,
-                                assignedBay:
-                                  typeof s.assignedBay === "object"
-                                    ? s.assignedBay?._id
-                                    : s.assignedBay || "",
-                                password: "",
-                              });
-                              setShowAdd(true);
-                            }}
-                          />
-
-                          <Trash2
-                            size={18}
-                            className="text-red-600 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelected(s);
-                              setConfirmDelete(true);
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* DESKTOP DETAILS */}
-            <div className="hidden lg:block bg-white rounded-2xl shadow-sm p-6">
-              {!selected ? (
-                <p className="text-emerald-400 text-center">
-                  Select a staff member to view details
+              <div className="text-sm text-gray-700 space-y-1">
+                <p>
+                  <span className="font-medium">Phone:</span> {s.phone}
                 </p>
-              ) : (
-                <StaffDetails selected={selected} getBayName={getBayName} />
-              )}
+                <p>
+                  <span className="font-medium">Bay:</span>{" "}
+                  {getBayName(s.assignedBay)}
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-2">
+                <Pencil
+                  size={18}
+                  className="text-emerald-600 cursor-pointer"
+                  onClick={() => {
+                    setEditId(s._id);
+                    setForm({
+                      name: s.name,
+                      email: s.email,
+                      phone: s.phone,
+                      assignedBay:
+                        typeof s.assignedBay === "object"
+                          ? s.assignedBay?._id
+                          : s.assignedBay || "",
+                      password: "",
+                    });
+                    setShowAdd(true);
+                  }}
+                />
+
+                <Trash2
+                  size={18}
+                  className="text-red-600 cursor-pointer"
+                  onClick={() => {
+                    setSelected(s);
+                    setConfirmDelete(true);
+                  }}
+                />
+              </div>
             </div>
-          </div>
-          {/* ================= MOBILE STAFF LIST ================= */}
-<div className="lg:hidden px-4 space-y-4 pb-6">
-  {filtered.map((s) => (
-    <div
-      key={s._id}
-      className="bg-white rounded-xl shadow-sm p-4 space-y-3"
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="font-semibold text-emerald-900">{s.name}</p>
-          <p className="text-xs text-emerald-600">{s.email}</p>
-        </div>
+          ))}
 
-        <span
-          onClick={() => toggleStaffStatus(s._id)}
-          className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
-            s.isActive
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-red-100 text-red-600"
-          }`}
-        >
-          {s.isActive ? "Active" : "Inactive"}
-        </span>
-      </div>
-
-      <div className="text-sm text-gray-700 space-y-1">
-        <p>
-          <span className="font-medium">Phone:</span> {s.phone}
-        </p>
-        <p>
-          <span className="font-medium">Bay:</span>{" "}
-          {getBayName(s.assignedBay)}
-        </p>
-      </div>
-
-      {/* ✏️ 🗑️ ACTIONS */}
-      <div className="flex justify-end gap-4 pt-2">
-        <Pencil
-          size={18}
-          className="text-emerald-600 cursor-pointer"
-          onClick={() => {
-            setEditId(s._id);
-            setForm({
-              name: s.name,
-              email: s.email,
-              phone: s.phone,
-              assignedBay:
-                typeof s.assignedBay === "object"
-                  ? s.assignedBay?._id
-                  : s.assignedBay || "",
-              password: "",
-            });
-            setShowAdd(true);
-          }}
-        />
-
-        <Trash2
-          size={18}
-          className="text-red-600 cursor-pointer"
-          onClick={() => {
-            setSelected(s);
-            setConfirmDelete(true);
-          }}
-        />
-      </div>
-    </div>
-  ))}
-
-  {filtered.length === 0 && (
-    <p className="text-center text-sm text-gray-400">
-      No staff found
-    </p>
-  )}
-</div>
-
+          {filtered.length === 0 && (
+            <p className="text-center text-sm text-gray-400">No staff found</p>
+          )}
         </div>
       </div>
 
       {/* MOBILE DETAILS POPUP */}
       {showMobilePopup && selected && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center lg:hidden"
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center md:hidden p-4"
           onClick={() => setShowMobilePopup(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-sm p-6 w-[92%] max-w-sm relative"
+            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setShowMobilePopup(false)}
-              className="absolute top-3 right-3 text-emerald-400"
+              className="absolute top-3 right-3 text-emerald-600 hover:bg-emerald-50 p-1 rounded-lg"
             >
-              ✕
+              <X size={20} />
             </button>
             <StaffDetails selected={selected} getBayName={getBayName} />
           </div>
@@ -544,10 +507,12 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
 
       {/* ADD STAFF MODAL */}
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex justify-between px-6 py-4 border-b border-emerald-200">
-              <h2 className="font-semibold">Add New Staff</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden">
+            <div className="flex justify-between px-6 py-4 border-b border-emerald-100">
+              <h2 className="font-semibold text-emerald-800">
+                {editId ? "Edit Staff" : "Add New Staff"}
+              </h2>
               <X
                 onClick={() => {
                   setForm({
@@ -561,7 +526,7 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
                   setEditId(null);
                   setShowAdd(false);
                 }}
-                className="cursor-pointer"
+                className="cursor-pointer text-emerald-600 hover:bg-emerald-50 p-1 rounded-lg transition"
               />
             </div>
 
@@ -606,8 +571,11 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
                   onChange={(e) =>
                     setForm({ ...form, assignedBay: e.target.value })
                   }
-                  className="w-full border border-emerald-300 rounded-md px-3 py-2
-                             focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                    errors.assignedBay
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-emerald-200 focus:ring-emerald-500"
+                  }`}
                 >
                   <option value="">Select Bay</option>
                   {bays.map((b) => (
@@ -616,10 +584,15 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
                     </option>
                   ))}
                 </select>
+                {errors.assignedBay && (
+                  <p className="text-red-600 text-xs mt-1">
+                    {errors.assignedBay}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-emerald-200 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3">
               <button
                 onClick={() => {
                   setForm({
@@ -633,19 +606,28 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
                   setEditId(null);
                   setShowAdd(false);
                 }}
+                className="text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition"
               >
                 Cancel
               </button>
 
               <button
                 onClick={saveStaff}
-                className="px-5 py-2 bg-emerald-600 text-white rounded-lg"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition"
               >
                 {editId ? "Update Staff" : "Add Staff"}
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* CONFIRM DELETE */}
+      {confirmDelete && (
+        <ConfirmDelete
+          onCancel={() => setConfirmDelete(false)}
+          onDelete={deleteStaff}
+        />
       )}
     </div>
   );
@@ -654,9 +636,9 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
 /* ================= SMALL COMPONENTS ================= */
 
 const StaffDetails = ({ selected, getBayName }) => (
-  <div className="space-y-5 text-[14px]">
+  <div className="space-y-5 text-sm">
     <div className="flex items-center justify-between">
-      <h3 className="text-[17px] font-semibold text-emerald-900">
+      <h3 className="text-lg font-semibold text-emerald-800">
         {selected.name}
       </h3>
 
@@ -679,27 +661,23 @@ const StaffDetails = ({ selected, getBayName }) => (
       <Detail label="Assigned Bay" value={getBayName(selected.assignedBay)} />
       <Detail label="Role" value={selected.role} />
     </div>
-
-    <div className="pt-3">
-      <div className="h-1 w-12 rounded-full bg-emerald-500" />
-    </div>
   </div>
 );
 
 const Stat = ({ title, value, icon: Icon }) => (
-  <div className="bg-white border border-emerald-300 rounded-2xl shadow-sm p-6">
+  <div className="bg-white border border-emerald-100 rounded-xl shadow-sm p-4 sm:p-6">
     <div className="flex justify-between mb-2">
-      <p className="text-emerald-600">{title}</p>
-      <Icon size={18} className="text-emerald-600" />
+      <p className="text-sm text-emerald-600">{title}</p>
+      <Icon size={20} className="text-emerald-600" />
     </div>
-    <p className="text-[26px] font-semibold text-emerald-800">{value}</p>
+    <p className="text-3xl font-bold text-emerald-800">{value}</p>
   </div>
 );
 
 const Detail = ({ label, value }) => (
   <div>
-    <p className="text-emerald-600">{label}</p>
-    <p className="font-medium">{value}</p>
+    <p className="text-emerald-600 text-xs">{label}</p>
+    <p className="font-medium text-emerald-800">{value}</p>
   </div>
 );
 
@@ -708,9 +686,39 @@ const Field = ({ label, error, ...props }) => (
     <label className="block mb-1 font-medium text-emerald-700">{label}</label>
     <input
       {...props}
-      className="w-full border border-emerald-300 rounded-md px-3 py-2
-                 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+      className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+        error
+          ? "border-red-500 focus:ring-red-500"
+          : "border-emerald-200 focus:ring-emerald-500"
+      }`}
     />
-    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
+  </div>
+);
+
+const ConfirmDelete = ({ onCancel, onDelete }) => (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+      <h3 className="font-semibold text-emerald-800 mb-2">
+        Delete Staff Member?
+      </h3>
+      <p className="text-sm text-emerald-600 mb-4">
+        This action cannot be undone.
+      </p>
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={onCancel}
+          className="text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onDelete}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition cursor-pointer"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
   </div>
 );

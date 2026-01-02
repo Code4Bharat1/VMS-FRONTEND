@@ -6,6 +6,7 @@ import api from "@/lib/axios";
 
 export default function Supervisors() {
   const [supervisors, setSupervisors] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [search, setSearch] = useState("");
   const [bays, setBays] = useState([]);
   const [editId, setEditId] = useState(null);
@@ -155,7 +156,25 @@ export default function Supervisors() {
   const inactiveSupervisors = supervisors.filter(
     (s) => s.status === "Inactive"
   ).length;
-  const totalStaff = supervisors.reduce((sum, s) => sum + s.staffCount, 0);
+  const uniqueBayStaffMap = {};
+
+supervisors.forEach((s) => {
+  const bayId =
+    typeof s.assignedBay === "object"
+      ? s.assignedBay?._id
+      : s.assignedBay;
+
+  // take staff count only once per bay
+  if (bayId && !uniqueBayStaffMap[bayId]) {
+    uniqueBayStaffMap[bayId] = s.staffCount;
+  }
+});
+
+const totalStaff = Object.values(uniqueBayStaffMap).reduce(
+  (sum, count) => sum + count,
+  0
+);
+
 
   const deleteSupervisor = async () => {
     if (!selected) return;

@@ -35,26 +35,25 @@ const MyBays = () => {
     fetchBays();
   }, []);
 
-
   return (
-    <div className="flex h-screen bg-teal-50">
+    <div className="flex h-screen bg-emerald-50/60">
       <Sidebar activeItem="overview" />
 
       <div className="flex-1 overflow-auto">
         {/* HEADER */}
-        <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-6">
+        <div className="sticky top-0 z-40 bg-white border-b border-emerald-100 px-4 sm:px-8 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+              <h1 className="text-xl font-bold text-emerald-800">
                 My Bays
               </h1>
-              <p className="text-gray-500 mt-1 text-sm">
+              <p className="text-emerald-600 mt-1 text-sm">
                 Monitor live bay status, traffic, and alerts.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">
                 {(supervisor?.name || "")
                   .split(" ")
                   .map((n) => n[0])
@@ -62,10 +61,10 @@ const MyBays = () => {
                   .toUpperCase()}
               </div>
               <div>
-                <h2 className="text-sm sm:text-lg font-semibold text-gray-800">
+                <h2 className="text-sm sm:text-base font-semibold text-emerald-800">
                   {supervisor?.name || "Supervisor"}
                 </h2>
-                <p className="text-xs sm:text-sm text-gray-500">
+                <p className="text-xs text-emerald-600">
                   {supervisor?.role || "Supervisor"}
                 </p>
               </div>
@@ -74,7 +73,7 @@ const MyBays = () => {
         </div>
 
         {/* CONTENT */}
-        <div className="px-4 sm:px-8 py-6">
+        <div className="px-4 sm:px-8 py-4 sm:py-6">
           {/* STATS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
             <Stat
@@ -99,17 +98,17 @@ const MyBays = () => {
 
           {/* VIEW TOGGLE */}
           <div className="flex justify-center sm:justify-start mb-6">
-            <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+            <div className="flex gap-2 bg-white border border-emerald-100 p-1 rounded-lg">
               {["Today", "This week", "This month"].map((view) => {
                 const key = view.toLowerCase().replace(" ", "-");
                 return (
                   <button
                     key={view}
                     onClick={() => setActiveView(key)}
-                    className={`px-4 py-2 rounded-md text-sm font-medium ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                       activeView === key
-                        ? "bg-white text-emerald-700 shadow-sm"
-                        : "text-gray-600"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "text-emerald-600 hover:bg-emerald-50"
                     }`}
                   >
                     {view}
@@ -125,18 +124,18 @@ const MyBays = () => {
               <div
                 key={bay._id}
                 onClick={() => setSelectedBay(bay)}
-                className="bg-white rounded-xl border-2 border-gray-200 hover:border-emerald-400 hover:shadow-xl transition-all cursor-pointer"
+                className="bg-white rounded-xl border border-emerald-100 hover:border-emerald-400 hover:shadow-lg transition-all cursor-pointer"
               >
                 <div className="p-6">
                   <div className="flex justify-between mb-4">
-                    <h3 className="text-lg font-bold text-gray-800">
+                    <h3 className="text-lg font-bold text-emerald-800">
                       {bay.bayName}
                     </h3>
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-bold ${
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
                         bay.status === "Free"
-                          ? "bg-emerald-500 text-white"
-                          : "bg-orange-500 text-white"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-orange-100 text-orange-700"
                       }`}
                     >
                       {bay.status}
@@ -151,13 +150,12 @@ const MyBays = () => {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 px-6 py-4 border-t text-center text-sm text-gray-500">
+                <div className="bg-emerald-50 px-6 py-4 border-t border-emerald-100 text-center text-sm text-emerald-600 font-medium">
                   Tap to view full details →
                 </div>
               </div>
             ))}
           </div>
-
         </div>
 
         {/* MODAL */}
@@ -172,21 +170,113 @@ const MyBays = () => {
 /* ---------- SMALL COMPONENTS ---------- */
 
 const Stat = ({ title, value, icon: Icon, desc }) => (
-  <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition">
+  <div className="bg-white rounded-xl border border-emerald-100 p-4 sm:p-6 shadow-sm hover:shadow transition">
     <div className="flex justify-between mb-2">
-      <p className="text-gray-500 text-sm font-medium">{title}</p>
+      <p className="text-emerald-600 text-sm font-medium">{title}</p>
       <Icon size={20} className="text-emerald-600" />
     </div>
-    <h3 className="text-2xl sm:text-3xl font-bold text-gray-800">{value}</h3>
-    <p className="text-gray-400 text-sm mt-1">{desc}</p>
+    <h3 className="text-2xl sm:text-3xl font-bold text-emerald-800">{value}</h3>
+    <p className="text-emerald-500 text-sm mt-1">{desc}</p>
   </div>
 );
 
 const Info = ({ label, value }) => (
   <div className="flex justify-between">
-    <span className="text-gray-600">{label}:</span>
-    <span className="font-semibold text-gray-800">{value}</span>
+    <span className="text-emerald-600">{label}:</span>
+    <span className="font-semibold text-emerald-800">{value}</span>
   </div>
 );
+
+const BayModal = ({ bay, onClose }) => {
+  if (!bay) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-4xl rounded-xl shadow-xl max-h-[90vh] overflow-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-emerald-100 px-6 py-4 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-emerald-800">{bay.bayName}</h2>
+            <p className="text-sm text-emerald-600">Bay Details & Activity</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-emerald-600 hover:bg-emerald-50 p-2 rounded-lg transition"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-6">
+          {/* Status Card */}
+          <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+            <div className="flex justify-between items-center">
+              <span className="text-emerald-700 font-medium">Current Status:</span>
+              <span
+                className={`px-4 py-2 rounded-full text-sm font-medium ${
+                  bay.status === "Free"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-orange-100 text-orange-700"
+                }`}
+              >
+                {bay.status}
+              </span>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white border border-emerald-100 rounded-lg p-4">
+              <p className="text-sm text-emerald-600 mb-1">Vehicles Today</p>
+              <p className="text-2xl font-bold text-emerald-800">{bay.vehiclesToday || 0}</p>
+            </div>
+            <div className="bg-white border border-emerald-100 rounded-lg p-4">
+              <p className="text-sm text-emerald-600 mb-1">Average Time</p>
+              <p className="text-2xl font-bold text-emerald-800">{bay.avgTime || "—"}</p>
+            </div>
+            <div className="bg-white border border-emerald-100 rounded-lg p-4">
+              <p className="text-sm text-emerald-600 mb-1">Currently Inside</p>
+              <p className="text-2xl font-bold text-emerald-800">{bay.currentlyInside || 0}</p>
+            </div>
+            <div className="bg-white border border-emerald-100 rounded-lg p-4">
+              <p className="text-sm text-emerald-600 mb-1">Staff on Duty</p>
+              <p className="text-2xl font-bold text-emerald-800">{bay.staffOnDuty || 0}</p>
+            </div>
+          </div>
+
+          {/* Additional Info */}
+          <div className="bg-white border border-emerald-100 rounded-lg p-4">
+            <h3 className="font-semibold text-emerald-800 mb-3">Bay Information</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-emerald-600">Bay ID:</span>
+                <span className="font-medium text-emerald-800">{bay._id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-emerald-600">Location:</span>
+                <span className="font-medium text-emerald-800">{bay.location || "Main Campus"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-emerald-600">Capacity:</span>
+                <span className="font-medium text-emerald-800">{bay.capacity || "10 vehicles"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-emerald-100 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition font-medium"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default MyBays;
