@@ -39,33 +39,33 @@ const SupervisorDashboard = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-teal-50">
+    <div className="flex h-screen bg-emerald-50/60">
       <Sidebar activeItem="overview" />
 
       {/* MAIN CONTENT */}
       <div className="flex-1 overflow-x-hidden overflow-y-auto">
         {/* HEADER */}
-        <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-6">
+        <div className="sticky top-0 z-40 bg-white border-b border-emerald-100 px-4 sm:px-8 py-4 sm:py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Supervisor Panel</h1>
-              <p className="text-gray-500 mt-1">
+              <h1 className="text-xl font-bold text-emerald-800">Supervisor Panel</h1>
+              <p className="text-emerald-600 mt-1 text-sm">
                 Monitor your assigned security staff, bays, and supervision activities.
               </p>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-linear-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">
                 {(supervisor?.name || "")
                   .split(" ")
                   .map((n) => n[0])
                   .join("")}
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-800">
+                <h2 className="text-sm sm:text-base font-semibold text-emerald-800">
                   {supervisor?.name || "Supervisor"}
                 </h2>
-                <p className="text-gray-500 text-sm">
+                <p className="text-emerald-600 text-xs sm:text-sm">
                   {supervisor?.role || "Supervisor"}
                 </p>
               </div>
@@ -74,106 +74,126 @@ const SupervisorDashboard = () => {
         </div>
 
         {/* CONTENT */}
-        <div className="px-4 sm:px-8 py-6">
+        <div className="px-4 sm:px-8 py-4 sm:py-6">
           {/* STATS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-emerald-100 shadow-sm hover:shadow transition">
               <div className="flex justify-between mb-2">
-                <p className="text-gray-500 text-sm">Total Staff Assigned</p>
+                <p className="text-emerald-600 text-sm">Total Staff Assigned</p>
                 <Users className="text-emerald-600" size={20} />
               </div>
-              <h3 className="text-3xl font-bold">12</h3>
+              <h3 className="text-3xl font-bold text-emerald-800">12</h3>
             </div>
 
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-emerald-100 shadow-sm hover:shadow transition">
               <div className="flex justify-between mb-2">
-                <p className="text-gray-500 text-sm">Today's Entries</p>
-                <TrendingUp className="text-blue-600" size={20} />
+                <p className="text-emerald-600 text-sm">Today's Entries</p>
+                <TrendingUp className="text-emerald-600" size={20} />
               </div>
-              <h3 className="text-3xl font-bold">384</h3>
+              <h3 className="text-3xl font-bold text-emerald-800">384</h3>
             </div>
 
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-emerald-100 shadow-sm hover:shadow transition">
               <div className="flex justify-between mb-2">
-                <p className="text-gray-500 text-sm">Avg Processing Time</p>
-                <Clock className="text-purple-600" size={20} />
+                <p className="text-emerald-600 text-sm">Avg Processing Time</p>
+                <Clock className="text-emerald-600" size={20} />
               </div>
-              <h3 className="text-3xl font-bold">18s</h3>
+              <h3 className="text-3xl font-bold text-emerald-800">18s</h3>
             </div>
 
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-emerald-100 shadow-sm hover:shadow transition">
               <div className="flex justify-between mb-2">
-                <p className="text-gray-500 text-sm">Active Bays</p>
-                <Building2 className="text-orange-600" size={20} />
+                <p className="text-emerald-600 text-sm">Active Bays</p>
+                <Building2 className="text-emerald-600" size={20} />
               </div>
-              <h3 className="text-3xl font-bold">3</h3>
+              <h3 className="text-3xl font-bold text-emerald-800">3</h3>
             </div>
           </div>
 
           {/* VIEW TOGGLE */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-xl font-bold">Staff Performance</h2>
-              <p className="text-gray-500 text-sm">
+              <h2 className="text-lg font-bold text-emerald-800">Staff Performance</h2>
+              <p className="text-emerald-600 text-sm">
                 Performance overview of staff under you.
               </p>
             </div>
-{/* 
-            <div className="flex bg-gray-100 p-1 rounded-lg">
+
+            <div className="flex bg-white border border-emerald-100 p-1 rounded-lg">
               {["Daily", "Weekly", "Monthly"].map((view) => (
                 <button
                   key={view}
                   onClick={() => setActiveView(view.toLowerCase())}
-                  className={`px-4 py-2 text-sm rounded-md ${
+                  className={`px-4 py-2 text-sm rounded-lg transition ${
                     activeView === view.toLowerCase()
-                      ? "bg-white text-emerald-700 shadow"
-                      : "text-gray-600"
+                      ? "bg-emerald-100 text-emerald-700 font-medium"
+                      : "text-emerald-600 hover:bg-emerald-50"
                   }`}
                 >
                   {view}
                 </button>
               ))}
-            </div> */}
+            </div>
           </div>
 
           {/* TABLE */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto mb-8">
-            <table className="w-full min-w-[900px]">
-              <thead className="bg-green-200 border-b border-gray-300">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm">Staff Name</th>
-                  <th className="px-6 py-4 text-left text-sm">Mobile</th>
-                  <th className="px-6 py-4 text-left text-sm">Entries</th>
-                  <th className="px-6 py-4 text-left text-sm">Avg Time</th>
-                  <th className="px-6 py-4 text-left text-sm">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y  ">
-                {staffData.map((s, i) => (
-                  <tr key={i}>
-                    <td className="px-6 py-4 border-b border-gray-300">{s.name}</td>
-                    <td className="px-6 py-4 border-b border-gray-300">{s.mobile}</td>
-                    <td className="px-6 py-4 border-b border-gray-300">{s.entries}</td>
-                    <td className="px-6 py-4 border-b border-gray-300">{s.avgTime}</td>
-                    <td className="px-6 py-4 border-b border-gray-300">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs ${
-                          s.status === "Active"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-orange-100 text-orange-700"
-                        }`}
-                      >
-                        {s.status}
-                      </span>
-                    </td>
+          <div className="bg-white rounded-xl border border-emerald-100 shadow-sm overflow-hidden mb-8">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-emerald-100">
+                  <tr>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">Staff Name</th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">Mobile</th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">Entries</th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">Avg Time</th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-emerald-100">
+                  {staffData.map((s, i) => (
+                    <tr key={i} className="hover:bg-emerald-50 transition">
+                      <td className="px-6 py-4 text-center font-medium text-emerald-800">{s.name}</td>
+                      <td className="px-6 py-4 text-center">{s.mobile}</td>
+                      <td className="px-6 py-4 text-center">{s.entries}</td>
+                      <td className="px-6 py-4 text-center">{s.avgTime}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            s.status === "Active"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {s.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="px-4 py-3 text-sm text-emerald-600 bg-emerald-50">
+              Showing {staffData.length} staff members
+            </div>
           </div>
 
           {/* RECENT UPDATES */}
-
+          <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-6">
+            <h2 className="text-lg font-bold text-emerald-800 mb-4">My Recent Updates</h2>
+            <div className="space-y-4">
+              {recentUpdates.map((u, i) => (
+                <div key={i} className="flex items-start gap-4 bg-emerald-50 border border-emerald-100 p-4 rounded-lg hover:bg-emerald-100 transition cursor-pointer">
+                  <div className="w-2 h-2 bg-emerald-600 rounded-full mt-2" />
+                  <div className="flex-1">
+                    <p className="font-medium text-emerald-800">{u.action}</p>
+                    <p className="text-sm text-emerald-600">{u.time}</p>
+                  </div>
+                  <ChevronRight size={18} className="text-emerald-400" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
