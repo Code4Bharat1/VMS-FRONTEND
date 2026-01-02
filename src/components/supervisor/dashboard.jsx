@@ -118,7 +118,7 @@ const SupervisorDashboard = () => {
                 Performance overview of staff under you.
               </p>
             </div>
-
+{/* 
             <div className="flex bg-gray-100 p-1 rounded-lg">
               {["Daily", "Weekly", "Monthly"].map((view) => (
                 <button
@@ -133,7 +133,7 @@ const SupervisorDashboard = () => {
                   {view}
                 </button>
               ))}
-            </div>
+            </div> */}
           </div>
 
           {/* TABLE */}
@@ -173,21 +173,7 @@ const SupervisorDashboard = () => {
           </div>
 
           {/* RECENT UPDATES */}
-          <div className="bg-white rounded-xl ">
-            <h2 className="text-xl font-bold mb-4">My Recent Updates</h2>
-            <div className="space-y-4">
-              {recentUpdates.map((u, i) => (
-                <div key={i} className="flex items-start gap-4 bg-gray-50 p-4 rounded-lg">
-                  <div className="w-2 h-2 bg-emerald-600 rounded-full mt-2" />
-                  <div className="flex-1">
-                    <p className="font-medium">{u.action}</p>
-                    <p className="text-sm text-gray-500">{u.time}</p>
-                  </div>
-                  <ChevronRight size={18} className="text-gray-400" />
-                </div>
-              ))}
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

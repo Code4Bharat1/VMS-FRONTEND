@@ -149,7 +149,7 @@ export default function ActivityLogs() {
           return (
             <div
               key={log._id}
-              className="flex gap-4 p-4 bg-white rounded-xl border shadow-sm hover:shadow-md transition"
+              className="flex gap-4 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition"
             >
               <div className="p-2 rounded-full bg-gray-100">
                 <Icon className="w-5 h-5 text-gray-700" />

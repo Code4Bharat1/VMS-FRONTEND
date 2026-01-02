@@ -83,8 +83,12 @@ export default function ManualEntry() {
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState(null);
   const [lastImage, setLastImage] = useState(null);
-
   const fileInputRef = useRef(null);
+
+  const [vendors, setVendors] = useState([]);
+  const [vendorLoading, setVendorLoading] = useState(false);
+
+
 
   useEffect(() => {
     const u = localStorage.getItem("user");
@@ -101,7 +105,26 @@ export default function ManualEntry() {
       : null;
 
   /* ================= OCR ================= */
+useEffect(() => {
+  const fetchVendors = async () => {
+    try {
+      setVendorLoading(true);
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/vendors`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setVendors(res.data?.vendors || []);
+    } catch (err) {
+      console.error("Failed to load vendors", err);
+    } finally {
+      setVendorLoading(false);
+    }
+  };
 
+  if (token) fetchVendors();
+}, [token]);
   const handlePlateImage = (file) => {
     if (!file) return;
     const reader = new FileReader();
@@ -209,7 +232,24 @@ export default function ManualEntry() {
           <Input label="Visitor Name" value={visitorName} onChange={setVisitorName} />
           <Input label="QID" value={qidNumber} onChange={setQidNumber} />
           <Input label="Mobile" value={mobile} onChange={setMobile} />
-          <Input label="Company" value={company} onChange={setCompany} />
+
+          <div>
+  <label className="text-xs text-gray-500">Company</label>
+  <select
+    value={company}
+    onChange={(e) => setCompany(e.target.value)}
+    className="h-11 w-full rounded-xl px-4 bg-gray-50 border"
+    disabled={vendorLoading}
+  >
+    <option value="">Select Company</option>
+    {vendors.map((v) => (
+      <option key={v._id} value={v.companyName}>
+        {v.companyName}
+      </option>
+    ))}
+  </select>
+</div>
+
         </Section>
 
         <Section title="Vehicle Information">

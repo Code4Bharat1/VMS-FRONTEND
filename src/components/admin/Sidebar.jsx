@@ -27,7 +27,7 @@ const menu = [
   { label: "Vendor Management", href: "/admin/Vendors", icon: IdCard },
   { label: "Supervisors", href: "/admin/Supervisors", icon: ShieldCheck },
   { label: "Staff", href: "/admin/Staff", icon: Users },
-  { label: "Reports", href: "/admin/Report", icon: BarChart3 },
+  { label: "Reports", href: "/admin/logs", icon: BarChart3 },
   { label: "Settings", href: "/admin/SettingPage", icon: Settings },
   { label: "Pending Staff", href: "/admin/Pending", icon: Users },
 ];
