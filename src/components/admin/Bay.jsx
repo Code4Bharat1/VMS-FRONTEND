@@ -1,4 +1,3 @@
-//Admin bay
 "use client";
 
 import { useEffect, useState } from "react";
@@ -108,7 +107,7 @@ export default function BayManagement() {
 
             <button
               onClick={() => setShowAddBay(true)}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium cursor-pointer"
+              className="px-4 py-2 rounded-lg bg-green-700 text-white text-sm font-medium cursor-pointer hover:bg-gray-800"
             >
               + Add Bay
             </button>
@@ -146,7 +145,7 @@ export default function BayManagement() {
 
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className="h-2 bg-emerald-700 rounded-full transition-all"
+                      className="h-2 bg-emerald-900 rounded-full transition-all"
                       style={{ width: occupied > 0 ? "60%" : "0%" }}
                     />
                   </div>
