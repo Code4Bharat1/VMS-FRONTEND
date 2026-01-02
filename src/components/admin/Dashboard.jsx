@@ -184,9 +184,7 @@ const WeeklyBarChart = ({ data }) => {
           </h3>
           <p className="text-xs text-emerald-600">Last 7 days entry activity</p>
         </div>
-        <span className="text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
-          Weekly
-        </span>
+
       </div>
 
       <div className="flex items-end gap-4 h-44">

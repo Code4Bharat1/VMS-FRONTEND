@@ -107,7 +107,7 @@ export default function BayManagement() {
 
             <button
               onClick={() => setShowAddBay(true)}
-              className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium cursor-pointer hover:bg-gray-800"
+              className="px-4 py-2 rounded-lg bg-green-700 text-white text-sm font-medium cursor-pointer hover:bg-gray-800"
             >
               + Add Bay
             </button>
