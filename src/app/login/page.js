@@ -8,6 +8,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import authService from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
+import { Eye, EyeOff } from "lucide-react";
 
 const schema = yup.object().shape({
   email: yup
@@ -20,7 +21,7 @@ const schema = yup.object().shape({
 export default function LoginPage() {
   const router = useRouter();
   const { isAuthenticated, user, login } = useAuth();
-
+  const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -105,26 +106,35 @@ export default function LoginPage() {
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              {...register("password")}
-              type="password"
-              placeholder="••••••••"
-              className={`mt-1 w-full outline-0 rounded-md border px-3 py-2 focus:ring-2 ${
-                errors.password
-                  ? "border-red-300 focus:ring-red-200"
-                  : "border-gray-200 focus:ring-emerald-200"
-              }`}
-            />
-            {errors.password && (
-              <p className="text-xs text-red-600 mt-1">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
+<div className="relative">
+  <input
+    {...register("password")}
+    type={showPassword ? "text" : "password"}
+    placeholder="••••••••"
+    className={`mt-1 w-full outline-0 rounded-md border px-3 py-2 pr-10 focus:ring-2 ${
+      errors.password
+        ? "border-red-300 focus:ring-red-200"
+        : "border-gray-200 focus:ring-emerald-200"
+    }`}
+  />
+
+  {/* 👁 View / Hide Button */}
+  <button
+    type="button"
+    onClick={() => setShowPassword((prev) => !prev)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-600 transition"
+  >
+    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+  </button>
+</div>
+
+{/* Error message */}
+{errors.password && (
+  <p className="mt-1 text-sm text-red-500">
+    {errors.password.message}
+  </p>
+)}
+
 
           {serverError && (
             <p className="text-sm text-red-600 mt-1 text-center">

@@ -14,6 +14,9 @@ export default function BayManagement() {
   const [bayType, setBayType] = useState("");
   const [saving, setSaving] = useState(false);
 
+  /* -------- Delete State -------- */
+  const [deletingId, setDeletingId] = useState(null);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -57,12 +60,35 @@ export default function BayManagement() {
       setShowAddBay(false);
       setBayName("");
       setBayType("");
-
-      fetchData(); // refresh list
+      fetchData();
     } catch (err) {
       console.error("Failed to add bay", err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* ================= DELETE BAY ================= */
+  const deleteBay = async (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this bay?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingId(id);
+      const token = localStorage.getItem("accessToken");
+
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_URL}/bays/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      fetchData();
+    } catch (err) {
+      console.error("Failed to delete bay", err);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -90,9 +116,8 @@ export default function BayManagement() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-emerald-50/60">
       <div className="flex-1 overflow-x-hidden">
-
         {/* ================= NAVBAR ================= */}
         <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sticky top-0 z-40">
           <div className="flex items-center justify-between">
@@ -107,7 +132,7 @@ export default function BayManagement() {
 
             <button
               onClick={() => setShowAddBay(true)}
-              className="px-4 py-2 rounded-lg bg-green-700 text-white text-sm font-medium cursor-pointer hover:bg-gray-800"
+              className="px-4 py-2 rounded-lg bg-green-700 text-white text-sm font-medium hover:bg-gray-800"
             >
               + Add Bay
             </button>
@@ -125,13 +150,24 @@ export default function BayManagement() {
                   key={bay._id}
                   className="bg-white rounded-md border border-gray-200 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="mb-3">
-                    <h2 className="text-[15px] sm:text-lg font-semibold text-gray-800">
-                      Bay {bay.bayName}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      {bay.bayType} bay
-                    </p>
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h2 className="text-[15px] sm:text-lg font-semibold text-gray-800">
+                        Bay {bay.bayName}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        {bay.bayType} bay
+                      </p>
+                    </div>
+
+                    {/* DELETE BUTTON */}
+                    <button
+                      onClick={() => deleteBay(bay._id)}
+                      disabled={deletingId === bay._id}
+                      className="text-xs px-2 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                    >
+                      {deletingId === bay._id ? "Deleting..." : "Delete"}
+                    </button>
                   </div>
 
                   <div className="flex gap-2 mb-4">
@@ -170,7 +206,7 @@ export default function BayManagement() {
                 placeholder="Bay Name (e.g. A, B, C)"
                 value={bayName}
                 onChange={(e) => setBayName(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
 
               <input
@@ -178,7 +214,7 @@ export default function BayManagement() {
                 placeholder="Bay Type (e.g. Loading, Parking)"
                 value={bayType}
                 onChange={(e) => setBayType(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
