@@ -1,242 +1,242 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import * as yup from "yup";
 
-export default function MySettings() {
-  const [form, setForm] = useState({
-    name: "Rashid Ahmed",
-    staffId: "SEC-0142",
-    mobile: "+974 5551 2244",
-    email: "rashid.ahmed@example.com",
-    supervisor: "Hassan Ali",
+/* ================= SECTIONS ================= */
+const SECTIONS = [{ id: "profile", label: "Edit Profile" }];
+
+export default function StaffSettings() {
+  const [active, setActive] = useState("profile");
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [user, setUser] = useState(null);
+
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+
+  /* ================= LOAD USER ================= */
+  useEffect(() => {
+    const u = localStorage.getItem("user");
+    if (u) setUser(JSON.parse(u));
+  }, []);
+
+  /* ================= FORM ================= */
+  const [profile, setProfile] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
   });
 
-  const [entryNotify, setEntryNotify] = useState(true);
-  const [shiftReminder, setShiftReminder] = useState(true);
-  const [emailSummary, setEmailSummary] = useState(false);
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        password: "",
+      });
+    }
+  }, [user]);
 
-  /* password state */
-  const [editPassword, setEditPassword] = useState(false);
-  const [password, setPassword] = useState("");
+  /* ================= VALIDATION ================= */
+  const profileSchema = yup.object({
+    name: yup
+      .string()
+      .matches(/^[A-Za-z ]+$/, "Only alphabets allowed")
+      .required("Name is required"),
+    email: yup.string().email("Invalid email").required("Email is required"),
+    phone: yup
+      .string()
+      .matches(/^[0-9]{10}$/, "Phone must be 10 digits")
+      .required("Phone is required"),
+    password: yup.string().min(6, "Minimum 6 characters").optional(),
+  });
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  /* ================= SUBMIT ================= */
+  const submitProfile = async () => {
+    try {
+      setErrors({});
+      await profileSchema.validate(profile, { abortEarly: false });
 
-  const handleSave = () => {
-    alert("Settings saved (API integration pending)");
-  };
+      setSaving(true);
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/profile`,
+        {
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          ...(profile.password && { password: profile.password }),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-  const handleReset = () => {
-    alert("Settings reset");
+      alert("Profile updated successfully");
+
+      // update local storage
+      const updatedUser = {
+        ...JSON.parse(localStorage.getItem("user")),
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      setProfile({ ...profile, password: "" });
+    } catch (err) {
+      if (err.inner) {
+        const e = {};
+        err.inner.forEach((x) => (e[x.path] = x.message));
+        setErrors(e);
+      } else {
+        alert(err.response?.data?.message || "Update failed");
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] flex text-[13px] text-gray-700">
-
-      {/* CONTENT */}
-      <main className="flex-1 p-4 sm:p-6 space-y-6">
-        {/* Header */}
-        <div className="mb-4">
-          <h1 className="font-semibold text-2xl">My Settings</h1>
-          <p className="text-xs text-gray-500">
-            Manage your personal profile, security, and notification preferences.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* LEFT */}
-          <div className="lg:col-span-8 space-y-4">
-            {/* Account */}
-            <div className="bg-white border rounded-lg p-4">
-              <h3 className="font-semibold text-xl">Account & profile</h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <Input label="Full name" name="name" value={form.name} onChange={handleChange} />
-                <Input label="Staff ID" name="staffId" value={form.staffId} disabled />
-                <Input label="Mobile number" name="mobile" value={form.mobile} onChange={handleChange} />
-                <Input label="Email" name="email" value={form.email} onChange={handleChange} />
-                <Input label="Supervisor" name="supervisor" value={form.supervisor} disabled />
+    <div className="flex min-h-screen bg-emerald-50/60">
+      <div className="flex-1">
+        {/* ================= HEADER ================= */}
+        <header className="sticky top-0 z-40 bg-white border-b border-emerald-100 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-xl font-bold text-emerald-800">
+                Staff Settings
+              </h1>
+              <p className="text-sm text-emerald-600 mt-1">
+                Update your profile information
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold">
+                {user?.name?.charAt(0) || "S"}
+              </div>
+              <div className="leading-tight">
+                <p className="text-sm sm:text-base font-semibold text-emerald-800">
+                  {user?.name || "Staff"}
+                </p>
+                <p className="text-xs sm:text-sm text-emerald-600 capitalize">
+                  {user?.role || "Staff"}
+                </p>
               </div>
             </div>
+          </div>
+        </header>
 
-            {/* SECURITY (UPDATED) */}
-            <div className="bg-white border rounded-lg p-4">
-              <h3 className="font-medium text-sm mb-3">Sign-in & security</h3>
-
-              <div className="space-y-3 max-w-sm">
-                {/* Password row */}
-                <div className="border rounded-md px-3 py-2">
-                  {!editPassword ? (
-                    <span className="tracking-widest text-gray-600 text-sm">
-                      ********
-                    </span>
-                  ) : (
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      className="w-full text-sm outline-none"
-                      autoFocus
-                    />
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  {!editPassword ? (
-                    <button
-                      onClick={() => setEditPassword(true)}
-                      className="px-3 py-1.5 bg-green-600 text-white rounded text-xs"
-                    >
-                      Update password
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        alert("Password updated");
-                        setEditPassword(false);
-                        setPassword("");
-                      }}
-                      className="px-3 py-1.5 bg-green-600 text-white rounded text-xs"
-                    >
-                      Save password
-                    </button>
-                  )}
-
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* ================= SETTINGS SIDEBAR ================= */}
+          <aside>
+            <div className="bg-white rounded-xl border border-emerald-100 p-3 shadow-sm">
+              <div className="space-y-1">
+                {SECTIONS.map((s) => (
                   <button
-                    onClick={() => alert("Logged out from all devices")}
-                    className="px-3 py-1.5 border rounded text-xs"
+                    key={s.id}
+                    onClick={() => setActive(s.id)}
+                    className="w-full px-4 py-3 rounded-lg text-left text-sm font-medium bg-emerald-600 text-white shadow-sm transition-all"
                   >
-                    Sign out from all devices
+                    {s.label}
                   </button>
-                </div>
+                ))}
               </div>
             </div>
+          </aside>
 
-            {/* Notifications */}
-            <div className="bg-white border rounded-lg p-4">
-              <h3 className="font-medium text-sm mb-3">Notifications</h3>
+          {/* ================= CONTENT ================= */}
+          <section className="lg:col-span-3">
+            <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-6 sm:p-8">
+              <Card
+                title="Edit Profile"
+                description="Update your personal details"
+              >
+                <Input
+                  label="Name"
+                  value={profile.name}
+                  error={errors.name}
+                  onChange={(v) => setProfile({ ...profile, name: v })}
+                />
+                <Input
+                  label="Email"
+                  value={profile.email}
+                  error={errors.email}
+                  onChange={(v) => setProfile({ ...profile, email: v })}
+                />
+                <Input
+                  label="Phone"
+                  value={profile.phone}
+                  error={errors.phone}
+                  onChange={(v) => setProfile({ ...profile, phone: v })}
+                />
+                <Input
+                  label="New Password"
+                  type="password"
+                  value={profile.password}
+                  error={errors.password}
+                  onChange={(v) => setProfile({ ...profile, password: v })}
+                />
 
-              <Toggle
-                label="Entry notifications"
-                desc="Notify when my entry is edited"
-                checked={entryNotify}
-                onChange={() => setEntryNotify(!entryNotify)}
-              />
-
-              <Toggle
-                label="Shift reminders"
-                desc="Reminder at start of shift"
-                checked={shiftReminder}
-                onChange={() => setShiftReminder(!shiftReminder)}
-              />
-
-              <Toggle
-                label="Email summaries"
-                desc="Daily email summary"
-                checked={emailSummary}
-                onChange={() => setEmailSummary(!emailSummary)}
-              />
-
-              <div className="flex gap-3 mt-4 flex-wrap">
-                <button
-                  onClick={handleSave}
-                  className="px-4 py-1 bg-green-600 text-white rounded text-xs"
-                >
-                  Save changes
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="px-4 py-1 border rounded text-xs"
-                >
-                  Reset
-                </button>
-              </div>
+                <ActionButton saving={saving} onClick={submitProfile} />
+              </Card>
             </div>
-          </div>
-
-          {/* RIGHT */}
-          <div className="lg:col-span-4 space-y-4">
-            <InfoBox title="Access level">
-              <p>Role: <strong>Security Staff</strong></p>
-              <p>Permissions: Entry capture, basic search</p>
-              <p>Can edit entries: No</p>
-            </InfoBox>
-
-            <InfoBox title="Shift preferences">
-              <p>Default bay: <strong>Bay B</strong></p>
-              <div className="flex gap-2 flex-wrap mt-2">
-                <Tag text="My entries first" />
-                <Tag text="Hide exited" />
-                <Tag text="Today only" />
-              </div>
-            </InfoBox>
-
-            <InfoBox title="Help & support">
-              <ul className="list-disc pl-4 space-y-1">
-                <li>Contact Supervisor for corrections</li>
-                <li>Contact Admin for login issues</li>
-              </ul>
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => alert("Supervisor notified")}
-                  className="px-3 py-1 bg-green-600 text-white rounded text-xs"
-                >
-                  Contact Supervisor
-                </button>
-                <button
-                  onClick={() => alert("Opening help")}
-                  className="px-3 py-1 border rounded text-xs"
-                >
-                  Help
-                </button>
-              </div>
-            </InfoBox>
-          </div>
+          </section>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
 
-/* REUSABLE COMPONENTS */
+/* ================= UI COMPONENTS ================= */
 
-const Input = ({ label, ...props }) => (
-  <div>
-    <label className="text-gray-500 text-xs">{label}</label>
-    <input
-      {...props}
-      className="w-full mt-1 border rounded px-2 h-8 text-xs disabled:bg-gray-100"
-    />
-  </div>
-);
-
-const Toggle = ({ label, desc, checked, onChange }) => (
-  <div className="flex justify-between items-center mb-3">
+function Card({ title, description, children }) {
+  return (
     <div>
-      <p className="font-medium text-xs">{label}</p>
-      <p className="text-[11px] text-gray-500">{desc}</p>
+      <div className="mb-6 pb-4 border-b border-emerald-100">
+        <h2 className="text-xl font-bold text-emerald-800">{title}</h2>
+        <p className="text-sm text-emerald-600 mt-1">{description}</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{children}</div>
     </div>
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={onChange}
-      className="accent-green-600"
-    />
-  </div>
-);
+  );
+}
 
-const InfoBox = ({ title, children }) => (
-  <div className="bg-white border rounded-lg p-4 text-xs">
-    <h3 className="font-medium mb-2">{title}</h3>
-    {children}
-  </div>
-);
+function Input({ label, value, onChange, type = "text", error }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-emerald-700 mb-2">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full h-11 px-4 rounded-lg border bg-white focus:outline-none focus:ring-2 transition ${
+          error
+            ? "border-red-500 focus:ring-red-500"
+            : "border-emerald-200 focus:ring-emerald-500"
+        }`}
+        placeholder={`Enter ${label.toLowerCase()}`}
+      />
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+    </div>
+  );
+}
 
-const Tag = ({ text }) => (
-  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[11px]">
-    {text}
-  </span>
-);
+function ActionButton({ onClick, saving }) {
+  return (
+    <div className="md:col-span-2 flex justify-end mt-8 pt-6 border-t border-emerald-100">
+      <button
+        onClick={onClick}
+        disabled={saving}
+        className="px-8 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow"
+      >
+        {saving ? "Saving..." : "Save Changes"}
+      </button>
+    </div>
+  );
+}
