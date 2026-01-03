@@ -1,4 +1,5 @@
 "use client";
+import { Toaster } from "react-hot-toast";
 
 import { useState } from "react";
 import { Menu } from "lucide-react";
@@ -11,6 +12,8 @@ export default function StaffLayout({ children }) {
 
   return (
     <ProtectedRoute role="admin">
+      <Toaster position="top-center" />
+
       <div className="h-screen flex bg-[#f5f7fa] overflow-hidden">
         {/* ===== DESKTOP SIDEBAR ===== */}
         <div className="hidden lg:block">
@@ -62,7 +65,6 @@ export default function StaffLayout({ children }) {
               <Menu size={22} />
             </button>
 
-            
             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-semibold">
               A
             </div>

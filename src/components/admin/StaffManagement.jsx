@@ -1,4 +1,6 @@
 "use client";
+import toast from "react-hot-toast";
+
 import * as yup from "yup";
 import { useEffect, useState } from "react";
 import {
@@ -131,14 +133,22 @@ export default function StaffManagement() {
           },
           { headers: { Authorization: `Bearer ${token}` } }
         );
+
+        toast.success("Staff updated successfully");
       } else {
-        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/staff`, form, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/staff`,
+          form,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        // 👇 backend already sends different messages for admin/supervisor
+        toast.success(res.data.message);
       }
 
       setShowAdd(false);
       setEditId(null);
+      setErrors({});
       setForm({
         name: "",
         email: "",
@@ -149,7 +159,8 @@ export default function StaffManagement() {
 
       fetchStaff();
     } catch (err) {
-      console.error("Save staff error:", err);
+      const message = err.response?.data?.message || "Failed to save staff";
+      toast.error(message); // ❌ Email already exists, etc.
     }
   };
 

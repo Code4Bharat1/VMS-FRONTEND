@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { Search, Plus, Users, Activity, Trash2, Pencil, X } from "lucide-react";
@@ -102,11 +103,23 @@ export default function VendorManagement() {
   /* ================= CREATE / UPDATE ================= */
   const submitVendor = async () => {
     if (!(await validateForm())) return;
-    await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/vendors`, form, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    closeModal();
-    fetchVendors();
+
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/vendors`, form, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      toast.success("Vendor created successfully");
+      closeModal();
+      fetchVendors();
+    } catch (err) {
+      if (err.response?.status === 400) {
+        // 👇 THIS shows "Vendor already exists"
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Failed to create vendor");
+      }
+    }
   };
 
   const updateVendor = async () => {
@@ -190,7 +203,7 @@ export default function VendorManagement() {
       </div>
 
       {/* STATS */}
-      <div className="px-4 sm:px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="px-4 sm:px-6 py-6 grid grid-cols-2 sm:grid-cols-2 gap-3">
         <Stat title="Total Vendors" value={vendors.length} icon={Users} />
         <Stat
           title="Active Vendors"

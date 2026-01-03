@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { Search, Plus, X, Pencil, Trash2 } from "lucide-react";
@@ -121,8 +122,12 @@ export default function Supervisors() {
           phone: form.phone,
           assignedBay: form.assignedBay,
         });
+
+        toast.success("Supervisor updated successfully");
       } else {
         await api.post("/supervisors", form);
+
+        toast.success("Supervisor created successfully"); // ✅ SUCCESS TOAST
       }
 
       setShowAdd(false);
@@ -138,10 +143,9 @@ export default function Supervisors() {
 
       loadData();
     } catch (err) {
+      // 👇 BACKEND MESSAGE (Email already exists, etc.)
       const message = err.response?.data?.message || "Something went wrong";
-
-      alert(message); // or toast if you use one
-      console.error("Save supervisor error:", err);
+      toast.error(message); // ✅ ERROR TOAST
     }
   };
 
@@ -158,23 +162,20 @@ export default function Supervisors() {
   ).length;
   const uniqueBayStaffMap = {};
 
-supervisors.forEach((s) => {
-  const bayId =
-    typeof s.assignedBay === "object"
-      ? s.assignedBay?._id
-      : s.assignedBay;
+  supervisors.forEach((s) => {
+    const bayId =
+      typeof s.assignedBay === "object" ? s.assignedBay?._id : s.assignedBay;
 
-  // take staff count only once per bay
-  if (bayId && !uniqueBayStaffMap[bayId]) {
-    uniqueBayStaffMap[bayId] = s.staffCount;
-  }
-});
+    // take staff count only once per bay
+    if (bayId && !uniqueBayStaffMap[bayId]) {
+      uniqueBayStaffMap[bayId] = s.staffCount;
+    }
+  });
 
-const totalStaff = Object.values(uniqueBayStaffMap).reduce(
-  (sum, count) => sum + count,
-  0
-);
-
+  const totalStaff = Object.values(uniqueBayStaffMap).reduce(
+    (sum, count) => sum + count,
+    0
+  );
 
   const deleteSupervisor = async () => {
     if (!selected) return;
@@ -216,7 +217,7 @@ const totalStaff = Object.values(uniqueBayStaffMap).reduce(
 
       {/* STATS */}
       <div className="px-4 sm:px-8 mt-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard title="Total Supervisors" value={totalSupervisors} />
           <StatCard title="Active Supervisors" value={activeSupervisors} />
           <StatCard title="Inactive Supervisors" value={inactiveSupervisors} />

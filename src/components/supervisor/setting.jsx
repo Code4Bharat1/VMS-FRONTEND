@@ -27,21 +27,18 @@ export default function SupervisorSettings() {
     if (u) setUser(JSON.parse(u));
   }, []);
 
-  /* ================= LOAD BAYS (assigned) ================= */
   useEffect(() => {
-    const fetchBays = async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/bays`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setBays(res.data.bays || res.data || []);
-      } catch (err) {
-        console.error("Failed to load bays", err);
-      }
-    };
-    fetchBays();
-  }, []);
+    if (user?.assignedBay) {
+      setBays([user.assignedBay]); // 👈 only supervisor’s bay
+      setStaff((prev) => ({
+        ...prev,
+        assignedBay:
+          typeof user.assignedBay === "object"
+            ? user.assignedBay._id
+            : user.assignedBay,
+      }));
+    }
+  }, [user]);
 
   /* ================= FORMS ================= */
   const [profile, setProfile] = useState({ name: "", email: "" });
@@ -90,11 +87,9 @@ export default function SupervisorSettings() {
       await schema.validate(data, { abortEarly: false });
 
       setSaving(true);
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
-        data,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       alert(
         active === "staff"
@@ -223,30 +218,18 @@ export default function SupervisorSettings() {
                     <label className="block text-sm font-medium text-emerald-700 mb-2">
                       Assigned Bay
                     </label>
-                    <select
-                      value={staff.assignedBay}
-                      onChange={(e) =>
-                        setStaff({ ...staff, assignedBay: e.target.value })
-                      }
-                      className={`w-full h-11 px-4 rounded-lg border bg-white focus:outline-none focus:ring-2 transition ${
-                        errors.assignedBay
-                          ? "border-red-500 focus:ring-red-500"
-                          : "border-emerald-200 focus:ring-emerald-500"
-                      }`}
-                    >
-                      <option value="">Select Bay</option>
-                      {bays.map((b) => (
-                        <option key={b._id} value={b._id}>
-                          {b.bayName}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.assignedBay && (
-                      <p className="text-xs text-red-600 mt-1">
-                        {errors.assignedBay}
-                      </p>
-                    )}
+                    <input
+                      value={user?.assignedBay?.bayName || "—"}
+                      disabled
+                      className="w-full h-11 px-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 cursor-not-allowed"
+                    />
                   </div>
+
+                  {errors.assignedBay && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {errors.assignedBay}
+                    </p>
+                  )}
 
                   <ActionButton
                     saving={saving}
