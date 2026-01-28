@@ -18,7 +18,7 @@ export default function HomePage() {
     }
 
     if (user.role === "admin") {
-      router.replace("/admin-register");
+      router.replace("/");
     } else if (user.role === "staff") {
       router.replace("/staff/dashboard");
     } else if (user.role === "supervisor") {
