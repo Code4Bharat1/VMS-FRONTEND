@@ -172,7 +172,7 @@ export default function VendorManagement() {
       <div className="bg-white border-b border-emerald-100 px-4 sm:px-6 py-5 flex flex-col sm:flex-row gap-4 sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-emerald-800">
-            Vendor Management
+            Tenant Management
           </h1>
           <p className="text-sm text-emerald-600">Manage vendor profiles</p>
         </div>

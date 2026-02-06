@@ -31,6 +31,9 @@ const Stat = ({ title, value, icon: Icon }) => (
 /* ================= MAIN ================= */
 
 export default function SearchRecords() {
+  const [fromDate, setFromDate] = useState("");
+const [toDate, setToDate] = useState("");
+
   const [entries, setEntries] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
@@ -64,6 +67,76 @@ export default function SearchRecords() {
       setLoading(false);
     }
   };
+
+  const startOfDay = (date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const endOfDay = (date) => {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+};
+
+const applyDateFilter = (from, to) => {
+  let data = [...entries];
+
+  if (from) {
+    const fromTime = startOfDay(from).getTime();
+    data = data.filter((e) => new Date(e.inTime).getTime() >= fromTime);
+  }
+
+  if (to) {
+    const toTime = endOfDay(to).getTime();
+    data = data.filter((e) => new Date(e.inTime).getTime() <= toTime);
+  }
+
+  setFiltered(data);
+  setCurrentPage(1);
+};
+const setPreset = (type) => {
+  const today = new Date();
+
+  let from = null;
+  let to = null;
+
+  switch (type) {
+    case "today":
+      from = today;
+      to = today;
+      break;
+
+    case "yesterday":
+      from = new Date(today);
+      from.setDate(today.getDate() - 1);
+      to = from;
+      break;
+
+    case "last7":
+      from = new Date(today);
+      from.setDate(today.getDate() - 6);
+      to = today;
+      break;
+
+    case "last30":
+      from = new Date(today);
+      from.setDate(today.getDate() - 29);
+      to = today;
+      break;
+
+    case "thisWeek":
+      from = new Date(today);
+      from.setDate(today.getDate() - today.getDay());
+      to = today;
+      break;
+  }
+
+  setFromDate(from.toISOString().slice(0, 10));
+  setToDate(to.toISOString().slice(0, 10));
+  applyDateFilter(from, to);
+};
 
   /* ================= SEARCH ================= */
   useEffect(() => {
@@ -197,16 +270,77 @@ export default function SearchRecords() {
           </div>
         </div>
       </div>
+{/* DATE FILTER */}
+<div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-5">
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+    {/* FROM */}
+    <div>
+      <label className="block text-xs text-emerald-600 mb-1">From</label>
+      <input
+        type="date"
+        value={fromDate}
+        onChange={(e) => setFromDate(e.target.value)}
+        className="w-full h-10 rounded-lg border border-emerald-200 px-3 text-sm"
+      />
+    </div>
+
+    {/* TO */}
+    <div>
+      <label className="block text-xs text-emerald-600 mb-1">To</label>
+      <input
+        type="date"
+        value={toDate}
+        onChange={(e) => setToDate(e.target.value)}
+        className="w-full h-10 rounded-lg border border-emerald-200 px-3 text-sm"
+      />
+    </div>
+
+    {/* QUICK PRESETS */}
+    <div className="md:col-span-2 flex flex-wrap gap-2 items-end">
+      <button onClick={() => setPreset("today")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
+        Today
+      </button>
+      <button onClick={() => setPreset("yesterday")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
+        Yesterday
+      </button>
+      <button onClick={() => setPreset("last7")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
+        Last 7 days
+      </button>
+      <button onClick={() => setPreset("last30")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
+        Last 30 days
+      </button>
+      <button onClick={() => setPreset("thisWeek")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
+        This week
+      </button>
+    </div>
+  </div>
+
+  {/* ACTIONS */}
+  <div className="flex justify-end gap-3 mt-4">
+    <button
+      onClick={() => {
+        setFromDate("");
+        setToDate("");
+        setFiltered(entries);
+      }}
+      className="px-4 h-10 rounded-md"
+    >
+      Reset all filters
+    </button>
+
+    <button
+      onClick={() => applyDateFilter(fromDate, toDate)}
+      className="px-5 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium"
+    >
+      Search records
+    </button>
+  </div>
+</div>
 
       {/* CONTENT */}
       <div className="px-4 sm:px-8 py-6 space-y-6">
-        {/* STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Stat title="Total Entries" value={5} icon={Users} />
-          <Stat title="Active Entries" value={7} icon={UserCheck} />
-          <Stat title="Inactive Entries" value={8} icon={UserX} />
-          <Stat title="Supervisors" value={5 % 15} icon={Shield} />
-        </div>
+       
 
         {/* DESKTOP TABLE */}
         <div className="hidden sm:block bg-white rounded-xl border border-emerald-100 shadow-sm overflow-x-auto">

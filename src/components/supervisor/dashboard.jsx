@@ -76,7 +76,7 @@ const SupervisorDashboard = () => {
         {/* CONTENT */}
         <div className="px-4 sm:px-8 py-4 sm:py-6">
           {/* STATS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
             <div className="bg-white rounded-xl p-4 sm:p-6 border border-emerald-100 shadow-sm hover:shadow transition">
               <div className="flex justify-between mb-2">
                 <p className="text-emerald-600 text-sm">Total Staff Assigned</p>

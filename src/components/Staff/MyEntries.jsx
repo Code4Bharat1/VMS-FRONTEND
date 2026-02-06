@@ -17,8 +17,10 @@ export default function MyEntries() {
   /* ✅ PAGINATION (ONLY ADDITION) */
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [search, setSearch] = useState("");
 
-  useEffect(() => {
+
+   useEffect(() => {
     const fetchEntries = async () => {
       try {
         const token = localStorage.getItem("accessToken");
@@ -63,12 +65,26 @@ export default function MyEntries() {
 
   /* 🔒 FILTER (UNCHANGED) */
   const filteredEntries = entries.filter((e) => {
-    if (staff?.assignedBay?.bayName) {
-      if (e.bayId?.bayName !== staff.assignedBay.bayName) return false;
-    }
-    if (bay !== "All bays" && e.bayId?.bayName !== bay) return false;
-    return true;
-  });
+  // 🔒 Restrict to assigned bay (keep security rule)
+  if (staff?.assignedBay?.bayName) {
+    if (e.bayId?.bayName !== staff.assignedBay.bayName) return false;
+  }
+
+  if (!search) return true;
+
+  const q = search.toLowerCase();
+
+  return (
+    e.vehicleNumber?.toLowerCase().includes(q) ||
+    e.visitorName?.toLowerCase().includes(q) ||
+    e.visitorMobile?.includes(q) ||
+    e.visitorCompany?.toLowerCase().includes(q) ||
+    e.qidNumber?.toLowerCase().includes(q) ||
+    e.purpose?.toLowerCase().includes(q)
+  );
+});
+
+
 
   /* ✅ PAGINATION LOGIC */
   const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
@@ -114,6 +130,28 @@ export default function MyEntries() {
 
       {/* CONTENT */}
       <div className="px-4 sm:px-8 py-6 grid grid-cols-12 gap-6">
+        <div className="col-span-12 bg-white border border-emerald-100 rounded-xl p-6 shadow-sm">
+  <h3 className="text-sm font-semibold text-emerald-800 mb-2">
+    Search entries
+  </h3>
+
+  <p className="text-xs text-emerald-600 mb-4">
+    Search by VRN, visitor name, mobile number, company, QID, or purpose.
+  </p>
+
+  <input
+    type="text"
+    placeholder="Search entries..."
+    value={search}
+    onChange={(e) => {
+      setSearch(e.target.value);
+      setCurrentPage(1);
+    }}
+    className="h-11 w-full max-w-lg rounded-lg px-4 border border-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  />
+</div>
+
+
         {/* DESKTOP TABLE */}
         <div className="hidden w-full lg:block col-span-12 bg-white border border-emerald-100 rounded-xl shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-emerald-100">
@@ -128,44 +166,71 @@ export default function MyEntries() {
           {loading ? (
             <p className="p-6 text-sm text-emerald-600">Loading entries…</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+  <table className="min-w-[1500px] w-full text-sm">
+
               <thead className="bg-emerald-100">
-                <tr className="text-emerald-700">
-                  {[
-                    "Time",
-                    "QID",
-                    "Vehicle No",
-                    "Visitor",
-                    "Company",
-                    "Bay",
-                    "Vehicle",
-                  ].map((h) => (
-                    <th key={h} className="px-6 py-4 text-center font-semibold">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
+  <tr className="text-emerald-700 text-xs uppercase">
+    {[
+      "Date & Time",
+      "Visitor Name",
+      "QID",
+      "VRN",
+      "Mobile No",
+      "Bay",
+      "Company",
+      "Tenant",
+      "Purpose",
+      "Entry Type",
+      "Status",
+    ].map((h) => (
+      <th key={h} className="px-4 py-3 text-center font-semibold">
+        {h}
+      </th>
+    ))}
+  </tr>
+</thead>
+
               <tbody className="divide-y divide-emerald-100">
-                {paginatedEntries.map((e) => (
-                  <tr
-                    key={e._id}
-                    onClick={() => setSelected(e)}
-                    className="cursor-pointer hover:bg-emerald-50 transition text-center"
-                  >
-                    <td className="px-6 py-4">{formatDateTime(e.createdAt)}</td>
-                    <td className="px-6 py-4">{e.qidNumber}</td>
-                    <td className="px-6 py-4 font-medium text-emerald-800">
-                      {e.vehicleNumber}
-                    </td>
-                    <td className="px-6 py-4">{e.visitorName}</td>
-                    <td className="px-6 py-4">{e.visitorCompany}</td>
-                    <td className="px-6 py-4">{e.bayId?.bayName || "—"}</td>
-                    <td className="px-6 py-4 capitalize">{e.vehicleType}</td>
-                  </tr>
-                ))}
-              </tbody>
+  {paginatedEntries.map((e) => (
+    <tr
+      key={e._id}
+      onClick={() => setSelected(e)}
+      className="cursor-pointer hover:bg-emerald-50 transition text-center text-sm"
+    >
+      <td className="px-4 py-3">{formatDateTime(e.createdAt)}</td>
+      <td className="px-4 py-3">{e.visitorName || "—"}</td>
+      <td className="px-4 py-3">{e.qidNumber || "—"}</td>
+      <td className="px-4 py-3 font-medium text-emerald-800">
+        {e.vehicleNumber}
+      </td>
+      <td className="px-4 py-3">{e.visitorMobile || "—"}</td>
+      <td className="px-4 py-3">{e.bayId?.bayName || "—"}</td>
+      <td className="px-4 py-3">{e.visitorCompany || "—"}</td>
+      <td className="px-4 py-3">{e.tenantName || "—"}</td>
+      <td className="px-4 py-3">{e.purpose || "—"}</td>
+      <td className="px-4 py-3 capitalize">
+        {e.entryMethod || "Manual"}
+      </td>
+      <td className="px-4 py-3">
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium ${
+            e.status === "IN"
+              ? "bg-emerald-100 text-emerald-700"
+              : e.status === "OUT"
+              ? "bg-gray-200 text-gray-700"
+              : "bg-yellow-100 text-yellow-700"
+          }`}
+        >
+          {e.status || "IN"}
+        </span>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
             </table>
+            </div>
           )}
 
           {/* PAGINATION */}
@@ -204,24 +269,66 @@ export default function MyEntries() {
               }}
               className="bg-white border border-emerald-100 rounded-lg shadow-sm p-4"
             >
-              <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
-                <span className="text-emerald-600">Vehicle</span>
-                <span className="font-medium text-emerald-800">{e.vehicleNumber}</span>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+  <span className="text-emerald-600">Date & Time</span>
+  <span className="font-medium text-emerald-800">
+    {formatDateTime(e.createdAt)}
+  </span>
 
-                <span className="text-emerald-600">Bay</span>
-                <span className="font-medium text-emerald-800">{e.bayId?.bayName || "--"}</span>
+  <span className="text-emerald-600">Visitor</span>
+  <span className="font-medium text-emerald-800">
+    {e.visitorName || "—"}
+  </span>
 
-                <span className="text-emerald-600">Method</span>
-                <span className="font-medium text-emerald-800 capitalize">{e.vehicleType}</span>
+  <span className="text-emerald-600">QID</span>
+  <span className="font-medium text-emerald-800">
+    {e.qidNumber || "—"}
+  </span>
 
-                <span className="text-emerald-600">Time In</span>
-                <span className="font-medium text-emerald-800">
-                  {new Date(e.inTime).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
+  <span className="text-emerald-600">VRN</span>
+  <span className="font-medium text-emerald-800">
+    {e.vehicleNumber}
+  </span>
+
+  <span className="text-emerald-600">Mobile</span>
+  <span className="font-medium text-emerald-800">
+    {e.visitorMobile || "—"}
+  </span>
+
+  <span className="text-emerald-600">Bay</span>
+  <span className="font-medium text-emerald-800">
+    {e.bayId?.bayName || "—"}
+  </span>
+
+  <span className="text-emerald-600">Company</span>
+  <span className="font-medium text-emerald-800">
+    {e.visitorCompany || "—"}
+  </span>
+
+  <span className="text-emerald-600">Purpose</span>
+  <span className="font-medium text-emerald-800">
+    {e.purpose || "—"}
+  </span>
+
+  <span className="text-emerald-600">Entry Type</span>
+  <span className="font-medium text-emerald-800 capitalize">
+    {e.entryMethod || "Manual"}
+  </span>
+
+  <span className="text-emerald-600">Status</span>
+  <span className="font-medium">
+    <span
+      className={`px-2 py-1 rounded-full text-xs ${
+        e.status === "IN"
+          ? "bg-emerald-100 text-emerald-700"
+          : "bg-gray-200 text-gray-700"
+      }`}
+    >
+      {e.status || "IN"}
+    </span>
+  </span>
+</div>
+
             </div>
           ))}
 

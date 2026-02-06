@@ -86,6 +86,20 @@ export default function ManualEntry() {
   const [lastImage, setLastImage] = useState(null);
 
   const fileInputRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      );
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 60000); // update every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const [vendors, setVendors] = useState([]);
   const [vendorLoading, setVendorLoading] = useState(false);
@@ -115,7 +129,8 @@ export default function ManualEntry() {
         );
         setVendors(res.data?.vendors || []);
       } catch (err) {
-        console.error("Failed to load vendors", err);
+        console.error("SAVE ENTRY ERROR:", err.response?.data || err);
+        alert(err.response?.data?.message || "Failed to save entry");
       } finally {
         setVendorLoading(false);
       }
@@ -196,6 +211,58 @@ export default function ManualEntry() {
     }
   };
 
+  /* ================= HELPERS ================= */
+
+const clearForm = () => {
+  setVisitorName("");
+  setQidNumber("");
+  setMobile("");
+  setCompany("");
+  setVehicleNumber("");
+  setVehicleType("");
+  setPurpose("");
+  setErrors({});
+};
+
+const saveAndPrint = async () => {
+  if (!(await validateForm())) return;
+
+  try {
+    setLoading(true);
+
+    const res = await axios.post(
+      `${process.env.NEXT_PUBLIC_API_URL}/entries/manual`,
+      {
+        visitorName,
+        visitorMobile: mobile,
+        visitorCompany: company,
+        qidNumber,
+        vehicleNumber,
+        purpose,
+        vehicleType,
+        bayId,
+        createdBy: staff._id,
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // OPTIONAL: open print slip page
+    if (res.data?.entryId) {
+      window.open(
+        `/print-slip/${res.data.entryId}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    }
+
+    clearForm();
+  } catch (err) {
+    alert("Failed to save & print slip");
+  } finally {
+    setLoading(false);
+  }
+};
+
   /* ================= SAVE ================= */
 
   const saveEntry = async () => {
@@ -211,6 +278,7 @@ export default function ManualEntry() {
           visitorCompany: company,
           qidNumber,
           vehicleNumber,
+          purpose,
           vehicleType,
           bayId,
           createdBy: staff._id,
@@ -240,9 +308,7 @@ export default function ManualEntry() {
       <div className="sticky top-0 z-40 bg-white border-b border-emerald-100 px-4 sm:px-6 lg:px-8 py-4 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-emerald-800">
-              Manual Entry
-            </h1>
+            <h1 className="text-xl font-bold text-emerald-800">Manual Entry</h1>
             <p className="text-sm text-emerald-600 mt-1">
               Enter vehicle and visitor information manually
             </p>
@@ -361,15 +427,64 @@ export default function ManualEntry() {
               disabled
             />
           </Section>
+          <div className="mt-6 border border-emerald-200 rounded-xl bg-emerald-50/60 p-5">
+            <h3 className="text-sm font-semibold text-emerald-700 mb-3">
+              System & Bay Metadata
+            </h3>
 
-          <div className="flex justify-end">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+              {/* Logged-in staff */}
+              <div>
+                <p className="text-emerald-500 font-medium">Logged-in staff</p>
+                <p className="text-emerald-800 font-semibold">
+                  {staff?.name || "—"}
+                </p>
+              </div>
+
+              {/* Entry method */}
+              <div>
+                <p className="text-emerald-500 font-medium">Entry method</p>
+                <p className="text-emerald-800 font-semibold">Manual</p>
+              </div>
+
+              {/* Current time */}
+              <div>
+                <p className="text-emerald-500 font-medium">Current time</p>
+                <p className="text-emerald-800 font-semibold">{currentTime}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Left actions */}
             <button
-              onClick={saveEntry}
-              disabled={loading}
-              className="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+              onClick={clearForm}
+              className="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition"
             >
-              {loading ? "Saving..." : "Save Entry"}
+              Clear form
             </button>
+
+            {/* Right actions */}
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={saveAndPrint}
+                disabled={loading}
+                className="px-6 py-2.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg font-medium transition disabled:opacity-50"
+              >
+                Save & Print Slip
+              </button>
+
+              <button
+                type="button"
+                onClick={saveEntry}
+                disabled={loading}
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition disabled:opacity-50"
+              >
+                {loading ? "Saving..." : "Save Entry"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -194,97 +194,287 @@ const MyStaff = () => {
   const StaffModal = ({ staff, onClose }) => {
     if (!staff) return null;
 
+    const todayEntries = getTodayEntries(staff);
+
     return (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 md:p-4">
-        <div className="bg-white w-full md:max-w-5xl h-full md:h-auto md:max-h-[90vh] overflow-auto md:rounded-xl shadow-xl">
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl relative max-h-[90vh] overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-emerald-100 px-4 md:px-8 py-4 md:py-6 flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                {staff.name?.[0]}
-              </div>
-              <div>
-                <h2 className="text-lg md:text-2xl font-bold text-emerald-800">{staff.name}</h2>
-                <p className="text-emerald-600 text-sm">
-                  {staff.role} • {staff.assignedBay?.bayName || "—"}
-                </p>
-              </div>
+          <div className="px-6 py-4 border-b border-emerald-100 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold text-emerald-800">
+                {staff.name}
+              </h2>
+              <p className="text-sm text-emerald-600">
+                Staff Details & Activity
+              </p>
             </div>
-            <button onClick={onClose} className="text-emerald-600 hover:bg-emerald-50 p-1 rounded-lg transition">
-              <X />
+            <button
+              onClick={onClose}
+              className="text-emerald-400 hover:text-emerald-600 transition"
+            >
+              <X size={20} />
             </button>
           </div>
 
           {/* Body */}
-          <div className="p-4 md:p-8 space-y-8">
-            {/* Contact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                <Phone className="mb-2 text-blue-600" />
-                <p className="font-semibold text-2xl p-2">{staff.phone || "N/A"}</p>
-              </div>
-              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-                <MapPin className="mb-2 text-purple-600" />
-                <p className="font-semibold text-2xl p-2">
-                  {staff.assignedBay?.bayName || "Not Assigned"}
+          <div className="px-6 py-5 space-y-5 overflow-y-auto">
+            {/* Current Status Bar */}
+            <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-4 py-3 flex justify-between items-center">
+              <span className="text-emerald-700 font-medium">
+                Current Status:
+              </span>
+              <span
+                className={`px-4 py-1 rounded-full text-sm font-medium ${
+                  staff.isActive
+                    ? "bg-orange-100 text-orange-700"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {staff.isActive ? "active" : "inactive"}
+              </span>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white border border-emerald-100 rounded-lg p-4">
+                <p className="text-sm text-emerald-600 mb-1">Entries Today</p>
+                <p className="text-3xl font-bold text-emerald-800">
+                  {todayEntries.length}
                 </p>
               </div>
-            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                ["Status", staff.isActive ? "Active" : "Inactive"],
-                ["Today", getStaffEntryCount(staff._id)],
-                ["Avg", staff.avgTime || "-"],
-                ["7 Days", staff.last7Days || 0],
-              ].map(([label, value], i) => (
-                <div key={i} className="border border-emerald-100 rounded-lg p-4 text-center bg-white">
-                  <p className="text-sm text-emerald-600">{label}</p>
-                  <p className="font-bold text-lg text-emerald-800">{value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Performance */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                ["Efficiency", staff.performance?.efficiency],
-                ["Accuracy", staff.performance?.accuracy],
-                ["Punctuality", staff.performance?.punctuality],
-              ].map(([label, value], i) => (
-                <div key={i} className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
-                  <div className="flex justify-between mb-2">
-                    <span className="font-semibold text-emerald-700">{label}</span>
-                    <CheckCircle className="text-emerald-600" size={18} />
-                  </div>
-                  <p className="text-2xl font-bold text-emerald-800">{value ?? 0}%</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Incidents */}
-            {staff.incidents > 0 && (
-              <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="text-orange-600" />
-                  <h3 className="font-semibold text-orange-800">Incidents</h3>
-                </div>
-                <p className="text-orange-700">{staff.incidents} incident(s) logged</p>
+              <div className="bg-white border border-emerald-100 rounded-lg p-4">
+                <p className="text-sm text-emerald-600 mb-1">Average Time</p>
+                <p className="text-3xl font-bold text-emerald-800">
+                  {staff.avgTime || "—"}
+                </p>
               </div>
-            )}
+
+              <div className="bg-white border border-emerald-100 rounded-lg p-4">
+                <p className="text-sm text-emerald-600 mb-1">
+                  Currently Inside
+                </p>
+                <p className="text-3xl font-bold text-emerald-800">0</p>
+              </div>
+
+              <div className="bg-white border border-emerald-100 rounded-lg p-4">
+                <p className="text-sm text-emerald-600 mb-1">Staff on Duty</p>
+                <p className="text-3xl font-bold text-emerald-800">1</p>
+              </div>
+            </div>
+
+            {/* Staff Information */}
+            <div className="bg-white border border-emerald-100 rounded-lg p-5">
+              <h3 className="text-emerald-700 font-semibold mb-4">
+                Staff Information
+              </h3>
+
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between py-2 border-b border-emerald-50">
+                  <span className="text-emerald-600">Staff Name:</span>
+                  <span className="text-emerald-800 font-medium text-right">
+                    {staff.name}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-emerald-50">
+                  <span className="text-emerald-600">Phone:</span>
+                  <span className="text-emerald-800 font-medium text-right">
+                    {staff.phone}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-emerald-50">
+                  <span className="text-emerald-600">Email:</span>
+                  <span className="text-emerald-800 font-medium text-right">
+                    {staff.email}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-emerald-50">
+                  <span className="text-emerald-600">Assigned Bay:</span>
+                  <span className="text-emerald-800 font-medium text-right">
+                    {staff.assignedBay?.bayName}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2 border-b border-emerald-50">
+                  <span className="text-emerald-600">Role:</span>
+                  <span className="text-emerald-800 font-medium text-right">
+                    {staff.role || "Security Staff"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between py-2">
+                  <span className="text-emerald-600">Reports To:</span>
+                  <span className="text-emerald-800 font-medium text-right">
+                    {supervisor?.name} (You)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Entry History */}
+            <div className="bg-white border border-emerald-100 rounded-lg p-5">
+              <h3 className="text-emerald-700 font-semibold mb-3">
+                Entry History (Today)
+              </h3>
+
+              <div className="space-y-2 text-sm text-gray-600">
+                {todayEntries.map((e) => (
+                  <div
+                    key={e._id}
+                    className="flex justify-between py-2 border-b border-emerald-50"
+                  >
+                    <span className="text-emerald-600">
+                      {new Date(e.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    <span className="text-emerald-800">
+                      {e.vehicleType || "Vehicle"}
+                    </span>
+                    <span className="text-emerald-800">{e.bayId?.bayName}</span>
+                    <span className="text-emerald-600 font-medium">
+                      {e.entryType || "OCR"}
+                    </span>
+                  </div>
+                ))}
+
+                {todayEntries.length === 0 && (
+                  <p className="text-gray-400 py-2">No entries today</p>
+                )}
+              </div>
+            </div>
+
+            {/* Performance Metrics */}
+            <div className="bg-white border border-emerald-100 rounded-lg p-5">
+              <h3 className="text-emerald-700 font-semibold mb-3">
+                Performance Metrics
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-emerald-600 mb-1">Today's entries</p>
+                  <p className="font-semibold text-emerald-800 text-lg">
+                    {todayEntries.length}
+                  </p>
+                  <p className="text-gray-400 text-xs">+5 vs target</p>
+                </div>
+                <div>
+                  <p className="text-emerald-600 mb-1">Avg processing time</p>
+                  <p className="font-semibold text-emerald-800 text-lg">16s</p>
+                  <p className="text-gray-400 text-xs">Within target (20s)</p>
+                </div>
+                <div>
+                  <p className="text-emerald-600 mb-1">Last 7 days entries</p>
+                  <p className="font-semibold text-emerald-800 text-lg">
+                    {getLast7DaysEntries(staff._id).length}
+                  </p>
+                  <p className="text-gray-400 text-xs">Stable vs last week</p>
+                </div>
+                <div>
+                  <p className="text-emerald-600 mb-1">Incidents logged</p>
+                  <p className="font-semibold text-emerald-800 text-lg">
+                    {staff.incidents || 0}
+                  </p>
+                  <p className="text-gray-400 text-xs">No open items</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Supervisor Note */}
+            <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 text-sm text-emerald-700">
+              <p className="font-semibold text-emerald-800 mb-2">
+                Supervisor–Staff Relationship
+              </p>
+              <p>
+                This staff member is assigned only to your bay and reports
+                exclusively to you. Performance reviews and schedules are
+                managed at supervisor level.
+              </p>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-emerald-100 flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition font-medium"
+            >
+              Close
+            </button>
           </div>
         </div>
       </div>
     );
   };
 
-  const getStaffEntryCount = (staffId) => {
+  const getStaffEntryCount = (staff) => {
     return entries.filter((entry) => {
-      if (!entry.createdBy || !entry.createdBy._id) return false;
+      if (!entry.createdBy || !entry.bayId) return false;
 
-      return String(entry.createdBy._id) === String(staffId);
+      // normalize createdBy
+      const createdById =
+        typeof entry.createdBy === "object"
+          ? entry.createdBy._id
+          : entry.createdBy;
+
+      // normalize entry bay NAME
+      const entryBayName =
+        typeof entry.bayId === "object" ? entry.bayId.bayName : entry.bayId; // "A", "B", "C"
+
+      const staffBayName = staff.assignedBay?.bayName;
+
+      return (
+        String(createdById) === String(staff._id) &&
+        String(entryBayName) === String(staffBayName)
+      );
     }).length;
+  };
+
+  const getStaffEntries = (staffId) => {
+    return entries.filter((entry) => {
+      if (!entry.createdBy) return false;
+
+      if (typeof entry.createdBy === "object") {
+        return String(entry.createdBy._id) === String(staffId);
+      }
+
+      return String(entry.createdBy) === String(staffId);
+    });
+  };
+
+  const getTodayEntries = (staff) => {
+    const today = new Date().toDateString();
+
+    return entries.filter((entry) => {
+      if (!entry.createdBy || !entry.bayId || !entry.createdAt) return false;
+
+      const createdById =
+        typeof entry.createdBy === "object"
+          ? entry.createdBy._id
+          : entry.createdBy;
+
+      const entryBayName =
+        typeof entry.bayId === "object" ? entry.bayId.bayName : entry.bayId;
+
+      const staffBayName = staff.assignedBay?.bayName;
+
+      return (
+        String(createdById) === String(staff._id) &&
+        String(entryBayName) === String(staffBayName) &&
+        new Date(entry.createdAt).toDateString() === today
+      );
+    });
+  };
+
+  const getLast7DaysEntries = (staffId) => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return getStaffEntries(staffId).filter((e) => new Date(e.createdAt) >= d);
   };
 
   /* ---------------- PAGE ---------------- */
@@ -317,7 +507,9 @@ const MyStaff = () => {
                 {supervisor?.name?.[0]}
               </div>
               <div>
-                <p className="font-semibold text-emerald-800">{supervisor?.name}</p>
+                <p className="font-semibold text-emerald-800">
+                  {supervisor?.name}
+                </p>
                 <p className="text-xs text-emerald-600">{supervisor?.role}</p>
               </div>
             </div>
@@ -424,23 +616,24 @@ const MyStaff = () => {
                     onClick={() => setSelectedStaff(s)}
                     className="hover:bg-emerald-50 cursor-pointer transition text-center"
                   >
-                    <td className="px-6 py-4 font-medium text-emerald-800">{s.name}</td>
+                    <td className="px-6 py-4 font-medium text-emerald-800">
+                      {s.name}
+                    </td>
                     <td className="px-6 py-4">{s.phone}</td>
                     <td className="px-6 py-4">{s.assignedBay?.bayName}</td>
                     <td className="px-6 py-4">{s.email}</td>
-                    <td className="px-6 py-4">{getStaffEntryCount(s._id)}</td>
+                    <td className="px-6 py-4">{getStaffEntryCount(s)}</td>
                     <td className="px-6 py-4">{s.avgTime}</td>
                     <td className="px-6 py-4">
                       <span
-  className={`px-3 py-1 rounded-full text-xs font-medium ${
-    s.isActive
-      ? "bg-emerald-100 text-emerald-700"
-      : "bg-red-100 text-red-600"
-  }`}
->
-  {s.isActive ? "Active" : "Inactive"}
-</span>
-
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          s.isActive
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        {s.isActive ? "Active" : "Inactive"}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -466,8 +659,13 @@ const MyStaff = () => {
                   </span>
                 </div>
                 <div className="mt-2 text-sm text-gray-700">
-                  <p><span className="font-medium">Bay:</span> {s.assignedBay?.bayName}</p>
-                  <p><span className="font-medium">Phone:</span> {s.phone}</p>
+                  <p>
+                    <span className="font-medium">Bay:</span>{" "}
+                    {s.assignedBay?.bayName}
+                  </p>
+                  <p>
+                    <span className="font-medium">Phone:</span> {s.phone}
+                  </p>
                 </div>
               </div>
             ))}
@@ -475,42 +673,52 @@ const MyStaff = () => {
         </div>
       </div>
 
+      {/* STAFF DETAILS MODAL */}
       {selectedStaff && (
         <StaffModal
           staff={selectedStaff}
           onClose={() => setSelectedStaff(null)}
         />
       )}
+
+      {/* ADD STAFF MODAL */}
       {showAddStaff && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white w-full max-w-lg rounded-xl shadow-xl">
-            <div className="flex justify-between px-6 py-4 border-b border-emerald-100">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden">
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-emerald-100">
               <h2 className="font-semibold text-emerald-800">Add New Staff</h2>
-              <X
+              <button
                 onClick={() => setShowAddStaff(false)}
-                className="cursor-pointer text-emerald-600 hover:bg-emerald-50 p-1 rounded-lg transition"
-              />
+                className="text-emerald-600 hover:bg-emerald-50 p-2 rounded-lg transition"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="px-6 py-5 space-y-4 text-sm">
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4 text-sm max-h-[70vh] overflow-y-auto">
               <Field
                 label="Full Name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 error={errors.name}
               />
+
               <Field
                 label="Email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 error={errors.email}
               />
+
               <Field
                 label="Phone"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 error={errors.phone}
               />
+
               <Field
                 type="password"
                 label="Password"
@@ -519,6 +727,7 @@ const MyStaff = () => {
                 error={errors.password}
               />
 
+              {/* Assigned Bay (Read Only) */}
               <div>
                 <label className="block mb-1 font-medium text-emerald-700">
                   Assigned Bay
@@ -526,15 +735,16 @@ const MyStaff = () => {
                 <input
                   disabled
                   value={supervisor?.assignedBay?.bayName || ""}
-                  className="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2"
+                  className="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-emerald-800"
                 />
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3">
-              <button 
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3 bg-emerald-50/40">
+              <button
                 onClick={() => setShowAddStaff(false)}
-                className="text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition"
+                className="text-emerald-600 hover:bg-emerald-100 px-4 py-2 rounded-lg transition"
               >
                 Cancel
               </button>
@@ -570,9 +780,27 @@ const Field = ({ label, error, ...props }) => (
       {...props}
       className={`w-full border rounded-lg px-3 py-2
                  focus:outline-none focus:ring-2
-                 ${error ? "border-red-500 ring-red-500" : "border-emerald-200 focus:ring-emerald-500"}`}
+                 ${
+                   error
+                     ? "border-red-500 ring-red-500"
+                     : "border-emerald-200 focus:ring-emerald-500"
+                 }`}
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
+const Info = ({ label, value }) => (
+  <div>
+    <p className="text-gray-400">{label}</p>
+    <p className="font-medium text-gray-800">{value || "—"}</p>
+  </div>
+);
+
+const Metric = ({ label, value, note }) => (
+  <div>
+    <p className="text-gray-400">{label}</p>
+    <p className="font-medium text-gray-800">{value}</p>
+    <p className="text-gray-400">{note}</p>
   </div>
 );
 

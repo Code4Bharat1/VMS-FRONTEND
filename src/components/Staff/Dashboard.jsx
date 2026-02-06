@@ -42,16 +42,32 @@ export default function StaffDashboardPage() {
   /* ---------------- DERIVED STATS (UNCHANGED) ---------------- */
   const today = new Date().toDateString();
 
-  const todayEntries = entries.filter(
-    (e) => e.inTime && new Date(e.inTime).toDateString() === today
-  );
+  const todayEntries = entries.filter((e) => {
+    if (!staff?._id) return false;
+
+    const isToday = e.inTime && new Date(e.inTime).toDateString() === today;
+
+    const isCreatedByStaff =
+      e.createdBy?._id === staff._id || e.createdBy === staff._id;
+
+    return isToday && isCreatedByStaff;
+  });
 
   const activeBays = bays.filter(
     (b) => String(b.status).toLowerCase() === "active"
   );
 
-  const lastEntry = [...entries]
-    .filter((e) => e.inTime)
+  const lastEntry = entries
+    .filter((e) => {
+      if (!staff?._id) return false;
+
+      const isToday = e.inTime && new Date(e.inTime).toDateString() === today;
+
+      const isCreatedByStaff =
+        e.createdBy?._id === staff._id || e.createdBy === staff._id;
+
+      return isToday && isCreatedByStaff;
+    })
     .sort((a, b) => new Date(b.inTime) - new Date(a.inTime))[0];
 
   const getBayName = (bayId) => {
@@ -62,8 +78,14 @@ export default function StaffDashboardPage() {
   const staffBayName = staff?.assignedBay?.bayName;
 
   const filteredEntries = entries.filter((e) => {
-    if (!staffBayName) return false;
-    return e.bayId?.bayName === staffBayName;
+    if (!staff?._id) return false;
+
+    const isCreatedByStaff =
+      e.createdBy?._id === staff._id || e.createdBy === staff._id;
+
+    const isSameBay = e.bayId?.bayName === staff?.assignedBay?.bayName;
+
+    return isCreatedByStaff && isSameBay;
   });
 
   /* ---------------- PAGINATION ---------------- */
@@ -162,40 +184,98 @@ export default function StaffDashboardPage() {
           <div className="overflow-x-auto">
             <table className="min-w-[720px] w-full">
               <thead className="bg-emerald-100">
-                <tr className="text-sm text-emerald-700">
-                  {[
-                    "Visitor Name",
-                    "Vehicle Number",
-                    "Company",
-                    "Bay",
-                    "Vehicle",
-                    "Time In",
-                  ].map((h) => (
-                    <th key={h} className="px-6 py-4 text-center font-semibold">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
+  <tr className="text-sm text-emerald-700">
+    {[
+      "Date & Time",
+      "Visitor Name",
+      "QID",
+      "VRN",
+      "Mobile No",
+      "Bay",
+      "Company",
+      "Tenants",
+      "Purpose",
+      "Entry Type",
+      "Status",
+    ].map((h) => (
+      <th key={h} className="px-6 py-4 text-center font-semibold whitespace-nowrap">
+        {h}
+      </th>
+    ))}
+  </tr>
+</thead>
 
               <tbody className="divide-y divide-emerald-100">
                 {paginatedEntries.map((e) => (
                   <tr
-                    key={e._id}
-                    className="hover:bg-emerald-50 transition text-center"
-                  >
-                    <td className="px-6 py-4 font-medium text-[14px] text-emerald-800 capitalize">{e.visitorName}</td>
-                    <td className="px-6 py-4 font-medium text-sm">{e.vehicleNumber}</td>
-                    <td className="px-6 py-4 text-[16px]">{e.visitorCompany}</td>
-                    <td className="px-6 py-4 text-[16px]">{e.bayId?.bayName || "--"}</td>
-                    <td className="px-6 py-4 capitalize text-[16px]">{e.vehicleType}</td>
-                    <td className="px-6 py-4 text-[16px]">
-                      {new Date(e.inTime).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                  </tr>
+  key={e._id}
+  className="hover:bg-emerald-50 transition text-center"
+>
+  {/* Date & Time */}
+  <td className="px-6 py-4 text-sm text-emerald-800">
+    {new Date(e.inTime).toLocaleString([], {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })}
+  </td>
+
+  {/* Visitor Name */}
+  <td className="px-6 py-4 font-medium text-sm text-emerald-800 capitalize">
+    {e.visitorName || "--"}
+  </td>
+
+  {/* QID */}
+  <td className="px-6 py-4 text-sm">
+    {e.qidNumber || "--"}
+  </td>
+
+  {/* VRN */}
+  <td className="px-6 py-4 font-medium text-sm">
+    {e.vehicleNumber}
+  </td>
+
+  {/* Mobile No */}
+  <td className="px-6 py-4 text-sm">
+    {e.visitorMobile || "--"}
+  </td>
+
+  {/* Bay */}
+  <td className="px-6 py-4 text-sm">
+    {e.bayId?.bayName || "--"}
+  </td>
+
+  {/* Company */}
+  <td className="px-6 py-4 text-sm">
+    {e.visitorCompany || "--"}
+  </td>
+
+  {/* Tenants */}
+  <td className="px-6 py-4 text-sm">
+  {e.vendorId?.companyName || "--"}
+</td>
+
+
+  {/* Purpose */}
+  <td className="px-6 py-4 text-sm capitalize">
+    {e.purpose || "--"}
+  </td>
+
+  {/* Entry Type */}
+  <td className="px-6 py-4 text-sm capitalize">
+    {e.entryMethod || "manual"}
+  </td>
+
+  {/* Status */}
+  <td className="px-6 py-4">
+    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+      Saved
+    </span>
+  </td>
+</tr>
+
                 ))}
               </tbody>
             </table>
@@ -221,7 +301,7 @@ export default function StaffDashboardPage() {
               <span className="text-sm text-emerald-600">
                 {currentPage} of {totalPages} pages
               </span>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
@@ -230,7 +310,7 @@ export default function StaffDashboardPage() {
                 >
                   <ChevronLeft size={18} className="text-emerald-600" />
                 </button>
-                
+
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
@@ -246,23 +326,34 @@ export default function StaffDashboardPage() {
         {/* MOBILE CARDS */}
         <div className="sm:hidden space-y-4">
           {paginatedEntries.map((e) => (
-            <div key={e._id} className="bg-white rounded-lg border border-emerald-100 p-4 shadow-sm">
+            <div
+              key={e._id}
+              className="bg-white rounded-lg border border-emerald-100 p-4 shadow-sm"
+            >
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <p className="font-semibold text-emerald-800">{e.visitorName}</p>
+                  <p className="font-semibold text-emerald-800">
+                    {e.visitorName}
+                  </p>
                   <p className="text-sm text-emerald-600">{e.visitorCompany}</p>
                 </div>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
                 <span className="text-emerald-600">Vehicle</span>
-                <span className="font-medium text-emerald-800">{e.vehicleNumber}</span>
+                <span className="font-medium text-emerald-800">
+                  {e.vehicleNumber}
+                </span>
 
                 <span className="text-emerald-600">Bay</span>
-                <span className="font-medium text-emerald-800">{e.bayId?.bayName || "--"}</span>
+                <span className="font-medium text-emerald-800">
+                  {e.bayId?.bayName || "--"}
+                </span>
 
                 <span className="text-emerald-600">Method</span>
-                <span className="font-medium text-emerald-800 capitalize">{e.entryMethod}</span>
+                <span className="font-medium text-emerald-800 capitalize">
+                  {e.entryMethod}
+                </span>
 
                 <span className="text-emerald-600">Time In</span>
                 <span className="font-medium text-emerald-800">
@@ -286,11 +377,11 @@ export default function StaffDashboardPage() {
                 >
                   Previous
                 </button>
-                
+
                 <span className="text-sm text-emerald-600">
                   {currentPage} / {totalPages}
                 </span>
-                
+
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}

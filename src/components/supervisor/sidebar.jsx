@@ -30,7 +30,7 @@ const Sidebar = () => {
     },
     { id: "staff", icon: Users, label: "My Staff", href: "/supervisor/staff" },
     { id: "bays", icon: Building2, label: "My Bays", href: "/supervisor/bays" },
-    // { id: "search", icon: Search, label: "Search Entries", href: "/supervisor/search" },
+    { id: "search", icon: Search, label: "Search Entries", href: "/supervisor/search" },
     {
       id: "settings",
       icon: Settings,
