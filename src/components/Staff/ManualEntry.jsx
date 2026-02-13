@@ -153,41 +153,56 @@ export default function ManualEntry() {
   };
 
   const runOCR = async () => {
-    if (!croppedArea || !preview) return;
+  if (!croppedArea || !preview) return;
 
-    setOcrLoading(true);
-    try {
-      const croppedBase64 = await getCroppedImage(preview, croppedArea);
+  setOcrLoading(true);
+  try {
+    // 1️⃣ Crop + resize image (already optimized)
+    const croppedBase64 = await getCroppedImage(preview, croppedArea);
 
-      if (await isBlurry(croppedBase64)) {
-        alert("Image is blurry. Please retake.");
-        setShowCrop(false);
-        return;
-      }
-
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/ocr/scan`,
-        { imageBase64: croppedBase64 },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (res.data?.vehicleNumber) {
-        setVehicleNumber(res.data.vehicleNumber);
-        setShowCrop(false);
-      } else {
-        alert("Plate not detected. Try again.");
-      }
-
+    // 2️⃣ Blur check (unchanged)
+    if (await isBlurry(croppedBase64)) {
+      alert("Image is blurry. Please retake.");
       setShowCrop(false);
-    } catch (err) {
-      const status = err.response?.status;
-      if (status === 413) alert("Image too large. Retake closer.");
-      else if (!err.response) alert("Network error.");
-      else alert(err.response?.data?.message || "OCR failed.");
-    } finally {
-      setOcrLoading(false);
+      return;
     }
-  };
+
+    // 3️⃣ Call Plate Recognizer backend
+    const res = await axios.post(
+      `${process.env.NEXT_PUBLIC_API_URL}/ocr/scan`,
+      {
+        imageBase64: croppedBase64, // ✅ base64 to backend
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 90000, // frontend wait
+      }
+    );
+
+    // 4️⃣ Handle response
+    if (res.data?.success && res.data?.plate) {
+      setVehicleNumber(res.data.plate); // ✅ AUTO-FILL
+      setShowCrop(false);
+    } else {
+      alert(res.data?.message || "Plate not detected. Try again.");
+    }
+  } catch (err) {
+    const status = err.response?.status;
+
+    if (status === 413) {
+      alert("Image too large. Retake closer.");
+    } else if (!err.response) {
+      alert("Network error. Please try again.");
+    } else {
+      alert(err.response?.data?.message || "Plate OCR failed.");
+    }
+  } finally {
+    setOcrLoading(false);
+  }
+};
+
 
   /* ================= VALIDATION ================= */
 
