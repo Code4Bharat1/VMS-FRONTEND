@@ -1,7 +1,18 @@
-
 "use client";
 import { useEffect, useState } from "react";
-import { Search, Plus, X, Pencil, Trash2, User, Users, CheckCircle, AlertCircle, TrendingUp, Clock } from "lucide-react";
+import {
+  Search,
+  Plus,
+  X,
+  Pencil,
+  Trash2,
+  User,
+  Users,
+  CheckCircle,
+  AlertCircle,
+  TrendingUp,
+  Clock,
+} from "lucide-react";
 
 export default function Supervisors() {
   const [supervisors, setSupervisors] = useState([]);
@@ -21,7 +32,7 @@ export default function Supervisors() {
     email: "",
     phone: "",
     password: "",
-    assignedBay: "",
+    managedBays: [],
   });
 
   /* ================= LOAD DATA ================= */
@@ -52,26 +63,31 @@ export default function Supervisors() {
       setEntries(entriesData);
 
       const mapped = supervisorsData.map((u) => {
-        const supervisorBayId =
-          typeof u.assignedBay === "object" ? u.assignedBay?._id : u.assignedBay;
+  const managedBayIds = (u.managedBays || []).map((b) =>
+    typeof b === "object" ? String(b._id) : String(b)
+  );
 
-        const staffCount = staffList.filter((s) => {
-          const staffBayId =
-            typeof s.assignedBay === "object" ? s.assignedBay?._id : s.assignedBay;
-          return supervisorBayId && staffBayId === supervisorBayId;
-        }).length;
+  const staffCount = staffList.filter((s) => {
+    const staffBayId =
+      typeof s.assignedBay === "object"
+        ? String(s.assignedBay?._id)
+        : String(s.assignedBay);
 
-        return {
-          id: u._id,
-          name: u.name,
-          staffCount,
-          mobile: u.phone || "-",
-          email: u.email,
-          status: u.isActive ? "Active" : "Inactive",
-          assignedBay: u.assignedBay || null,
-          isActive: u.isActive,
-        };
-      });
+    return managedBayIds.includes(staffBayId);
+  }).length;
+
+  return {
+    id: u._id,
+    name: u.name,
+    staffCount,
+    mobile: u.phone || "-",
+    email: u.email,
+    status: u.isActive ? "Active" : "Inactive",
+    managedBays: u.managedBays || [],
+    isActive: u.isActive,
+  };
+});
+
 
       setSupervisors(mapped);
     } catch (err) {
@@ -82,15 +98,22 @@ export default function Supervisors() {
   const validate = () => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = "Name is required";
-    else if (form.name.length < 3) newErrors.name = "Name must be at least 3 characters";
+    else if (form.name.length < 3)
+      newErrors.name = "Name must be at least 3 characters";
     if (!form.email.trim()) newErrors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) newErrors.email = "Invalid email address";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      newErrors.email = "Invalid email address";
     if (!form.phone.trim()) newErrors.phone = "Phone number is required";
-    else if (!/^[0-9]{10}$/.test(form.phone)) newErrors.phone = "Phone must be 10 digits";
-    if (!form.assignedBay) newErrors.assignedBay = "Please select a bay";
+    else if (!/^[0-9]{10}$/.test(form.phone))
+      newErrors.phone = "Phone must be 10 digits";
+    if (!form.managedBays || form.managedBays.length === 0) {
+      newErrors.managedBays = "Please select at least one bay";
+    }
+
     if (!editId) {
       if (!form.password) newErrors.password = "Password is required";
-      else if (form.password.length < 6) newErrors.password = "Password must be at least 6 characters";
+      else if (form.password.length < 6)
+        newErrors.password = "Password must be at least 6 characters";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -104,10 +127,13 @@ export default function Supervisors() {
   const toggleStatus = async (id) => {
     try {
       const token = localStorage.getItem("accessToken");
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supervisors/${id}/status`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/supervisors/${id}/status`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       loadData();
     } catch (err) {
       console.error("Toggle status error", err);
@@ -125,16 +151,19 @@ export default function Supervisors() {
       };
 
       if (editId) {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supervisors/${editId}`, {
-          method: "PUT",
-          headers,
-          body: JSON.stringify({
-            name: form.name,
-            email: form.email,
-            phone: form.phone,
-            assignedBay: form.assignedBay,
-          }),
-        });
+        await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/supervisors/${editId}`,
+          {
+            method: "PUT",
+            headers,
+            body: JSON.stringify({
+              name: form.name,
+              email: form.email,
+              phone: form.phone,
+              managedBays: form.managedBays,
+            }),
+          },
+        );
         alert("Supervisor updated successfully");
       } else {
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supervisors`, {
@@ -148,7 +177,14 @@ export default function Supervisors() {
       setShowAdd(false);
       setEditId(null);
       setErrors({});
-      setForm({ name: "", email: "", phone: "", password: "", assignedBay: "" });
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        password: "",
+        managedBays: [],
+      });
+
       loadData();
     } catch (err) {
       alert(err.message || "Something went wrong");
@@ -159,10 +195,13 @@ export default function Supervisors() {
     if (!selected) return;
     try {
       const token = localStorage.getItem("accessToken");
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supervisors/${selected.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/supervisors/${selected.id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       setConfirmDelete(false);
       setSelected(null);
       loadData();
@@ -172,40 +211,40 @@ export default function Supervisors() {
   };
 
   const openDetail = (supervisor) => {
-    const bayId = typeof supervisor.assignedBay === "object" 
-      ? supervisor.assignedBay?._id 
-      : supervisor.assignedBay;
+    const bayIds = (supervisor.managedBays || []).map((b) =>
+      typeof b === "object" ? String(b._id) : String(b),
+    );
 
     const bayStaff = staff.filter((s) => {
-      const staffBayId = typeof s.assignedBay === "object" 
-        ? s.assignedBay?._id 
-        : s.assignedBay;
-      return bayId && staffBayId === bayId;
+      const staffBayId =
+        typeof s.assignedBay === "object" ? s.assignedBay?._id : s.assignedBay;
+      return bayIds.includes(String(staffBayId));
     });
 
     const bayEntries = entries.filter((e) => {
       const entryBayId = typeof e.bayId === "object" ? e.bayId?._id : e.bayId;
-      return bayId && entryBayId === bayId;
+      return bayIds.includes(String(entryBayId));
     });
 
-    const completedChecks = bayEntries.filter(e => e.outTime !== null).length;
-    const incidentsCount = bayEntries.filter(e => {
-      const duration = e.outTime 
-        ? (new Date(e.outTime) - new Date(e.inTime)) / 60000 
+    const completedChecks = bayEntries.filter((e) => e.outTime !== null).length;
+    const incidentsCount = bayEntries.filter((e) => {
+      const duration = e.outTime
+        ? (new Date(e.outTime) - new Date(e.inTime)) / 60000
         : (Date.now() - new Date(e.inTime)) / 60000;
       return duration > 60;
     }).length;
 
-    const onTimeShifts = bayStaff.filter(s => s.isActive).length;
+    const onTimeShifts = bayStaff.filter((s) => s.isActive).length;
     const patrolRounds = Math.floor(bayEntries.length / 5);
-    const complianceRate = bayEntries.length > 0 
-      ? Math.round((completedChecks / bayEntries.length) * 100) 
-      : 100;
+    const complianceRate =
+      bayEntries.length > 0
+        ? Math.round((completedChecks / bayEntries.length) * 100)
+        : 100;
 
     const recentActivities = bayEntries
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 4)
-      .map(e => ({
+      .map((e) => ({
         action: e.outTime ? "Completed vehicle exit" : "Approved vehicle entry",
         time: new Date(e.createdAt).toLocaleTimeString("en-US", {
           hour: "2-digit",
@@ -230,30 +269,29 @@ export default function Supervisors() {
   };
 
   const filtered = supervisors.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase())
+    s.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const totalSupervisors = supervisors.length;
-  const activeSupervisors = supervisors.filter((s) => s.status === "Active").length;
-  const inactiveSupervisors = supervisors.filter((s) => s.status === "Inactive").length;
-  const uniqueBayStaffMap = {};
-
-  supervisors.forEach((s) => {
-    const bayId = typeof s.assignedBay === "object" ? s.assignedBay?._id : s.assignedBay;
-    if (bayId && !uniqueBayStaffMap[bayId]) {
-      uniqueBayStaffMap[bayId] = s.staffCount;
-    }
-  });
-
-  const totalStaff = Object.values(uniqueBayStaffMap).reduce((sum, count) => sum + count, 0);
+  const activeSupervisors = supervisors.filter(
+    (s) => s.status === "Active",
+  ).length;
+  const inactiveSupervisors = supervisors.filter(
+    (s) => s.status === "Inactive",
+  ).length;
+  const totalStaff = staff.length;
 
   return (
     <div className="min-h-screen bg-emerald-50/60">
       {/* HEADER */}
       <div className="sticky top-0 z-40 bg-white border-b border-emerald-100 px-4 sm:px-8 py-4 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-emerald-800">Supervisor Management</h1>
-          <p className="text-sm text-emerald-600">Manage supervisors and assigned bays</p>
+          <h1 className="text-xl font-bold text-emerald-800">
+            Supervisor Management
+          </h1>
+          <p className="text-sm text-emerald-600">
+            Manage supervisors and assigned bays
+          </p>
         </div>
         <button
           onClick={() => {
@@ -281,7 +319,10 @@ export default function Supervisors() {
         <div className="bg-white rounded-xl border border-emerald-100 shadow-sm">
           <div className="p-4">
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 text-emerald-400" size={16} />
+              <Search
+                className="absolute left-3 top-2.5 text-emerald-400"
+                size={16}
+              />
               <input
                 className="w-full bg-white border border-emerald-200 pl-9 pr-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="Search supervisors"
@@ -296,8 +337,19 @@ export default function Supervisors() {
             <table className="w-full">
               <thead className="bg-emerald-100">
                 <tr>
-                  {["Name", "Staff", "Mobile", "Email", "Bay", "Status", "Action"].map((h) => (
-                    <th key={h} className="px-6 py-4 text-sm font-semibold text-emerald-700 text-center">
+                  {[
+                    "Name",
+                    "Staff",
+                    "Mobile",
+                    "Email",
+                    "Bay",
+                    "Status",
+                    "Action",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-6 py-4 text-sm font-semibold text-emerald-700 text-center"
+                    >
                       {h}
                     </th>
                   ))}
@@ -310,11 +362,18 @@ export default function Supervisors() {
                     onClick={() => openDetail(s)}
                     className="hover:bg-emerald-50 text-center transition cursor-pointer"
                   >
-                    <td className="px-6 py-4 font-medium text-emerald-800">{s.name}</td>
+                    <td className="px-6 py-4 font-medium text-emerald-800">
+                      {s.name}
+                    </td>
                     <td className="px-6 py-4">{s.staffCount}</td>
                     <td className="px-6 py-4">{s.mobile}</td>
                     <td className="px-6 py-4">{s.email}</td>
-                    <td className="px-6 py-4">{s.assignedBay?.bayName || "-"}</td>
+                    <td className="px-6 py-4">
+                      {s.managedBays?.length
+                        ? s.managedBays.map((b) => b.bayName).join(", ")
+                        : "-"}
+                    </td>
+
                     <td className="px-6 py-4">
                       <span
                         onClick={(e) => {
@@ -340,9 +399,11 @@ export default function Supervisors() {
                               name: s.name,
                               email: s.email,
                               phone: s.mobile,
-                              assignedBay: s.assignedBay?._id || "",
+                              managedBays:
+                                s.managedBays?.map((b) => b._id) || [],
                               password: "",
                             });
+
                             setShowAdd(true);
                           }}
                           className="text-emerald-600 hover:scale-110 transition"
@@ -395,9 +456,20 @@ export default function Supervisors() {
                   </span>
                 </div>
                 <div className="text-sm text-gray-700">
-                  <p><span className="font-medium">Mobile:</span> {s.mobile}</p>
-                  <p><span className="font-medium">Bay:</span> {s.assignedBay?.bayName || "-"}</p>
-                  <p><span className="font-medium">Staff Count:</span> {s.staffCount}</p>
+                  <p>
+                    <span className="font-medium">Mobile:</span> {s.mobile}
+                  </p>
+                  <p>
+                    <span className="font-medium">Bays:</span>{" "}
+                    {s.managedBays?.length
+                      ? s.managedBays.map((b) => b.bayName).join(", ")
+                      : "-"}
+                  </p>
+
+                  <p>
+                    <span className="font-medium">Staff Count:</span>{" "}
+                    {s.staffCount}
+                  </p>
                 </div>
                 <div className="flex justify-end gap-4 pt-2">
                   <Pencil
@@ -410,9 +482,10 @@ export default function Supervisors() {
                         name: s.name,
                         email: s.email,
                         phone: s.mobile,
-                        assignedBay: s.assignedBay?._id || "",
+                        managedBays: s.managedBays?.map((b) => b._id) || [],
                         password: "",
                       });
+
                       setShowAdd(true);
                     }}
                   />
@@ -450,7 +523,10 @@ export default function Supervisors() {
       )}
 
       {confirmDelete && (
-        <ConfirmDelete onCancel={() => setConfirmDelete(false)} onDelete={deleteSupervisor} />
+        <ConfirmDelete
+          onCancel={() => setConfirmDelete(false)}
+          onDelete={deleteSupervisor}
+        />
       )}
 
       {showDetail && detailData && (
@@ -482,10 +558,18 @@ function DetailPopup({ data, onClose }) {
               <p className="text-emerald-100 text-sm mt-1">
                 {data.mobile} • {data.email}
               </p>
-              <p className="text-emerald-100 text-sm">Bay: {data.assignedBay?.bayName || "N/A"}</p>
+              <p className="text-emerald-100 text-sm">
+                Bays:{" "}
+                {data.managedBays?.length
+                  ? data.managedBays.map((b) => b.bayName).join(", ")
+                  : "N/A"}
+              </p>
+
               <span
                 className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
-                  data.isActive ? "bg-emerald-400 text-emerald-900" : "bg-red-400 text-red-900"
+                  data.isActive
+                    ? "bg-emerald-400 text-emerald-900"
+                    : "bg-red-400 text-red-900"
                 }`}
               >
                 {data.status}
@@ -498,11 +582,25 @@ function DetailPopup({ data, onClose }) {
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           {/* Stats Grid */}
           <div>
-            <h3 className="text-sm font-semibold text-emerald-800 mb-3">Staff assigned</h3>
+            <h3 className="text-sm font-semibold text-emerald-800 mb-3">
+              Staff assigned
+            </h3>
             <div className="grid grid-cols-3 gap-4">
-              <StatBox label="Staff assigned" value={data.staffAssigned} color="bg-emerald-50" />
-              <StatBox label="Checks completed" value={data.checksCompleted} color="bg-blue-50" />
-              <StatBox label="Incidents in last 7 days" value={data.incidents} color="bg-orange-50" />
+              <StatBox
+                label="Staff assigned"
+                value={data.staffAssigned}
+                color="bg-emerald-50"
+              />
+              <StatBox
+                label="Checks completed"
+                value={data.checksCompleted}
+                color="bg-blue-50"
+              />
+              <StatBox
+                label="Incidents in last 7 days"
+                value={data.incidents}
+                color="bg-orange-50"
+              />
             </div>
           </div>
 
@@ -510,21 +608,29 @@ function DetailPopup({ data, onClose }) {
           <div>
             <h3 className="text-sm font-semibold text-emerald-800 mb-3">
               Assigned security staff
-              <span className="text-xs text-gray-500 ml-2">Team members reporting to this supervisor</span>
+              <span className="text-xs text-gray-500 ml-2">
+                Team members reporting to this supervisor
+              </span>
             </h3>
             <div className="space-y-2">
               {data.bayStaff.length > 0 ? (
                 data.bayStaff.map((s) => (
-                  <div key={s._id} className="flex justify-between items-center bg-emerald-50 p-3 rounded-lg">
+                  <div
+                    key={s._id}
+                    className="flex justify-between items-center bg-emerald-50 p-3 rounded-lg"
+                  >
                     <div>
                       <p className="font-medium text-emerald-800">{s.name}</p>
                       <p className="text-xs text-emerald-600">
-                        {s.designation || "Security Guard"} • Bay {s.assignedBay?.bayName || "N/A"}
+                        {s.designation || "Security Guard"} • Bay{" "}
+                        {s.assignedBay?.bayName || "N/A"}
                       </p>
                     </div>
                     <span
                       className={`text-xs px-3 py-1 rounded-full font-medium ${
-                        s.isActive ? "bg-emerald-200 text-emerald-800" : "bg-gray-200 text-gray-600"
+                        s.isActive
+                          ? "bg-emerald-200 text-emerald-800"
+                          : "bg-gray-200 text-gray-600"
                       }`}
                     >
                       {s.isActive ? "Active" : "Inactive"}
@@ -537,27 +643,32 @@ function DetailPopup({ data, onClose }) {
             </div>
           </div>
 
-          {/* Performance Metrics */}
-          <div>
-            <h3 className="text-sm font-semibold text-emerald-800 mb-3">Performance metrics</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <MetricCard label="On-time shift starts" value={`${data.onTimeShifts}%`} progress={data.onTimeShifts} />
-              <MetricCard label="Patrol rounds completed" value={data.patrolRounds} progress={Math.min(data.patrolRounds * 10, 100)} />
-              <MetricCard label="Bay compliance rate" value={`${data.complianceRate}%`} progress={data.complianceRate} />
-            </div>
-          </div>
+          
 
           {/* Recent Activities */}
           <div>
-            <h3 className="text-sm font-semibold text-emerald-800 mb-3">Recent activities</h3>
+            <h3 className="text-sm font-semibold text-emerald-800 mb-3">
+              Recent activities
+            </h3>
             <div className="space-y-2">
               {data.recentActivities.length > 0 ? (
                 data.recentActivities.map((activity, idx) => (
-                  <div key={idx} className="flex items-start gap-3 bg-gray-50 p-3 rounded-lg">
-                    <Clock className="text-emerald-600 mt-0.5 flex-shrink-0" size={16} />
+                  <div
+                    key={idx}
+                    className="flex items-start gap-3 bg-gray-50 p-3 rounded-lg"
+                  >
+                    <Clock
+                      className="text-emerald-600 mt-0.5 flex-shrink-0"
+                      size={16}
+                    />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-900">{activity.action} {activity.vehicle && `for ${activity.vehicle}`}</p>
-                      <p className="text-xs text-gray-500">at {activity.bay} • {activity.time}</p>
+                      <p className="text-sm text-gray-900">
+                        {activity.action}{" "}
+                        {activity.vehicle && `for ${activity.vehicle}`}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        at {activity.bay} • {activity.time}
+                      </p>
                     </div>
                   </div>
                 ))
@@ -606,39 +717,92 @@ function StatCard({ title, value }) {
   );
 }
 
+/* ================= MODAL - CORRECTED (ONLY managedBays) ================= */
 function Modal({ editId, form, setForm, errors, bays, onClose, onSubmit }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white w-full max-w-md rounded-xl shadow-xl">
         <div className="flex justify-between items-center px-6 py-4 border-b border-emerald-100">
-          <h2 className="font-semibold text-emerald-800">{editId ? "Edit Supervisor" : "Add Supervisor"}</h2>
+          <h2 className="font-semibold text-emerald-800">
+            {editId ? "Edit Supervisor" : "Add Supervisor"}
+          </h2>
           <X onClick={onClose} className="cursor-pointer text-emerald-600" />
         </div>
         <div className="p-6 space-y-4">
-          <Input label="Name" value={form.name} error={errors.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <Input label="Email" value={form.email} error={errors.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <Input label="Phone" value={form.phone} error={errors.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <Input
+            label="Name"
+            value={form.name}
+            error={errors.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+          <Input
+            label="Email"
+            value={form.email}
+            error={errors.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <Input
+            label="Phone"
+            value={form.phone}
+            error={errors.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          />
+          
+          {/* ONLY managedBays (multi-select) - NO assignedBay */}
           <div>
-            <label className="text-sm font-medium text-emerald-700">Assigned Bay</label>
+            <label className="text-sm font-medium text-emerald-700 block mb-1.5">
+              Assigned Bays
+            </label>
             <select
-              className={`w-full mt-1 px-3 py-2 rounded-lg border border-emerald-200 focus:outline-none focus:ring-2 ${
-                errors.assignedBay ? "ring-red-500" : "focus:ring-emerald-500"
-              }`}
-              value={form.assignedBay}
-              onChange={(e) => setForm({ ...form, assignedBay: e.target.value })}
+              multiple
+              value={form.managedBays}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  managedBays: Array.from(
+                    e.target.selectedOptions,
+                    (o) => o.value,
+                  ),
+                })
+              }
+              className={`w-full px-3 py-2 rounded-lg border border-emerald-200
+                focus:outline-none focus:ring-2 ${
+                  errors.managedBays ? "ring-red-500" : "focus:ring-emerald-500"
+                }`}
+              size="5"
             >
-              <option value="">Select Bay</option>
               {bays.map((b) => (
-                <option key={b._id} value={b._id}>{b.bayName}</option>
+                <option key={b._id} value={b._id}>
+                  {b.bayName}
+                </option>
               ))}
             </select>
-            {errors.assignedBay && <p className="text-xs text-red-600 mt-1">{errors.assignedBay}</p>}
+            {errors.managedBays && (
+              <p className="text-xs text-red-600 mt-1">{errors.managedBays}</p>
+            )}
+            <p className="text-xs text-emerald-600 mt-1">
+              Hold Ctrl/Cmd to select multiple bays
+            </p>
           </div>
-          {!editId && <Input label="Password" type="password" value={form.password} error={errors.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />}
+
+          {!editId && (
+            <Input
+              label="Password"
+              type="password"
+              value={form.password}
+              error={errors.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+          )}
         </div>
         <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3">
-          <button onClick={onClose} className="text-emerald-600">Cancel</button>
-          <button onClick={onSubmit} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition">
+          <button onClick={onClose} className="text-emerald-600">
+            Cancel
+          </button>
+          <button
+            onClick={onSubmit}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition"
+          >
             {editId ? "Update" : "Create"}
           </button>
         </div>

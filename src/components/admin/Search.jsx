@@ -3,45 +3,27 @@
 import { useEffect, useState } from "react";
 import {
   Search,
-  FileDown,
-  UserX,
-  UserCheck,
-  Users,
-  Shield,
+  Download,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import axios from "axios";
 
-/* ================= STAT CARD ================= */
-
-const Stat = ({ title, value, icon: Icon }) => (
-  <div className="bg-white rounded-xl border border-emerald-100 p-6 shadow-sm">
-    <div className="flex justify-between mb-3">
-      <Icon className="text-emerald-600" />
-      <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
-        Live
-      </span>
-    </div>
-    <p className="text-emerald-600 text-sm">{title}</p>
-    <p className="text-3xl font-bold text-emerald-800">{value}</p>
-  </div>
-);
-
 /* ================= MAIN ================= */
 
 export default function SearchRecords() {
   const [fromDate, setFromDate] = useState("");
-const [toDate, setToDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [selectedPreset, setSelectedPreset] = useState("");
 
   const [entries, setEntries] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  /* ✅ PAGINATION (ONLY ADDITION) */
+  /* PAGINATION */
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
@@ -69,103 +51,93 @@ const [toDate, setToDate] = useState("");
   };
 
   const startOfDay = (date) => {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
 
-const endOfDay = (date) => {
-  const d = new Date(date);
-  d.setHours(23, 59, 59, 999);
-  return d;
-};
+  const endOfDay = (date) => {
+    const d = new Date(date);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  };
 
-const applyDateFilter = (from, to) => {
-  let data = [...entries];
+  const setPreset = (type) => {
+    const today = new Date();
+    let from = null;
+    let to = null;
 
-  if (from) {
-    const fromTime = startOfDay(from).getTime();
-    data = data.filter((e) => new Date(e.inTime).getTime() >= fromTime);
-  }
-
-  if (to) {
-    const toTime = endOfDay(to).getTime();
-    data = data.filter((e) => new Date(e.inTime).getTime() <= toTime);
-  }
-
-  setFiltered(data);
-  setCurrentPage(1);
-};
-const setPreset = (type) => {
-  const today = new Date();
-
-  let from = null;
-  let to = null;
-
-  switch (type) {
-    case "today":
-      from = today;
-      to = today;
-      break;
-
-    case "yesterday":
-      from = new Date(today);
-      from.setDate(today.getDate() - 1);
-      to = from;
-      break;
-
-    case "last7":
-      from = new Date(today);
-      from.setDate(today.getDate() - 6);
-      to = today;
-      break;
-
-    case "last30":
-      from = new Date(today);
-      from.setDate(today.getDate() - 29);
-      to = today;
-      break;
-
-    case "thisWeek":
-      from = new Date(today);
-      from.setDate(today.getDate() - today.getDay());
-      to = today;
-      break;
-  }
-
-  setFromDate(from.toISOString().slice(0, 10));
-  setToDate(to.toISOString().slice(0, 10));
-  applyDateFilter(from, to);
-};
-
-  /* ================= SEARCH ================= */
-  useEffect(() => {
-    if (!search.trim()) {
-      setFiltered(entries);
-      setCurrentPage(1);
-      return;
+    switch (type) {
+      case "today":
+        from = today;
+        to = today;
+        break;
+      case "yesterday":
+        from = new Date(today);
+        from.setDate(today.getDate() - 1);
+        to = from;
+        break;
+      case "last7":
+        from = new Date(today);
+        from.setDate(today.getDate() - 6);
+        to = today;
+        break;
+      case "last30":
+        from = new Date(today);
+        from.setDate(today.getDate() - 29);
+        to = today;
+        break;
+      case "thisWeek":
+        from = new Date(today);
+        from.setDate(today.getDate() - today.getDay());
+        to = today;
+        break;
     }
 
-    const q = search.toLowerCase();
+    setFromDate(from.toISOString().slice(0, 10));
+    setToDate(to.toISOString().slice(0, 10));
+    setSelectedPreset(type);
+  };
 
-    setFiltered(
-      entries.filter((e) =>
+  /* ================= SEARCH & FILTER ================= */
+  useEffect(() => {
+    let data = [...entries];
+
+    // Date filter
+    if (fromDate) {
+      const fromTime = startOfDay(fromDate).getTime();
+      data = data.filter((e) => new Date(e.inTime).getTime() >= fromTime);
+    }
+
+    if (toDate) {
+      const toTime = endOfDay(toDate).getTime();
+      data = data.filter((e) => new Date(e.inTime).getTime() <= toTime);
+    }
+
+    // Search filter
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      data = data.filter((e) =>
         [
           e.vehicleNumber,
           e.visitorName,
           e.visitorCompany,
           e.visitorMobile,
           e.qidNumber,
+          e.tenantName,
+          e.purpose,
           e.bayId?.bayName,
           e.createdBy?.name,
         ]
           .join(" ")
           .toLowerCase()
           .includes(q)
-      )
-    );
+      );
+    }
+
+    setFiltered(data);
     setCurrentPage(1);
-  }, [search, entries]);
+  }, [search, entries, fromDate, toDate]);
 
   /* ================= PAGINATION LOGIC ================= */
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -183,6 +155,7 @@ const setPreset = (type) => {
     return new Date(inTime).toLocaleString("en-IN", {
       day: "2-digit",
       month: "short",
+      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
@@ -198,7 +171,13 @@ const setPreset = (type) => {
       "Bay",
       "VRN",
       "Visitor Name",
+      "QID",
+      "Mobile",
       "Company",
+      "Tenant",
+      "Purpose",
+      "Entry Type",
+      "Status",
       "Handled By",
     ];
 
@@ -207,7 +186,13 @@ const setPreset = (type) => {
       e.bayId?.bayName || "",
       e.vehicleNumber || "",
       e.visitorName || "",
+      e.qidNumber || "",
+      e.visitorMobile || "",
       e.visitorCompany || "",
+      e.tenantName || "",
+      e.purpose || "",
+      (e.entryMethod || "Manual"),
+      e.status || "IN",
       e.createdBy?.name || "",
     ]);
 
@@ -264,140 +249,182 @@ const setPreset = (type) => {
                          rounded-lg bg-emerald-600 hover:bg-emerald-700
                          transition text-white text-sm font-medium"
             >
-              <FileDown size={16} />
+              <Download size={16} />
               Export CSV
             </button>
           </div>
         </div>
       </div>
-{/* DATE FILTER */}
-<div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-5">
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-
-    {/* FROM */}
-    <div>
-      <label className="block text-xs text-emerald-600 mb-1">From</label>
-      <input
-        type="date"
-        value={fromDate}
-        onChange={(e) => setFromDate(e.target.value)}
-        className="w-full h-10 rounded-lg border border-emerald-200 px-3 text-sm"
-      />
-    </div>
-
-    {/* TO */}
-    <div>
-      <label className="block text-xs text-emerald-600 mb-1">To</label>
-      <input
-        type="date"
-        value={toDate}
-        onChange={(e) => setToDate(e.target.value)}
-        className="w-full h-10 rounded-lg border border-emerald-200 px-3 text-sm"
-      />
-    </div>
-
-    {/* QUICK PRESETS */}
-    <div className="md:col-span-2 flex flex-wrap gap-2 items-end">
-      <button onClick={() => setPreset("today")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
-        Today
-      </button>
-      <button onClick={() => setPreset("yesterday")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
-        Yesterday
-      </button>
-      <button onClick={() => setPreset("last7")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
-        Last 7 days
-      </button>
-      <button onClick={() => setPreset("last30")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
-        Last 30 days
-      </button>
-      <button onClick={() => setPreset("thisWeek")} className="px-3 h-9 text-sm rounded-full bg-emerald-100 text-emerald-700">
-        This week
-      </button>
-    </div>
-  </div>
-
-  {/* ACTIONS */}
-  <div className="flex justify-end gap-3 mt-4">
-    <button
-      onClick={() => {
-        setFromDate("");
-        setToDate("");
-        setFiltered(entries);
-      }}
-      className="px-4 h-10 rounded-md"
-    >
-      Reset all filters
-    </button>
-
-    <button
-      onClick={() => applyDateFilter(fromDate, toDate)}
-      className="px-5 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium"
-    >
-      Search records
-    </button>
-  </div>
-</div>
 
       {/* CONTENT */}
       <div className="px-4 sm:px-8 py-6 space-y-6">
-       
+        {/* DATE FILTER */}
+        <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-5">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* FROM */}
+            <div>
+              <label className="block text-xs text-emerald-600 mb-1">From</label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setSelectedPreset("");
+                }}
+                className="w-full h-10 rounded-lg border border-emerald-200 px-3 text-sm"
+              />
+            </div>
+
+            {/* TO */}
+            <div>
+              <label className="block text-xs text-emerald-600 mb-1">To</label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setSelectedPreset("");
+                }}
+                className="w-full h-10 rounded-lg border border-emerald-200 px-3 text-sm"
+              />
+            </div>
+
+            {/* QUICK PRESETS */}
+            <div className="md:col-span-2 flex flex-wrap gap-2 items-end">
+              <button
+                onClick={() => setPreset("today")}
+                className={`px-3 h-9 text-sm rounded-full transition ${
+                  selectedPreset === "today"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                }`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setPreset("yesterday")}
+                className={`px-3 h-9 text-sm rounded-full transition ${
+                  selectedPreset === "yesterday"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                }`}
+              >
+                Yesterday
+              </button>
+              <button
+                onClick={() => setPreset("last7")}
+                className={`px-3 h-9 text-sm rounded-full transition ${
+                  selectedPreset === "last7"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                }`}
+              >
+                Last 7 days
+              </button>
+              <button
+                onClick={() => setPreset("last30")}
+                className={`px-3 h-9 text-sm rounded-full transition ${
+                  selectedPreset === "last30"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                }`}
+              >
+                Last 30 days
+              </button>
+              <button
+                onClick={() => setPreset("thisWeek")}
+                className={`px-3 h-9 text-sm rounded-full transition ${
+                  selectedPreset === "thisWeek"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                }`}
+              >
+                This week
+              </button>
+            </div>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex justify-end gap-3 mt-4">
+            <button
+              onClick={() => {
+                setFromDate("");
+                setToDate("");
+                setFiltered(entries);
+                setSelectedPreset("");
+              }}
+              className="px-4 h-10 rounded-md text-emerald-600 hover:bg-emerald-50 transition"
+            >
+              Reset all filters
+            </button>
+          </div>
+        </div>
 
         {/* DESKTOP TABLE */}
-        <div className="hidden sm:block bg-white rounded-xl border border-emerald-100 shadow-sm overflow-x-auto">
-          <table className="min-w-[900px] w-full">
-            <thead className="bg-emerald-100 border-b border-emerald-200">
-              <tr>
-                {[
-                  "Time",
-                  "Bay",
-                  "VRN",
-                  "Visitor Name",
-                  "Company",
-                  "Handled By",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-6 py-4 text-left text-sm font-medium text-emerald-700"
-                  >
-                    {h}
-                  </th>
+        <div className="hidden sm:block bg-white rounded-xl border border-emerald-100 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-emerald-50">
+                <tr className="text-emerald-700 text-xs uppercase">
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Date & Time</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Visitor Name</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">QID</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">VRN</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Mobile No</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Bay</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Company</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Tenant</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Purpose</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Entry Type</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Handled By</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-emerald-100">
+                {!loading && paginatedEntries.length === 0 && (
+                  <tr>
+                    <td colSpan={12} className="px-6 py-8 text-center text-sm text-emerald-500">
+                      No records found
+                    </td>
+                  </tr>
+                )}
+
+                {paginatedEntries.map((e) => (
+                  <tr key={e._id} className="hover:bg-emerald-50 transition">
+                    <td className="px-4 py-3 text-sm text-emerald-700 whitespace-nowrap">{formatTime(e.inTime)}</td>
+                    <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">{e.visitorName || "—"}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{e.qidNumber || "—"}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-emerald-800 whitespace-nowrap">{e.vehicleNumber}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{e.visitorMobile || "—"}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{e.bayId?.bayName || "—"}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{e.visitorCompany || "—"}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{e.tenantName || "—"}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{e.purpose || "—"}</td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
+                      <span className="capitalize px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs">
+                        {e.entryMethod || "Manual"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          e.status === "IN"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : e.status === "OUT"
+                            ? "bg-gray-200 text-gray-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {e.status || "IN"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">{e.createdBy?.name || "—"}</td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-emerald-100">
-              {!loading && paginatedEntries.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-emerald-500">
-                    No records found
-                  </td>
-                </tr>
-              )}
-
-              {paginatedEntries.map((e) => (
-                <tr key={e._id} className="hover:bg-emerald-50 transition">
-                  <td className="px-6 py-4 text-sm text-emerald-800">
-                    {formatTime(e.inTime)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-emerald-800">
-                    {e.bayId?.bayName || "—"}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-emerald-800">
-                    {e.vehicleNumber}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-emerald-800">
-                    {e.visitorName || "—"}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-emerald-800">
-                    {e.visitorCompany || "—"}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-emerald-800">
-                    {e.createdBy?.name || "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
 
           {/* PAGINATION */}
           {totalPages > 1 && (
@@ -453,6 +480,16 @@ const setPreset = (type) => {
               </div>
 
               <div className="text-sm text-emerald-700">
+                <span className="font-medium">QID:</span>{" "}
+                {e.qidNumber || "—"}
+              </div>
+
+              <div className="text-sm text-emerald-700">
+                <span className="font-medium">Mobile:</span>{" "}
+                {e.visitorMobile || "—"}
+              </div>
+
+              <div className="text-sm text-emerald-700">
                 <span className="font-medium">Company:</span>{" "}
                 {e.visitorCompany || "—"}
               </div>
@@ -465,6 +502,19 @@ const setPreset = (type) => {
               <div className="text-sm text-emerald-700">
                 <span className="font-medium">Handled By:</span>{" "}
                 {e.createdBy?.name || "—"}
+              </div>
+
+              <div className="text-sm text-emerald-700">
+                <span className="font-medium">Status:</span>{" "}
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    e.status === "IN"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  {e.status || "IN"}
+                </span>
               </div>
             </div>
           ))}

@@ -22,12 +22,12 @@ import { useAuth } from "@/context/AuthContext";
 /* ================= MENU ================= */
 const menu = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Search Records", href: "/admin/Search", icon: Search },
+  { label: "Report", href: "/admin/Search", icon: Search },
   { label: "Bay Management", href: "/admin/Bay", icon: Warehouse },
   { label: "Tenant Management", href: "/admin/Vendors", icon: IdCard },
-  { label: "Supervisors", href: "/admin/Supervisors", icon: ShieldCheck },
+  { label: "Supervisors Management", href: "/admin/Supervisors", icon: ShieldCheck },
   { label: "Staff", href: "/admin/Staff", icon: Users },
-  { label: "Reports", href: "/admin/logs", icon: BarChart3 },
+  { label: "Activity Logs", href: "/admin/logs", icon: BarChart3 },
   { label: "Settings", href: "/admin/SettingPage", icon: Settings },
   { label: "Pending Staff", href: "/admin/Pending", icon: Users },
 ];

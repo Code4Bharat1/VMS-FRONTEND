@@ -68,6 +68,7 @@ export default function ManualEntry() {
   const [qidNumber, setQidNumber] = useState("");
   const [mobile, setMobile] = useState("");
   const [company, setCompany] = useState("");
+  const [tenantName, setTenantName] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [vehicleType, setVehicleType] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -116,7 +117,7 @@ export default function ManualEntry() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
-  /* ================= FETCH VENDORS ================= */
+  /* ================= FETCH VENDORS/TENANTS ================= */
   useEffect(() => {
     const fetchVendors = async () => {
       try {
@@ -129,8 +130,8 @@ export default function ManualEntry() {
         );
         setVendors(res.data?.vendors || []);
       } catch (err) {
-        console.error("SAVE ENTRY ERROR:", err.response?.data || err);
-        alert(err.response?.data?.message || "Failed to save entry");
+        console.error("Failed to fetch vendors:", err.response?.data || err);
+        alert(err.response?.data?.message || "Failed to fetch tenants");
       } finally {
         setVendorLoading(false);
       }
@@ -213,55 +214,18 @@ export default function ManualEntry() {
 
   /* ================= HELPERS ================= */
 
-const clearForm = () => {
-  setVisitorName("");
-  setQidNumber("");
-  setMobile("");
-  setCompany("");
-  setVehicleNumber("");
-  setVehicleType("");
-  setPurpose("");
-  setErrors({});
-};
+  const clearForm = () => {
+    setVisitorName("");
+    setQidNumber("");
+    setMobile("");
+    setCompany("");
+    setTenantName("");
+    setVehicleNumber("");
+    setVehicleType("");
+    setPurpose("");
+    setErrors({});
+  };
 
-const saveAndPrint = async () => {
-  if (!(await validateForm())) return;
-
-  try {
-    setLoading(true);
-
-    const res = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/entries/manual`,
-      {
-        visitorName,
-        visitorMobile: mobile,
-        visitorCompany: company,
-        qidNumber,
-        vehicleNumber,
-        purpose,
-        vehicleType,
-        bayId,
-        createdBy: staff._id,
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    // OPTIONAL: open print slip page
-    if (res.data?.entryId) {
-      window.open(
-        `/print-slip/${res.data.entryId}`,
-        "_blank",
-        "noopener,noreferrer"
-      );
-    }
-
-    clearForm();
-  } catch (err) {
-    alert("Failed to save & print slip");
-  } finally {
-    setLoading(false);
-  }
-};
 
   /* ================= SAVE ================= */
 
@@ -276,6 +240,7 @@ const saveAndPrint = async () => {
           visitorName,
           visitorMobile: mobile,
           visitorCompany: company,
+          tenantName,
           qidNumber,
           vehicleNumber,
           purpose,
@@ -286,13 +251,7 @@ const saveAndPrint = async () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert("Manual entry saved");
-      setVehicleNumber("");
-      setVisitorName("");
-      setQidNumber("");
-      setMobile("");
-      setCompany("");
-      setVehicleType("");
-      setPurpose("");
+      clearForm();
     } catch {
       alert("Failed to save entry");
     } finally {
@@ -347,21 +306,36 @@ const saveAndPrint = async () => {
 
             <div>
               <label className="text-sm font-medium text-emerald-700 block mb-1">
-                Company
+                Company Name
               </label>
-              <select
+              <input
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
+                placeholder="Enter visitor's company name"
+                className="h-11 w-full rounded-lg px-4 bg-white border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-emerald-700 block mb-1">
+                Tenant / Destination
+              </label>
+              <select
+                value={tenantName}
+                onChange={(e) => setTenantName(e.target.value)}
                 className="h-11 w-full rounded-lg px-4 bg-white border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 disabled={vendorLoading}
               >
-                <option value="">Select Company</option>
+                <option value="">Select Tenant/Destination</option>
                 {vendors.map((v) => (
                   <option key={v._id} value={v.companyName}>
-                    {v.companyName}
+                    {v.companyName} - {v.shopId}, Floor {v.floorNo}
                   </option>
                 ))}
               </select>
+              {vendorLoading && (
+                <p className="text-xs text-emerald-600 mt-1">Loading tenants...</p>
+              )}
             </div>
           </Section>
 
@@ -427,6 +401,7 @@ const saveAndPrint = async () => {
               disabled
             />
           </Section>
+
           <div className="mt-6 border border-emerald-200 rounded-xl bg-emerald-50/60 p-5">
             <h3 className="text-sm font-semibold text-emerald-700 mb-3">
               System & Bay Metadata
@@ -467,15 +442,7 @@ const saveAndPrint = async () => {
 
             {/* Right actions */}
             <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={saveAndPrint}
-                disabled={loading}
-                className="px-6 py-2.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg font-medium transition disabled:opacity-50"
-              >
-                Save & Print Slip
-              </button>
-
+             
               <button
                 type="button"
                 onClick={saveEntry}

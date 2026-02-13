@@ -27,6 +27,15 @@ const MyStaff = () => {
   const [staffData, setStaffData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [supervisor, setSupervisor] = useState(null);
+  const supervisorBayIds = React.useMemo(() => {
+    if (!supervisor?.managedBays) return [];
+    return supervisor.managedBays.map((b) =>
+      typeof b === "string" ? b : b._id,
+    );
+  }, [supervisor]);
+
+  // NEW: Track view mode (approved vs pending)
+  const [viewMode, setViewMode] = useState("approved"); // "approved" or "pending"
 
   // ADD STAFF
   const [showAddStaff, setShowAddStaff] = useState(false);
@@ -61,20 +70,12 @@ const MyStaff = () => {
   const today = new Date().toDateString();
 
   const todayEntries = entries.filter((e) => {
-    if (!supervisor?.assignedBay || !e.createdAt || !e.bayId) return false;
+    if (!supervisorBayIds.length || !e.createdAt || !e.bayId) return false;
 
     const entryDate = new Date(e.createdAt).toDateString();
-
     const entryBayId = typeof e.bayId === "string" ? e.bayId : e.bayId._id;
 
-    const supervisorBayId =
-      typeof supervisor.assignedBay === "string"
-        ? supervisor.assignedBay
-        : supervisor.assignedBay._id;
-
-    return (
-      entryDate === today && String(entryBayId) === String(supervisorBayId)
-    );
+    return entryDate === today && supervisorBayIds.includes(String(entryBayId));
   });
 
   useEffect(() => {
@@ -86,18 +87,6 @@ const MyStaff = () => {
     fetchStaff();
     fetchEntries();
   }, []);
-
-  useEffect(() => {
-    if (supervisor?.assignedBay) {
-      setForm((prev) => ({
-        ...prev,
-        assignedBay:
-          typeof supervisor.assignedBay === "string"
-            ? supervisor.assignedBay
-            : supervisor.assignedBay._id,
-      }));
-    }
-  }, [supervisor]);
 
   const saveStaff = async () => {
     try {
@@ -148,6 +137,7 @@ const MyStaff = () => {
       setLoading(false);
     }
   };
+
   const fetchEntries = async () => {
     try {
       const res = await axios.get(
@@ -156,7 +146,7 @@ const MyStaff = () => {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
           },
-        }
+        },
       );
       setEntries(res.data.entries || []);
     } catch (err) {
@@ -165,30 +155,103 @@ const MyStaff = () => {
     }
   };
 
-  const filteredStaff = staffData.filter((staff) => {
-    if (!supervisor?.assignedBay || !staff.assignedBay?._id) return false;
+  // NEW: Toggle active/inactive status
+  const toggleStaffStatus = async (staffId, currentStatus) => {
+    try {
+      await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_URL}/staff/${staffId}/toggle-status`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        },
+      );
 
-    // 🚫 HIDE PENDING STAFF
+      // Update local state
+      setStaffData((prev) =>
+        prev.map((s) =>
+          s._id === staffId ? { ...s, isActive: !currentStatus } : s,
+        ),
+      );
+
+      alert(
+        `Staff status updated to ${!currentStatus ? "Active" : "Inactive"}`,
+      );
+    } catch (err) {
+      console.error("Failed to toggle status", err);
+      alert("Failed to update status");
+    }
+  };
+
+  // NEW: Filter for approved staff
+  const approvedStaff = staffData.filter((staff) => {
+    if (!staff.assignedBay?._id) return false;
     if (staff.approvalStatus !== "approved") return false;
-
-    const supervisorBayId =
-      typeof supervisor.assignedBay === "string"
-        ? supervisor.assignedBay
-        : supervisor.assignedBay._id;
 
     const staffBayId = staff.assignedBay._id;
 
-    if (String(supervisorBayId) !== String(staffBayId)) return false;
+    if (!supervisorBayIds.includes(String(staffBayId))) return false;
 
     const matchesBay =
       filterBay === "all" || staff.assignedBay?.bayName === filterBay;
 
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      staff.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      staff.name?.toLowerCase().includes(q) ||
+      staff.email?.toLowerCase().includes(q) ||
       staff.phone?.includes(searchQuery);
 
     return matchesBay && matchesSearch;
   });
+
+  // NEW: Filter for pending staff
+  const pendingStaff = staffData.filter((staff) => {
+    if (!staff.assignedBay?._id) return false;
+    if (staff.approvalStatus !== "pending") return false;
+
+    const staffBayId = staff.assignedBay._id;
+    if (!supervisorBayIds.includes(String(staffBayId))) return false;
+
+    const matchesBay =
+      filterBay === "all" || staff.assignedBay?.bayName === filterBay;
+
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      staff.name?.toLowerCase().includes(q) ||
+      staff.email?.toLowerCase().includes(q) ||
+      staff.phone?.includes(searchQuery);
+
+    return matchesBay && matchesSearch;
+  });
+
+  // NEW: Filter for rejected staff
+  const rejectedStaff = staffData.filter((staff) => {
+    if (!staff.assignedBay?._id) return false;
+    if (staff.approvalStatus !== "rejected") return false;
+
+    const staffBayId = staff.assignedBay._id;
+    if (!supervisorBayIds.includes(String(staffBayId))) return false;
+
+    const matchesBay =
+      filterBay === "all" || staff.assignedBay?.bayName === filterBay;
+
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      staff.name?.toLowerCase().includes(q) ||
+      staff.email?.toLowerCase().includes(q) ||
+      staff.phone?.includes(searchQuery);
+
+    return matchesBay && matchesSearch;
+  });
+
+  // Use the appropriate list based on view mode
+  const filteredStaff =
+    viewMode === "approved"
+      ? approvedStaff
+      : viewMode === "pending"
+        ? pendingStaff
+        : rejectedStaff;
 
   /* ---------------- MODAL ---------------- */
   const StaffModal = ({ staff, onClose }) => {
@@ -391,9 +454,9 @@ const MyStaff = () => {
                 Supervisor–Staff Relationship
               </p>
               <p>
-                This staff member is assigned only to your bay and reports
-                exclusively to you. Performance reviews and schedules are
-                managed at supervisor level.
+                This staff member is assigned to one of your managed bays. and
+                reports exclusively to you. Performance reviews and schedules
+                are managed at supervisor level.
               </p>
             </div>
           </div>
@@ -416,21 +479,17 @@ const MyStaff = () => {
     return entries.filter((entry) => {
       if (!entry.createdBy || !entry.bayId) return false;
 
-      // normalize createdBy
       const createdById =
         typeof entry.createdBy === "object"
           ? entry.createdBy._id
           : entry.createdBy;
 
-      // normalize entry bay NAME
-      const entryBayName =
-        typeof entry.bayId === "object" ? entry.bayId.bayName : entry.bayId; // "A", "B", "C"
-
-      const staffBayName = staff.assignedBay?.bayName;
+      const entryBayId =
+        typeof entry.bayId === "object" ? entry.bayId._id : entry.bayId;
 
       return (
         String(createdById) === String(staff._id) &&
-        String(entryBayName) === String(staffBayName)
+        String(entryBayId) === String(staff.assignedBay?._id)
       );
     }).length;
   };
@@ -458,14 +517,12 @@ const MyStaff = () => {
           ? entry.createdBy._id
           : entry.createdBy;
 
-      const entryBayName =
-        typeof entry.bayId === "object" ? entry.bayId.bayName : entry.bayId;
-
-      const staffBayName = staff.assignedBay?.bayName;
+      const entryBayId =
+        typeof entry.bayId === "object" ? entry.bayId._id : entry.bayId;
 
       return (
         String(createdById) === String(staff._id) &&
-        String(entryBayName) === String(staffBayName) &&
+        String(entryBayId) === String(staff.assignedBay?._id) &&
         new Date(entry.createdAt).toDateString() === today
       );
     });
@@ -494,7 +551,6 @@ const MyStaff = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* ✅ ADD STAFF BUTTON */}
               <button
                 onClick={() => setShowAddStaff(true)}
                 className="px-4 h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-2 transition font-medium text-sm"
@@ -519,16 +575,16 @@ const MyStaff = () => {
         {/* Content */}
         <div className="px-4 md:px-8 py-4 md:py-6">
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
             <StatCard
               title="Total Staff"
-              value={filteredStaff.length}
+              value={approvedStaff.length}
               icon={<Users className="text-emerald-600" />}
             />
 
             <StatCard
               title="Active Staff"
-              value={filteredStaff.filter((s) => s.isActive).length}
+              value={approvedStaff.filter((s) => s.isActive).length}
               icon={<Activity className="text-emerald-600" />}
             />
 
@@ -537,28 +593,60 @@ const MyStaff = () => {
               value={todayEntries.length}
               icon={<TrendingUp className="text-emerald-600" />}
             />
+
+            {/* NEW: Pending Requests Stat Card - Clickable */}
+            <div
+              onClick={() =>
+                setViewMode(viewMode === "pending" ? "approved" : "pending")
+              }
+              className="cursor-pointer"
+            >
+              <StatCard
+                title="Pending Requests"
+                value={pendingStaff.length}
+                icon={<Clock className="text-orange-600" />}
+              />
+            </div>
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex gap-3 mb-6">
+            <button
+              onClick={() => setViewMode("approved")}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                viewMode === "approved"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-white text-emerald-600 border border-emerald-200"
+              }`}
+            >
+              Approved Staff ({approvedStaff.length})
+            </button>
+
+            <button
+              onClick={() => setViewMode("pending")}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                viewMode === "pending"
+                  ? "bg-orange-600 text-white"
+                  : "bg-white text-orange-600 border border-orange-200"
+              }`}
+            >
+              Pending Requests ({pendingStaff.length})
+            </button>
+
+            <button
+              onClick={() => setViewMode("rejected")}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                viewMode === "rejected"
+                  ? "bg-red-600 text-white"
+                  : "bg-white text-red-600 border border-red-200"
+              }`}
+            >
+              Rejected Staff ({rejectedStaff.length})
+            </button>
           </div>
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex gap-2 bg-white border border-emerald-100 p-1 rounded-lg">
-              {["Today", "This week", "This month"].map((v) => (
-                <button
-                  key={v}
-                  onClick={() =>
-                    setActiveView(v.toLowerCase().replace(" ", "-"))
-                  }
-                  className={`px-4 py-2 rounded-lg text-sm transition ${
-                    activeView === v.toLowerCase().replace(" ", "-")
-                      ? "bg-emerald-100 text-emerald-700 font-medium"
-                      : "text-emerald-600 hover:bg-emerald-50"
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
-
             <div className="flex flex-col sm:flex-row gap-3 sm:ml-auto">
               <div className="relative w-full sm:w-64">
                 <Search
@@ -588,88 +676,254 @@ const MyStaff = () => {
 
           {/* Table (Desktop) */}
           <div className="hidden md:block bg-white rounded-xl border border-emerald-100 shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-emerald-100">
-                <tr>
-                  {[
-                    "Name",
-                    "Phone",
-                    "Bay",
-                    "Email",
-                    "Entries",
-                    "Avg",
-                    "Status",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="px-6 py-4 text-center text-sm font-semibold text-emerald-700"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-emerald-100">
-                {filteredStaff.map((s) => (
-                  <tr
-                    key={s._id}
-                    onClick={() => setSelectedStaff(s)}
-                    className="hover:bg-emerald-50 cursor-pointer transition text-center"
-                  >
-                    <td className="px-6 py-4 font-medium text-emerald-800">
-                      {s.name}
-                    </td>
-                    <td className="px-6 py-4">{s.phone}</td>
-                    <td className="px-6 py-4">{s.assignedBay?.bayName}</td>
-                    <td className="px-6 py-4">{s.email}</td>
-                    <td className="px-6 py-4">{getStaffEntryCount(s)}</td>
-                    <td className="px-6 py-4">{s.avgTime}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          s.isActive
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-red-100 text-red-600"
-                        }`}
-                      >
-                        {s.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+  <table className="w-full">
+    <thead className="bg-emerald-100">
+      <tr>
+        {(viewMode === "approved"
+          ? [
+              "Name",
+              "Phone",
+              "Bay",
+              "Email",
+              "Entries",
+              "Avg",
+              "Status",
+              "Action",
+            ]
+          : viewMode === "pending"
+          ? [
+              "Name",
+              "Phone",
+              "Bay",
+              "Email",
+              "Requested On",
+              "Status",
+            ]
+          : [
+              "Name",
+              "Phone",
+              "Bay",
+              "Email",
+              "Rejected On",
+              "Reason",
+              "Status",
+            ]
+        ).map((h) => (
+          <th
+            key={h}
+            className="px-6 py-4 text-center text-sm font-semibold text-emerald-700"
+          >
+            {h}
+          </th>
+        ))}
+      </tr>
+    </thead>
 
-          {/* Cards (Mobile) */}
-          <div className="md:hidden space-y-4">
-            {filteredStaff.map((s) => (
-              <div
-                key={s._id}
-                onClick={() => setSelectedStaff(s)}
-                className="bg-white p-4 rounded-lg border border-emerald-100 shadow-sm"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-semibold text-emerald-800">{s.name}</p>
-                    <p className="text-sm text-emerald-600">{s.role}</p>
-                  </div>
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
-                    {s.isActive ? "Active" : "Inactive"}
-                  </span>
-                </div>
-                <div className="mt-2 text-sm text-gray-700">
-                  <p>
-                    <span className="font-medium">Bay:</span>{" "}
-                    {s.assignedBay?.bayName}
-                  </p>
-                  <p>
-                    <span className="font-medium">Phone:</span> {s.phone}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+    <tbody className="divide-y divide-emerald-100">
+      {filteredStaff.map((s) => (
+        <tr
+          key={s._id}
+          onClick={() => viewMode === "approved" && setSelectedStaff(s)}
+          className={`${
+            viewMode === "approved"
+              ? "hover:bg-emerald-50 cursor-pointer"
+              : ""
+          } transition text-center`}
+        >
+          {/* COMMON COLUMNS */}
+          <td className="px-6 py-4 font-medium text-emerald-800">
+            {s.name}
+          </td>
+          <td className="px-6 py-4">{s.phone}</td>
+          <td className="px-6 py-4">{s.assignedBay?.bayName}</td>
+          <td className="px-6 py-4">{s.email}</td>
+
+          {/* APPROVED STAFF */}
+          {viewMode === "approved" && (
+            <>
+              <td className="px-6 py-4">{getStaffEntryCount(s)}</td>
+              <td className="px-6 py-4">{s.avgTime || "—"}</td>
+              <td className="px-6 py-4">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    s.isActive
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-red-100 text-red-600"
+                  }`}
+                >
+                  {s.isActive ? "Active" : "Inactive"}
+                </span>
+              </td>
+              <td className="px-6 py-4">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleStaffStatus(s._id, s.isActive);
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition ${
+                    s.isActive
+                      ? "bg-red-100 text-red-700 hover:bg-red-200"
+                      : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                  }`}
+                >
+                  {s.isActive ? "Deactivate" : "Activate"}
+                </button>
+              </td>
+            </>
+          )}
+
+          {/* PENDING STAFF */}
+          {viewMode === "pending" && (
+            <>
+              <td className="px-6 py-4">
+                {new Date(s.createdAt).toLocaleDateString()}
+              </td>
+              <td className="px-6 py-4">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                  Pending Approval
+                </span>
+              </td>
+            </>
+          )}
+
+          {/* REJECTED STAFF */}
+          {viewMode === "rejected" && (
+            <>
+              <td className="px-6 py-4">
+                {new Date(s.updatedAt).toLocaleDateString()}
+              </td>
+              <td className="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">
+                {s.rejectionReason || "—"}
+              </td>
+              <td className="px-6 py-4">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                  Rejected
+                </span>
+              </td>
+            </>
+          )}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+
+  {filteredStaff.length === 0 && (
+    <div className="text-center py-8 text-gray-500">
+      No{" "}
+      {viewMode === "pending"
+        ? "pending requests"
+        : viewMode === "rejected"
+        ? "rejected staff"
+        : "staff"}{" "}
+      found
+    </div>
+  )}
+</div>
+  {/* Cards (Mobile) */}
+<div className="md:hidden space-y-4">
+  {filteredStaff.map((s) => (
+    <div
+      key={s._id}
+      onClick={() => viewMode === "approved" && setSelectedStaff(s)}
+      className="bg-white p-4 rounded-lg border border-emerald-100 shadow-sm"
+    >
+      {/* Header */}
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <p className="font-semibold text-emerald-800">{s.name}</p>
+          <p className="text-sm text-emerald-600">
+            {s.assignedBay?.bayName}
+          </p>
+        </div>
+
+        {/* STATUS BADGE */}
+        {viewMode === "approved" && (
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium ${
+              s.isActive
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-red-100 text-red-600"
+            }`}
+          >
+            {s.isActive ? "Active" : "Inactive"}
+          </span>
+        )}
+
+        {viewMode === "pending" && (
+          <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+            Pending
+          </span>
+        )}
+
+        {viewMode === "rejected" && (
+          <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+            Rejected
+          </span>
+        )}
+      </div>
+
+      {/* BODY */}
+      <div className="text-sm text-gray-700 space-y-1">
+        <p>
+          <span className="font-medium">Phone:</span> {s.phone}
+        </p>
+        <p>
+          <span className="font-medium">Email:</span> {s.email}
+        </p>
+
+        {viewMode === "pending" && (
+          <p>
+            <span className="font-medium">Requested On:</span>{" "}
+            {new Date(s.createdAt).toLocaleDateString()}
+          </p>
+        )}
+
+        {viewMode === "rejected" && (
+          <>
+            <p>
+              <span className="font-medium">Rejected On:</span>{" "}
+              {new Date(s.updatedAt).toLocaleDateString()}
+            </p>
+            <p className="text-red-700">
+              <span className="font-medium">Reason:</span>{" "}
+              {s.rejectionReason || "—"}
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* ACTION (APPROVED ONLY) */}
+      {viewMode === "approved" && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleStaffStatus(s._id, s.isActive);
+          }}
+          className={`mt-3 w-full px-3 py-2 rounded-lg text-xs font-medium transition ${
+            s.isActive
+              ? "bg-red-100 text-red-700"
+              : "bg-emerald-100 text-emerald-700"
+          }`}
+        >
+          {s.isActive ? "Deactivate" : "Activate"}
+        </button>
+      )}
+    </div>
+  ))}
+
+  {filteredStaff.length === 0 && (
+    <div className="text-center py-8 text-gray-500">
+      No{" "}
+      {viewMode === "pending"
+        ? "pending requests"
+        : viewMode === "rejected"
+        ? "rejected staff"
+        : "staff"}{" "}
+      found
+    </div>
+  )}
+</div>
+
         </div>
       </div>
 
@@ -685,7 +939,6 @@ const MyStaff = () => {
       {showAddStaff && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden">
-            {/* Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-emerald-100">
               <h2 className="font-semibold text-emerald-800">Add New Staff</h2>
               <button
@@ -696,7 +949,6 @@ const MyStaff = () => {
               </button>
             </div>
 
-            {/* Body */}
             <div className="px-6 py-5 space-y-4 text-sm max-h-[70vh] overflow-y-auto">
               <Field
                 label="Full Name"
@@ -727,20 +979,27 @@ const MyStaff = () => {
                 error={errors.password}
               />
 
-              {/* Assigned Bay (Read Only) */}
               <div>
                 <label className="block mb-1 font-medium text-emerald-700">
                   Assigned Bay
                 </label>
-                <input
-                  disabled
-                  value={supervisor?.assignedBay?.bayName || ""}
-                  className="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-emerald-800"
-                />
+                <select
+                  value={form.assignedBay}
+                  onChange={(e) =>
+                    setForm({ ...form, assignedBay: e.target.value })
+                  }
+                  className="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2"
+                >
+                  <option value="">Select Bay</option>
+                  {supervisor?.managedBays?.map((bay) => (
+                    <option key={bay._id} value={bay._id}>
+                      {bay.bayName}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* Footer */}
             <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3 bg-emerald-50/40">
               <button
                 onClick={() => setShowAddStaff(false)}
@@ -787,20 +1046,6 @@ const Field = ({ label, error, ...props }) => (
                  }`}
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-  </div>
-);
-const Info = ({ label, value }) => (
-  <div>
-    <p className="text-gray-400">{label}</p>
-    <p className="font-medium text-gray-800">{value || "—"}</p>
-  </div>
-);
-
-const Metric = ({ label, value, note }) => (
-  <div>
-    <p className="text-gray-400">{label}</p>
-    <p className="font-medium text-gray-800">{value}</p>
-    <p className="text-gray-400">{note}</p>
   </div>
 );
 

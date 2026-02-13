@@ -24,6 +24,9 @@ const vendorSchema = yup.object().shape({
     .string()
     .matches(/^[A-Za-z0-9]+$/, "Only letters & numbers allowed")
     .required("Shop ID is required"),
+
+  Category: yup.string().required("Category is required"),
+
   floorNo: yup
     .string()
     .matches(/^[0-9]+$/, "Only numbers allowed")
@@ -36,6 +39,10 @@ const vendorSchema = yup.object().shape({
 
 export default function VendorManagement() {
   const [vendors, setVendors] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -49,6 +56,7 @@ export default function VendorManagement() {
     contactPerson: "",
     mobile: "",
     shopId: "",
+    Category: "",
     floorNo: "",
     crNo: "",
   });
@@ -61,6 +69,7 @@ export default function VendorManagement() {
   /* ================= FETCH ================= */
   useEffect(() => {
     fetchVendors();
+    fetchCategories();
   }, []);
 
   const fetchVendors = async () => {
@@ -68,7 +77,7 @@ export default function VendorManagement() {
       setLoading(true);
       const res = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/vendors`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setVendors(res.data.vendors || []);
     } catch (err) {
@@ -78,12 +87,21 @@ export default function VendorManagement() {
     }
   };
 
+  const fetchCategories = async () => {
+    const res = await axios.get(
+      `${process.env.NEXT_PUBLIC_API_URL}/vendors/categories/list`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    setCategories(res.data.categories || []);
+  };
+
   /* ================= SEARCH ================= */
   const filteredVendors = vendors.filter((v) =>
     [v.companyName, v.contactPerson, v.mobile, v.shopId, v.crNo]
       .join(" ")
       .toLowerCase()
-      .includes(search.toLowerCase())
+      .includes(search.toLowerCase()),
   );
 
   /* ================= VALIDATION ================= */
@@ -109,7 +127,7 @@ export default function VendorManagement() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      toast.success("Vendor created successfully");
+      toast.success("Tenant created successfully");
       closeModal();
       fetchVendors();
     } catch (err) {
@@ -117,7 +135,7 @@ export default function VendorManagement() {
         // 👇 THIS shows "Vendor already exists"
         toast.error(err.response.data.message);
       } else {
-        toast.error("Failed to create vendor");
+        toast.error("Failed to create Tenant");
       }
     }
   };
@@ -127,7 +145,7 @@ export default function VendorManagement() {
     await axios.put(
       `${process.env.NEXT_PUBLIC_API_URL}/vendors/${editId}`,
       form,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` } },
     );
     closeModal();
     fetchVendors();
@@ -137,7 +155,7 @@ export default function VendorManagement() {
     await axios.patch(
       `${process.env.NEXT_PUBLIC_API_URL}/vendors/${id}/status`,
       {},
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` } },
     );
     fetchVendors();
   };
@@ -145,7 +163,7 @@ export default function VendorManagement() {
   const deleteVendor = async () => {
     await axios.delete(
       `${process.env.NEXT_PUBLIC_API_URL}/vendors/${selected._id}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` } },
     );
     setConfirmDelete(false);
     fetchVendors();
@@ -155,8 +173,11 @@ export default function VendorManagement() {
     setShowAdd(false);
     setEditId(null);
     setErrors({});
+    setCategorySearch("");              // ✅ ADD
+  setShowCategoryDropdown(false);
     setForm({
       companyName: "",
+      Category: "",
       contactPerson: "",
       mobile: "",
       shopId: "",
@@ -174,7 +195,7 @@ export default function VendorManagement() {
           <h1 className="text-xl font-semibold text-emerald-800">
             Tenant Management
           </h1>
-          <p className="text-sm text-emerald-600">Manage vendor profiles</p>
+          <p className="text-sm text-emerald-600">Manage Tenant profiles</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -186,7 +207,7 @@ export default function VendorManagement() {
             <input
               className="w-full bg-white border border-emerald-200 pl-9 pr-3 py-2 rounded-lg text-sm
                          focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="Search vendors"
+              placeholder="Search Tenants"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -197,16 +218,16 @@ export default function VendorManagement() {
             className="px-4 h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg
                        flex items-center justify-center gap-2 transition"
           >
-            <Plus size={16} /> Add Vendor
+            <Plus size={16} /> Add Tenant
           </button>
         </div>
       </div>
 
       {/* STATS */}
       <div className="px-4 sm:px-6 py-6 grid grid-cols-2 sm:grid-cols-2 gap-3">
-        <Stat title="Total Vendors" value={vendors.length} icon={Users} />
+        <Stat title="Total Tenants" value={vendors.length} icon={Users} />
         <Stat
-          title="Active Vendors"
+          title="Active Tenants"
           value={vendors.filter((v) => v.status === "active").length}
           icon={Activity}
         />
@@ -223,6 +244,7 @@ export default function VendorManagement() {
                   "ShopId",
                   "FloorNo",
                   "Company",
+                  "Category",
                   "Contact",
                   "Mobile",
                   "Status",
@@ -245,6 +267,7 @@ export default function VendorManagement() {
                   <td className="px-6 py-4">{v.shopId}</td>
                   <td className="px-6 py-4">{v.floorNo}</td>
                   <td className="px-6 py-4">{v.companyName}</td>
+                  <td className="px-6 py-4">{v.Category}</td>
                   <td className="px-6 py-4">{v.contactPerson}</td>
                   <td className="px-6 py-4">{v.mobile}</td>
 
@@ -269,11 +292,13 @@ export default function VendorManagement() {
                           setForm({
                             crNo: v.crNo,
                             companyName: v.companyName,
+                            Category: v.Category,
                             contactPerson: v.contactPerson,
                             mobile: v.mobile,
                             shopId: v.shopId,
                             floorNo: v.floorNo,
                           });
+                          setCategorySearch(v.Category);
                           setShowAdd(true);
                         }}
                         className="text-emerald-600 hover:scale-110 transition"
@@ -330,6 +355,10 @@ export default function VendorManagement() {
               <b>Contact:</b> {v.contactPerson}
             </p>
             <p className="text-sm text-emerald-700">
+              <b>Category:</b> {v.Category}
+            </p>
+
+            <p className="text-sm text-emerald-700">
               <b>Mobile:</b> {v.mobile}
             </p>
 
@@ -338,7 +367,16 @@ export default function VendorManagement() {
                 className="text-emerald-600"
                 onClick={() => {
                   setEditId(v._id);
-                  setForm(v);
+                  setForm({
+                    crNo: v.crNo,
+                    companyName: v.companyName,
+                    contactPerson: v.contactPerson,
+                    mobile: v.mobile,
+                    shopId: v.shopId,
+                    floorNo: v.floorNo,
+                    Category: v.Category,
+                  });
+                  setCategorySearch(v.Category);
                   setShowAdd(true);
                 }}
               />
@@ -357,12 +395,17 @@ export default function VendorManagement() {
       {/* MODALS */}
       {showAdd && (
         <Modal
-          title={editId ? "Edit Vendor" : "Add Vendor"}
+          title={editId ? "Edit Tenant" : "Add Tenant"}
           onClose={closeModal}
           onSubmit={editId ? updateVendor : submitVendor}
           form={form}
           setForm={setForm}
           errors={errors}
+          categories={categories}
+          categorySearch={categorySearch}
+          setCategorySearch={setCategorySearch}
+          showCategoryDropdown={showCategoryDropdown}
+          setShowCategoryDropdown={setShowCategoryDropdown}
         />
       )}
 
@@ -388,7 +431,19 @@ const Stat = ({ title, value, icon: Icon }) => (
   </div>
 );
 
-const Modal = ({ title, onClose, onSubmit, form, setForm, errors }) => (
+const Modal = ({
+  title,
+  onClose,
+  onSubmit,
+  form,
+  setForm,
+  errors,
+  categories,
+  categorySearch,
+  setCategorySearch,
+  showCategoryDropdown,
+  setShowCategoryDropdown,
+}) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div className="bg-white rounded-xl w-full max-w-md">
       <div className="px-6 py-4 border-b border-emerald-100 flex justify-between">
@@ -397,23 +452,121 @@ const Modal = ({ title, onClose, onSubmit, form, setForm, errors }) => (
       </div>
 
       <div className="p-6 space-y-4">
-        {[
-          "companyName",
-          "crNo",
-          "contactPerson",
-          "mobile",
-          "shopId",
-          "floorNo",
-        ].map((f) => (
-          <Field
-            key={f}
-            label={f}
-            name={f}
-            form={form}
-            setForm={setForm}
-            error={errors[f]}
-          />
-        ))}
+        <Field
+          label="Company Name"
+          name="companyName"
+          form={form}
+          setForm={setForm}
+          error={errors.companyName}
+        />
+
+        <Field
+          label="Registration No"
+          name="crNo"
+          form={form}
+          setForm={setForm}
+          error={errors.crNo}
+        />
+
+        <Field
+          label="Contact Person"
+          name="contactPerson"
+          form={form}
+          setForm={setForm}
+          error={errors.contactPerson}
+        />
+
+        <Field
+          label="Mobile"
+          name="mobile"
+          form={form}
+          setForm={setForm}
+          error={errors.mobile}
+        />
+
+        <Field
+          label="Shop ID"
+          name="shopId"
+          form={form}
+          setForm={setForm}
+          error={errors.shopId}
+        />
+
+        <Field
+          label="Floor No"
+          name="floorNo"
+          form={form}
+          setForm={setForm}
+          error={errors.floorNo}
+        />
+
+        {/* ✅ CATEGORY DROPDOWN */}
+        <div>
+          <div className="relative">
+            <label className="block text-sm text-emerald-700 mb-1">
+              Category
+            </label>
+
+            <input
+              type="text"
+              value={categorySearch}
+              onFocus={() => setShowCategoryDropdown(true)}
+              onChange={(e) => {
+                setCategorySearch(e.target.value);
+                setForm({ ...form, Category: e.target.value });
+                setShowCategoryDropdown(true);
+              }}
+              placeholder="Select or type category"
+              className="w-full border border-emerald-200 rounded-lg px-3 py-2
+               focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            />
+
+            {showCategoryDropdown && (
+              <div className="bg-white border border-gray-200 mt-1 rounded-lg shadow-lg max-h-48 overflow-auto absolute w-full z-50">
+                {categories
+                  .filter((c) =>
+                    c.toLowerCase().includes(categorySearch.toLowerCase()),
+                  )
+                  .map((c) => (
+                    <div
+                      key={c}
+                      onClick={() => {
+                        setForm({ ...form, Category: c });
+                        setCategorySearch(c);
+                        setShowCategoryDropdown(false);
+                      }}
+                      className="px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                    >
+                      {c.charAt(0).toUpperCase() + c.slice(1)}
+                    </div>
+                  ))}
+
+                {categorySearch &&
+                  !categories.some(
+                    (c) => c.toLowerCase() === categorySearch.toLowerCase(),
+                  ) && (
+                    <div
+                      onClick={() => {
+                        const newCategory = categorySearch.trim().toLowerCase();
+                        setForm({ ...form, Category: newCategory });
+                        setCategorySearch(newCategory);
+                        setShowCategoryDropdown(false);
+                      }}
+                      className="px-4 py-2 bg-gray-50 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-0 text-green-700 font-medium"
+                    >
+                      ➕ Add "{categorySearch}" as new category
+                    </div>
+                  )}
+              </div>
+            )}
+
+            {errors.Category && (
+              <p className="text-red-600 text-xs mt-1">{errors.Category}</p>
+            )}
+          </div>
+
+          
+        </div>
       </div>
 
       <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3">
@@ -437,7 +590,7 @@ const Modal = ({ title, onClose, onSubmit, form, setForm, errors }) => (
 const ConfirmDelete = ({ onCancel, onDelete }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div className="bg-white rounded-xl p-6 w-80">
-      <h3 className="font-semibold text-emerald-800 mb-2">Delete Vendor?</h3>
+      <h3 className="font-semibold text-emerald-800 mb-2">Delete Tenant?</h3>
       <p className="text-sm text-emerald-600 mb-4">
         This action cannot be undone.
       </p>

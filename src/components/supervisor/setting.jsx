@@ -1,15 +1,25 @@
 "use client";
-import Sidebar from "./sidebar";
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import * as yup from "yup";
-import { ChevronDown } from "lucide-react";
+import Sidebar from "./sidebar";
+
+/* ================= SECTIONS ================= */
+const SECTIONS = [{ id: "profile", label: "Edit Profile", icon: "👤" }];
 
 export default function SupervisorSettings() {
-  const [saving, setSaving] = useState(false);
+  const [activePage, setActivePage] = useState("settings");
+  const [active, setActive] = useState("profile");
   const [errors, setErrors] = useState({});
   const [user, setUser] = useState(null);
-  const [bays, setBays] = useState([]);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
@@ -20,54 +30,19 @@ export default function SupervisorSettings() {
     if (u) setUser(JSON.parse(u));
   }, []);
 
-  useEffect(() => {
-    if (user?.assignedBay) {
-      setBays([user.assignedBay]);
-      setStaff((prev) => ({
-        ...prev,
-        assignedBay:
-          typeof user.assignedBay === "object"
-            ? user.assignedBay._id
-            : user.assignedBay,
-      }));
-    }
-  }, [user]);
-
-  /* ================= FORMS ================= */
-  const [profile, setProfile] = useState({ 
-    name: "", 
-    email: "",
-    phone: "" 
-  });
-  
-  const [staff, setStaff] = useState({
+  /* ================= FORM ================= */
+  const [profile, setProfile] = useState({
     name: "",
     email: "",
     phone: "",
-    password: "",
-    assignedBay: "",
-  });
-
-  // Notification preferences
-  const [notifications, setNotifications] = useState({
-    bayAlerts: true,
-    staffPerformance: true,
-    preferredChannel: "in-app"
-  });
-
-  // Workspace preferences
-  const [workspace, setWorkspace] = useState({
-    defaultView: "supervisor",
-    timeWindow: "today",
-    language: "English (Qatar)"
   });
 
   useEffect(() => {
     if (user) {
-      setProfile({ 
-        name: user.name, 
-        email: user.email,
-        phone: user.phone || ""
+      setProfile({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
       });
     }
   }, [user]);
@@ -79,493 +54,428 @@ export default function SupervisorSettings() {
       .matches(/^[A-Za-z ]+$/, "Only alphabets allowed")
       .required("Name is required"),
     email: yup.string().email("Invalid email").required("Email is required"),
-    phone: yup.string().matches(/^[0-9+\s()-]*$/, "Invalid phone format")
-  });
-
-  const staffSchema = yup.object({
-    name: yup
-      .string()
-      .matches(/^[A-Za-z ]+$/, "Only alphabets allowed")
-      .required("Name is required"),
-    email: yup.string().email("Invalid email").required("Email is required"),
     phone: yup
       .string()
       .matches(/^[0-9]{10}$/, "Phone must be 10 digits")
       .required("Phone is required"),
-    password: yup
-      .string()
-      .min(6, "Minimum 6 characters")
-      .required("Password is required"),
-    assignedBay: yup.string().required("Assigned bay is required"),
   });
 
-  /* ================= SUBMIT ================= */
+  const passwordSchema = yup.object().shape({
+    currentPassword: yup.string().required("Current password is required"),
+    newPassword: yup
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .required("New password is required"),
+  });
+
+  /* ================= SUBMIT PROFILE ================= */
   const submitProfile = async () => {
-  try {
-    setErrors({});
-    await profileSchema.validate(profile, { abortEarly: false });
-
-    setSaving(true);
-
-    const res = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/supervisors/profile`,
-      profile,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    // ✅ MUST come from backend
-    localStorage.setItem("user", JSON.stringify(res.data.user));
-    setUser(res.data.user);
-
-    alert("Profile updated successfully");
-  } catch (err) {
-    if (err.inner) {
-      const e = {};
-      err.inner.forEach((x) => (e[x.path] = x.message));
-      setErrors(e);
-    } else {
-      console.error(err);
-      alert(err.response?.data?.message || "Profile update failed");
-    }
-  } finally {
-    setSaving(false);
-  }
-};
-
-
-  const submitStaff = async () => {
     try {
       setErrors({});
-      await staffSchema.validate(staff, { abortEarly: false });
+      await profileSchema.validate(profile, { abortEarly: false });
 
-      setSaving(true);
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/staff`, staff, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      setProfileSaving(true);
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/users/profile`,
+        {
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      alert("Staff added. Waiting for admin approval.");
-      
-      setStaff({
-        name: "",
-        email: "",
-        phone: "",
-        password: "",
-        assignedBay: user?.assignedBay?._id || "",
-      });
+      alert("Profile updated successfully");
+
+      // update local storage
+      const updatedUser = {
+        ...JSON.parse(localStorage.getItem("user")),
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
     } catch (err) {
       if (err.inner) {
         const e = {};
         err.inner.forEach((x) => (e[x.path] = x.message));
         setErrors(e);
       } else {
-        alert(err.response?.data?.message || "Failed");
+        alert(err.response?.data?.message || "Update failed");
       }
     } finally {
-      setSaving(false);
+      setProfileSaving(false);
     }
   };
 
-  const saveNotifications = async () => {
+  /* ================= UPDATE PASSWORD ================= */
+  const updatePassword = async () => {
     try {
-      setSaving(true);
-      await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/users/notifications`, notifications, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      alert("Notification preferences updated");
-    } catch (err) {
-      alert("Failed to update notifications");
-    } finally {
-      setSaving(false);
-    }
-  };
+      setErrors({});
+      await passwordSchema.validate(passwordForm, { abortEarly: false });
 
-  const saveWorkspace = async () => {
-    try {
-      setSaving(true);
-      await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/users/workspace`, workspace, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      alert("Workspace preferences saved");
+      setPasswordSaving(true);
+
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/users/update-password`,
+        passwordForm,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert("Password updated. Please login again.");
+      localStorage.clear();
+      window.location.href = "/login";
     } catch (err) {
-      alert("Failed to save preferences");
+      if (err.inner) {
+        const e = {};
+        err.inner.forEach((x) => (e[x.path] = x.message));
+        setErrors(e);
+      } else {
+        alert(err.response?.data?.message || "Password update failed");
+      }
     } finally {
-      setSaving(false);
+      setPasswordSaving(false);
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="flex-1">
+    <div className="flex min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
+      <Sidebar activePage={activePage} onPageChange={setActivePage} />
+
+      <div className="flex-1 flex flex-col w-full min-w-0">
         {/* ================= HEADER ================= */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">My Settings</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage your supervisor profile, notifications, and preferences for staff and bays you oversee.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="font-medium text-gray-900">{user?.name || "Supervisor"}</p>
-                <p className="text-xs text-gray-500">{user?.role || "Supervisor"}</p>
+        <header className="bg-white/80 backdrop-blur-md border-b border-emerald-100 shadow-sm">
+          <div className="px-4 sm:px-6 py-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-emerald-900">
+                  Supervisor Settings
+                </h1>
+                <p className="text-xs sm:text-sm text-emerald-600 mt-1">
+                  Manage your profile and account settings
+                </p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-semibold">
-                {user?.name?.charAt(0) || "S"}
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="hidden sm:block text-right">
+                  <p className="text-sm font-medium text-emerald-900">
+                    {user?.name || "Supervisor"}
+                  </p>
+                  <p className="text-xs text-emerald-600 capitalize">
+                    {user?.role || "Supervisor"}
+                  </p>
+                </div>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-700 flex items-center justify-center shadow-md">
+                  <span className="text-white font-bold text-base sm:text-lg">
+                    {user?.name?.charAt(0) || "S"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </header>
 
-        {/* ================= CONTENT ================= */}
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* LEFT COLUMN - Profile & Security */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Profile & Contact */}
-              <Section
-                title="Profile & contact"
-                subtitle="Basic information about access points and staff panels."
-                badge="Supervisor"
-              >
-                <Input
-                  label="Full name"
-                  value={profile.name}
-                  onChange={(v) => setProfile({ ...profile, name: v })}
-                  error={errors.name}
-                />
-                
-                <Input
-                  label="Mobile number"
-                  value={profile.phone}
-                  onChange={(v) => setProfile({ ...profile, phone: v })}
-                  error={errors.phone}
-                />
-                
-                <Input
-                  label="Email"
-                  value={profile.email}
-                  onChange={(v) => setProfile({ ...profile, email: v })}
-                  error={errors.email}
-                />
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Assigned bays
-                  </label>
-                  <div className="relative">
-                    <input
-                      value={bays.map(b => typeof b === 'object' ? b.bayName : b).join(", ") || "No bays assigned"}
-                      disabled
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 cursor-not-allowed"
-                    />
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Real-time view and manage activity for bays assigned to you.
-                  </p>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4">
-                  <button className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
-                    Cancel
-                  </button>
-                  <button
-                    onClick={submitProfile}
-                    disabled={saving}
-                    className="px-6 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition"
-                  >
-                    {saving ? "Saving..." : "Save profile"}
-                  </button>
-                </div>
-              </Section>
-
-              {/* Access & Security */}
-              <Section
-                title="Access & security"
-                subtitle="Manage login details and see where your account is active."
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="password"
-                      value="••••••••"
-                      disabled
-                      className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 bg-gray-50"
-                    />
-                    <button className="px-4 py-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                      Change
-                    </button>
+        {/* ================= MAIN CONTENT ================= */}
+        <div className="flex-1 overflow-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
+              {/* ================= SIDEBAR ================= */}
+              <aside className="lg:col-span-1">
+                <div className="bg-white rounded-xl sm:rounded-2xl border border-emerald-100 p-3 sm:p-4 shadow-lg lg:sticky lg:top-6">
+                  <div className="space-y-1 sm:space-y-2">
+                    {SECTIONS.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          setActive(s.id);
+                          setErrors({});
+                        }}
+                        className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
+                          active === s.id
+                            ? "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-md scale-105"
+                            : "text-emerald-700 hover:bg-emerald-50 hover:scale-102"
+                        }`}
+                      >
+                        <span className="text-base sm:text-lg">{s.icon}</span>
+                        <span>{s.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
+              </aside>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Two-step verification
-                  </label>
-                  <div className="space-y-3">
+              {/* ================= CONTENT ================= */}
+              <section className="lg:col-span-4">
+                <div className="bg-white rounded-xl sm:rounded-2xl border border-emerald-100 shadow-lg p-4 sm:p-6 md:p-8">
+                  {active === "profile" && (
                     <div>
-                      <p className="text-sm text-gray-700 font-medium">SMS code</p>
-                      <p className="text-xs text-gray-500">Recommended for supervisor accounts.</p>
-                    </div>
-                    
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <p className="text-sm font-medium text-gray-700 mb-3">Active sessions</p>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-sm text-gray-900">Desktop browser - This device</p>
-                            <p className="text-xs text-gray-500">Last active: just now</p>
-                          </div>
-                          <span className="text-xs text-emerald-600 font-medium">Current</span>
+                      <div className="mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-emerald-100">
+                        <h2 className="text-xl sm:text-2xl font-bold text-emerald-900">
+                          Edit Profile
+                        </h2>
+                        <p className="text-xs sm:text-sm text-emerald-600 mt-2">
+                          Update your personal information and security settings
+                        </p>
+                      </div>
+
+                      {/* Profile Information Card */}
+                      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-emerald-100">
+                        <h3 className="text-base sm:text-lg font-semibold text-emerald-900 mb-3 sm:mb-4">
+                          Personal Information
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                          <Input
+                            label="Full Name"
+                            value={profile.name}
+                            error={errors.name}
+                            onChange={(v) => setProfile({ ...profile, name: v })}
+                          />
+                          <Input
+                            label="Email Address"
+                            value={profile.email}
+                            error={errors.email}
+                            onChange={(v) => setProfile({ ...profile, email: v })}
+                          />
+                          <Input
+                            label="Phone Number"
+                            value={profile.phone}
+                            error={errors.phone}
+                            onChange={(v) => setProfile({ ...profile, phone: v })}
+                          />
                         </div>
-                        <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                        <div className="flex justify-end mt-4 sm:mt-6">
+                          <button
+                            onClick={submitProfile}
+                            disabled={profileSaving}
+                            className="w-full sm:w-auto px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm sm:text-base font-medium hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            {profileSaving ? (
+                              <span className="flex items-center justify-center gap-2">
+                                <svg
+                                  className="animate-spin h-4 w-4"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                    fill="none"
+                                  />
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  />
+                                </svg>
+                                Updating...
+                              </span>
+                            ) : (
+                              "Update Profile"
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Security Settings Card */}
+                      <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 sm:p-6 border border-amber-200">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                           <div>
-                            <p className="text-sm text-gray-900">Mobile browser</p>
-                            <p className="text-xs text-gray-500">Last active: 3 hours ago</p>
+                            <h3 className="text-base sm:text-lg font-semibold text-emerald-900 mb-1">
+                              Security Settings
+                            </h3>
+                            <p className="text-xs sm:text-sm text-emerald-600">
+                              Keep your account secure by updating your password regularly
+                            </p>
                           </div>
-                          <button className="text-xs text-gray-600 hover:text-gray-900">Sign out</button>
+                          <button
+                            onClick={() => {
+                              setShowPasswordModal(true);
+                              setErrors({});
+                              setPasswordForm({
+                                currentPassword: "",
+                                newPassword: "",
+                              });
+                            }}
+                            className="w-full sm:w-auto px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-white border-2 border-emerald-600 text-emerald-700 text-sm sm:text-base font-medium hover:bg-emerald-50 transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
+                          >
+                            🔒 Change Password
+                          </button>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-              </Section>
-            </div>
-
-            {/* RIGHT COLUMN - Notifications & Workspace */}
-            <div className="space-y-6">
-              {/* Notification Preferences */}
-              <Section
-                title="Notification preferences"
-                subtitle="Choose what you get notified about staff and bay activity."
-              >
-                <Toggle
-                  label="Bay alerts"
-                  description="Get alerts when queues build up at your bays."
-                  checked={notifications.bayAlerts}
-                  onChange={(v) => setNotifications({ ...notifications, bayAlerts: v })}
-                />
-
-                <Toggle
-                  label="Staff performance notifications"
-                  description="Daily summary of entries captured by your staff."
-                  checked={notifications.staffPerformance}
-                  onChange={(v) => setNotifications({ ...notifications, staffPerformance: v })}
-                />
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preferred channel
-                  </label>
-                  <p className="text-xs text-gray-500 mb-3">Where we send important updates.</p>
-                  <div className="flex gap-2">
-                    <ChannelButton
-                      label="In-app only"
-                      active={notifications.preferredChannel === "in-app"}
-                      onClick={() => setNotifications({ ...notifications, preferredChannel: "in-app" })}
-                    />
-                    <ChannelButton
-                      label="Email"
-                      active={notifications.preferredChannel === "email"}
-                      onClick={() => setNotifications({ ...notifications, preferredChannel: "email" })}
-                    />
-                    <ChannelButton
-                      label="SMS"
-                      active={notifications.preferredChannel === "sms"}
-                      onClick={() => setNotifications({ ...notifications, preferredChannel: "sms" })}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-4">
-                  <button
-                    onClick={saveNotifications}
-                    disabled={saving}
-                    className="px-6 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition"
-                  >
-                    {saving ? "Updating..." : "Update alerts"}
-                  </button>
-                </div>
-              </Section>
-
-              {/* Workspace Preferences */}
-              <Section
-                title="Workspace preferences"
-                subtitle="Control what you see for your staff and bays."
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Default view
-                  </label>
-                  <div className="flex gap-2">
-                    <ViewButton
-                      label="Supervisor overview"
-                      active={workspace.defaultView === "supervisor"}
-                      onClick={() => setWorkspace({ ...workspace, defaultView: "supervisor" })}
-                    />
-                    <ViewButton
-                      label="My staff"
-                      active={workspace.defaultView === "staff"}
-                      onClick={() => setWorkspace({ ...workspace, defaultView: "staff" })}
-                    />
-                    <ViewButton
-                      label="My bays"
-                      active={workspace.defaultView === "bays"}
-                      onClick={() => setWorkspace({ ...workspace, defaultView: "bays" })}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Time window for metrics
-                  </label>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Affects charts and tables in your supervisor dashboards.
-                  </p>
-                  <select
-                    value={workspace.timeWindow}
-                    onChange={(e) => setWorkspace({ ...workspace, timeWindow: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="today">Today</option>
-                    <option value="week">This week</option>
-                    <option value="month">This month</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Language & region
-                  </label>
-                  <select
-                    value={workspace.language}
-                    onChange={(e) => setWorkspace({ ...workspace, language: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="English (Qatar)">English (Qatar)</option>
-                    <option value="Arabic">Arabic</option>
-                    <option value="English (US)">English (US)</option>
-                  </select>
-                </div>
-
-                <div className="flex justify-end pt-4">
-                  <button
-                    onClick={saveWorkspace}
-                    disabled={saving}
-                    className="px-6 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition"
-                  >
-                    {saving ? "Saving..." : "Save preferences"}
-                  </button>
-                </div>
-              </Section>
+              </section>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ================= PASSWORD MODAL ================= */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 sm:px-6 py-4 sm:py-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                    <span className="text-xl sm:text-2xl">🔒</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold text-white">
+                      Change Password
+                    </h3>
+                    <p className="text-emerald-100 text-xs sm:text-sm mt-0.5">
+                      Update your account password
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setErrors({});
+                    setPasswordForm({
+                      currentPassword: "",
+                      newPassword: "",
+                    });
+                  }}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  <svg
+                    className="w-5 h-5 sm:w-6 sm:h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
+              <Input
+                label="Current Password"
+                type="password"
+                value={passwordForm.currentPassword}
+                error={errors.currentPassword}
+                onChange={(v) =>
+                  setPasswordForm({ ...passwordForm, currentPassword: v })
+                }
+              />
+
+              <Input
+                label="New Password"
+                type="password"
+                value={passwordForm.newPassword}
+                error={errors.newPassword}
+                onChange={(v) =>
+                  setPasswordForm({ ...passwordForm, newPassword: v })
+                }
+              />
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 sm:p-4">
+                <div className="flex gap-2 sm:gap-3">
+                  <span className="text-amber-600 text-lg sm:text-xl">⚠️</span>
+                  <div>
+                    <p className="text-xs sm:text-sm font-medium text-amber-900">
+                      Security Notice
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-amber-700 mt-1">
+                      You will be logged out after changing your password and
+                      need to login again with the new credentials.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-4 sm:px-6 py-4 sm:py-5 bg-gray-50 border-t border-gray-200 flex gap-2 sm:gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setErrors({});
+                  setPasswordForm({
+                    currentPassword: "",
+                    newPassword: "",
+                  });
+                }}
+                className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl border-2 border-gray-300 text-gray-700 text-sm sm:text-base font-medium hover:bg-gray-100 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={updatePassword}
+                disabled={passwordSaving}
+                className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm sm:text-base font-medium hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+              >
+                {passwordSaving ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Updating...
+                  </span>
+                ) : (
+                  "Update Password"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ================= UI COMPONENTS ================= */
 
-function Section({ title, subtitle, badge, children }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-            <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
-          </div>
-          {badge && (
-            <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
-              {badge}
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="px-6 py-5 space-y-5">
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function Input({ label, value, onChange, type = "text", error }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-xs sm:text-sm font-semibold text-emerald-800 mb-1.5 sm:mb-2">
         {label}
       </label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full px-4 py-2.5 rounded-lg border ${
-          error ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-emerald-500"
-        } focus:outline-none focus:ring-2 transition`}
-      />
-      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
-    </div>
-  );
-}
-
-function Toggle({ label, description, checked, onChange }) {
-  return (
-    <div className="flex items-start justify-between">
-      <div className="flex-1">
-        <p className="text-sm font-medium text-gray-900">{label}</p>
-        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
-      </div>
-      <button
-        onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-          checked ? "bg-emerald-600" : "bg-gray-300"
+        className={`w-full h-10 sm:h-12 rounded-xl px-3 sm:px-4 border-2 bg-white text-sm sm:text-base focus:outline-none focus:ring-2 transition-all ${
+          error
+            ? "border-red-400 focus:ring-red-300"
+            : "border-emerald-200 focus:ring-emerald-300 focus:border-emerald-400"
         }`}
-      >
-        <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-            checked ? "translate-x-6" : "translate-x-1"
-          }`}
-        />
-      </button>
+        placeholder={`Enter ${label.toLowerCase()}`}
+      />
+      {error && <p className="text-red-600 text-xs mt-1.5 sm:mt-2 font-medium">{error}</p>}
     </div>
-  );
-}
-
-function ChannelButton({ label, active, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-        active
-          ? "bg-emerald-600 text-white"
-          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function ViewButton({ label, active, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition ${
-        active
-          ? "bg-emerald-600 text-white"
-          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-      }`}
-    >
-      {label}
-    </button>
   );
 }

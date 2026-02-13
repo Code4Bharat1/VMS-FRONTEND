@@ -252,9 +252,9 @@ export default function StaffDashboardPage() {
     {e.visitorCompany || "--"}
   </td>
 
-  {/* Tenants */}
-  <td className="px-6 py-4 text-sm">
-  {e.vendorId?.companyName || "--"}
+ {/* Tenants */}
+<td className="px-6 py-4 text-sm">
+  {e.tenantName || "--"}
 </td>
 
 
