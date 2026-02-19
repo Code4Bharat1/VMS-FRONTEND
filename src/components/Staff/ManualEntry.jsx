@@ -32,17 +32,7 @@ const getCroppedImage = async (imageSrc, crop) => {
   canvas.height = height;
 
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(
-    image,
-    crop.x,
-    crop.y,
-    crop.width,
-    crop.height,
-    0,
-    0,
-    width,
-    height
-  );
+  ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, width, height);
 
   return canvas.toDataURL("image/jpeg", 0.9);
 };
@@ -60,6 +50,73 @@ const isBlurry = async (base64) => {
   for (let i = 0; i < data.length; i += 4) sum += data[i];
   return sum / (data.length / 4) < 20;
 };
+
+/* ================= VALIDATION SCHEMA ================= */
+
+const schema = yup.object().shape({
+  // Only letters and spaces allowed — no numbers, no special chars
+  visitorName: yup
+    .string()
+    .trim()
+    .matches(/^[A-Za-z\s]+$/, "Visitor name must contain letters only")
+    .min(3, "Visitor name must be at least 3 characters")
+    .max(100, "Visitor name must not exceed 100 characters")
+    .required("Visitor name is required"),
+
+  // Qatar QID: exactly 11 digits
+  qidNumber: yup
+    .string()
+    .trim()
+    .matches(/^\d{11}$/, "QID must be exactly 11 digits")
+    .required("QID number is required"),
+
+  // Mobile: starts with +, country code + digits, 7–15 digits total
+  mobile: yup
+    .string()
+    .trim()
+    .matches(
+      /^\+?[0-9]{7,15}$/,
+      "Enter a valid mobile number (digits only, 7–15 characters)"
+    )
+    .required("Mobile number is required"),
+
+  // Company: letters, numbers, spaces, basic punctuation — no pure numbers
+  company: yup
+    .string()
+    .trim()
+    .matches(
+      /^(?=.*[A-Za-z])[A-Za-z0-9\s&.,'-]+$/,
+      "Company name must contain at least some letters"
+    )
+    .min(2, "Company name must be at least 2 characters")
+    .max(100, "Company name must not exceed 100 characters")
+    .required("Company name is required"),
+
+  tenantName: yup
+    .string()
+    .required("Please select a tenant / destination"),
+
+  vehicleNumber: yup
+    .string()
+    .min(4, "Invalid vehicle number")
+    .required("Vehicle number is required"),
+
+  vehicleType: yup.string().required("Vehicle type is required"),
+
+  // Purpose: must contain letters — not just numbers or symbols
+  purpose: yup
+    .string()
+    .trim()
+    .matches(
+      /^(?=.*[A-Za-z]).+$/,
+      "Purpose must contain descriptive text, not just numbers"
+    )
+    .min(5, "Purpose must be at least 5 characters")
+    .max(200, "Purpose must not exceed 200 characters")
+    .required("Purpose of visit is required"),
+
+  bayId: yup.string().required("Bay assignment is missing. Please re-login."),
+});
 
 /* ================= COMPONENT ================= */
 
@@ -85,6 +142,7 @@ export default function ManualEntry() {
 
   const [croppedArea, setCroppedArea] = useState(null);
   const [lastImage, setLastImage] = useState(null);
+  const formStartTime = useRef(Date.now());
 
   const fileInputRef = useRef(null);
   const [currentTime, setCurrentTime] = useState("");
@@ -96,9 +154,8 @@ export default function ManualEntry() {
         now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       );
     };
-
     updateTime();
-    const interval = setInterval(updateTime, 60000); // update every minute
+    const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -124,9 +181,7 @@ export default function ManualEntry() {
         setVendorLoading(true);
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_URL}/vendors`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         setVendors(res.data?.vendors || []);
       } catch (err) {
@@ -136,7 +191,6 @@ export default function ManualEntry() {
         setVendorLoading(false);
       }
     };
-
     if (token) fetchVendors();
   }, [token]);
 
@@ -153,77 +207,88 @@ export default function ManualEntry() {
   };
 
   const runOCR = async () => {
-  if (!croppedArea || !preview) return;
+    if (!croppedArea || !preview) return;
 
-  setOcrLoading(true);
-  try {
-    // 1️⃣ Crop + resize image (already optimized)
-    const croppedBase64 = await getCroppedImage(preview, croppedArea);
+    setOcrLoading(true);
+    try {
+      const croppedBase64 = await getCroppedImage(preview, croppedArea);
 
-    // 2️⃣ Blur check (unchanged)
-    if (await isBlurry(croppedBase64)) {
-      alert("Image is blurry. Please retake.");
-      setShowCrop(false);
-      return;
-    }
-
-    // 3️⃣ Call Plate Recognizer backend
-    const res = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/ocr/scan`,
-      {
-        imageBase64: croppedBase64, // ✅ base64 to backend
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        timeout: 90000, // frontend wait
+      if (await isBlurry(croppedBase64)) {
+        alert("Image is blurry. Please retake.");
+        setShowCrop(false);
+        return;
       }
-    );
 
-    // 4️⃣ Handle response
-    if (res.data?.success && res.data?.plate) {
-      setVehicleNumber(res.data.plate); // ✅ AUTO-FILL
-      setShowCrop(false);
-    } else {
-      alert(res.data?.message || "Plate not detected. Try again.");
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/ocr/scan`,
+        { imageBase64: croppedBase64 },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 90000,
+        }
+      );
+
+      if (res.data?.success && res.data?.plate) {
+        setVehicleNumber(res.data.plate);
+        // Clear vehicle number error if it was previously set
+        setErrors((prev) => ({ ...prev, vehicleNumber: undefined }));
+        setShowCrop(false);
+      } else {
+        alert(res.data?.message || "Plate not detected. Try again.");
+      }
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 413) {
+        alert("Image too large. Retake closer.");
+      } else if (!err.response) {
+        alert("Network error. Please try again.");
+      } else {
+        alert(err.response?.data?.message || "Plate OCR failed.");
+      }
+    } finally {
+      setOcrLoading(false);
     }
-  } catch (err) {
-    const status = err.response?.status;
-
-    if (status === 413) {
-      alert("Image too large. Retake closer.");
-    } else if (!err.response) {
-      alert("Network error. Please try again.");
-    } else {
-      alert(err.response?.data?.message || "Plate OCR failed.");
-    }
-  } finally {
-    setOcrLoading(false);
-  }
-};
-
+  };
 
   /* ================= VALIDATION ================= */
 
-  const schema = yup.object().shape({
-    vehicleNumber: yup
-      .string()
-      .min(4, "Invalid vehicle number")
-      .required("Vehicle number is required"),
-
-    vehicleType: yup.string().required("Vehicle type is required"),
-    bayId: yup.string().required(),
-  });
-
   const validateForm = async () => {
     try {
-      await schema.validate({ vehicleNumber, vehicleType, bayId });
+      await schema.validate(
+        {
+          visitorName,
+          qidNumber,
+          mobile,
+          company,
+          tenantName,
+          vehicleNumber,
+          vehicleType,
+          purpose,
+          bayId,
+        },
+        { abortEarly: false } // collect ALL errors at once
+      );
       setErrors({});
       return true;
     } catch (err) {
-      setErrors({ [err.path]: err.message });
+      // Build an errors object from all yup validation errors
+      const newErrors = {};
+      err.inner.forEach((e) => {
+        newErrors[e.path] = e.message;
+      });
+      setErrors(newErrors);
       return false;
+    }
+  };
+
+  /* ================= FIELD-LEVEL BLUR VALIDATION ================= */
+
+  const validateField = async (field, value) => {
+    try {
+      await yup.reach(schema, field).validate(value);
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    } catch (err) {
+      setErrors((prev) => ({ ...prev, [field]: err.message }));
     }
   };
 
@@ -241,32 +306,34 @@ export default function ManualEntry() {
     setErrors({});
   };
 
-
   /* ================= SAVE ================= */
 
   const saveEntry = async () => {
     if (!(await validateForm())) return;
 
-    try {
-      setLoading(true);
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/entries/manual`,
-        {
-          visitorName,
-          visitorMobile: mobile,
-          visitorCompany: company,
-          tenantName,
-          qidNumber,
-          vehicleNumber,
-          purpose,
-          vehicleType,
-          bayId,
-          createdBy: staff._id,
-        },
+try {
+  setLoading(true);
+  const processingTimeMs = Date.now() - formStartTime.current; // ← ADD
+  await axios.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/entries/manual`,
+    {
+      visitorName,
+      visitorMobile: mobile,
+      visitorCompany: company,
+      tenantName,
+      qidNumber,
+      vehicleNumber,
+      purpose,
+      vehicleType,
+      bayId,
+      createdBy: staff._id,
+      processingTimeMs, // ← ADD
+    },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert("Manual entry saved");
-      clearForm();
+clearForm();
+formStartTime.current = Date.now(); // ← ADD
     } catch {
       alert("Failed to save entry");
     } finally {
@@ -310,14 +377,36 @@ export default function ManualEntry() {
 
       <div className="px-4 py-6 sm:py-8">
         <div className="max-w-5xl bg-white border border-emerald-100 rounded-xl p-6 shadow-sm mx-auto">
+          {/* ── VISITOR INFORMATION ── */}
           <Section title="Visitor Information">
             <Input
               label="Visitor Name"
               value={visitorName}
               onChange={setVisitorName}
+              onBlur={() => validateField("visitorName", visitorName)}
+              error={errors.visitorName}
+              placeholder="Enter visitor's full name"
             />
-            <Input label="QID" value={qidNumber} onChange={setQidNumber} />
-            <Input label="Mobile" value={mobile} onChange={setMobile} />
+
+            <Input
+              label="QID"
+              value={qidNumber}
+              onChange={setQidNumber}
+              onBlur={() => validateField("qidNumber", qidNumber)}
+              error={errors.qidNumber}
+              placeholder="e.g. 28512345678"
+              maxLength={20}
+            />
+
+            <Input
+              label="Mobile"
+              value={mobile}
+              onChange={setMobile}
+              onBlur={() => validateField("mobile", mobile)}
+              error={errors.mobile}
+              placeholder="+974 XXXX XXXX"
+              maxLength={15}
+            />
 
             <div>
               <label className="text-sm font-medium text-emerald-700 block mb-1">
@@ -325,10 +414,18 @@ export default function ManualEntry() {
               </label>
               <input
                 value={company}
-                onChange={(e) => setCompany(e.target.value)}
+                onChange={(e) => setCompany(e.target.value.toUpperCase())}
+                onBlur={() => validateField("company", company)}
                 placeholder="Enter visitor's company name"
-                className="h-11 w-full rounded-lg px-4 bg-white border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className={`h-11 w-full rounded-lg px-4 bg-white border transition focus:outline-none focus:ring-2 ${
+                  errors.company
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-emerald-200 focus:ring-emerald-500"
+                }`}
               />
+              {errors.company && (
+                <p className="text-xs text-red-600 mt-1">{errors.company}</p>
+              )}
             </div>
 
             <div>
@@ -337,8 +434,16 @@ export default function ManualEntry() {
               </label>
               <select
                 value={tenantName}
-                onChange={(e) => setTenantName(e.target.value)}
-                className="h-11 w-full rounded-lg px-4 bg-white border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                onChange={(e) => {
+                  setTenantName(e.target.value);
+                  validateField("tenantName", e.target.value);
+                }}
+                onBlur={() => validateField("tenantName", tenantName)}
+                className={`h-11 w-full rounded-lg px-4 bg-white border transition focus:outline-none focus:ring-2 ${
+                  errors.tenantName
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-emerald-200 focus:ring-emerald-500"
+                }`}
                 disabled={vendorLoading}
               >
                 <option value="">Select Tenant/Destination</option>
@@ -351,9 +456,13 @@ export default function ManualEntry() {
               {vendorLoading && (
                 <p className="text-xs text-emerald-600 mt-1">Loading tenants...</p>
               )}
+              {errors.tenantName && (
+                <p className="text-xs text-red-600 mt-1">{errors.tenantName}</p>
+              )}
             </div>
           </Section>
 
+          {/* ── VEHICLE INFORMATION ── */}
           <Section title="Vehicle Information">
             <div className="relative">
               <Input
@@ -362,6 +471,7 @@ export default function ManualEntry() {
                 onChange={setVehicleNumber}
                 error={errors.vehicleNumber}
                 maxLength={10}
+                placeholder="Scan or enter manually"
               />
 
               <button
@@ -402,14 +512,26 @@ export default function ManualEntry() {
             <Select
               label="Vehicle Type"
               value={vehicleType}
-              onChange={setVehicleType}
+              onChange={(val) => {
+                setVehicleType(val);
+                validateField("vehicleType", val);
+              }}
+              onBlur={() => validateField("vehicleType", vehicleType)}
               options={["Truck", "Van", "Car"]}
               error={errors.vehicleType}
             />
           </Section>
 
+          {/* ── VISIT DETAILS ── */}
           <Section title="Visit Details">
-            <Input label="Purpose" value={purpose} onChange={setPurpose} />
+            <Input
+              label="Purpose"
+              value={purpose}
+              onChange={setPurpose}
+              onBlur={() => validateField("purpose", purpose)}
+              error={errors.purpose}
+              placeholder="Reason for visit"
+            />
             <Input
               label="Assigned Bay"
               value={staff?.assignedBay?.bayName || ""}
@@ -417,27 +539,22 @@ export default function ManualEntry() {
             />
           </Section>
 
+          {/* ── SYSTEM METADATA ── */}
           <div className="mt-6 border border-emerald-200 rounded-xl bg-emerald-50/60 p-5">
             <h3 className="text-sm font-semibold text-emerald-700 mb-3">
               System & Bay Metadata
             </h3>
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-              {/* Logged-in staff */}
               <div>
                 <p className="text-emerald-500 font-medium">Logged-in staff</p>
                 <p className="text-emerald-800 font-semibold">
                   {staff?.name || "—"}
                 </p>
               </div>
-
-              {/* Entry method */}
               <div>
                 <p className="text-emerald-500 font-medium">Entry method</p>
                 <p className="text-emerald-800 font-semibold">Manual</p>
               </div>
-
-              {/* Current time */}
               <div>
                 <p className="text-emerald-500 font-medium">Current time</p>
                 <p className="text-emerald-800 font-semibold">{currentTime}</p>
@@ -445,8 +562,8 @@ export default function ManualEntry() {
             </div>
           </div>
 
+          {/* ── ACTIONS ── */}
           <div className="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Left actions */}
             <button
               type="button"
               onClick={clearForm}
@@ -455,9 +572,7 @@ export default function ManualEntry() {
               Clear form
             </button>
 
-            {/* Right actions */}
             <div className="flex gap-3 justify-end">
-             
               <button
                 type="button"
                 onClick={saveEntry}
@@ -471,6 +586,7 @@ export default function ManualEntry() {
         </div>
       </div>
 
+      {/* ── CROP MODAL ── */}
       {showCrop && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white p-6 rounded-xl max-w-md w-full shadow-xl">
@@ -522,7 +638,7 @@ function Section({ title, children }) {
   );
 }
 
-function Input({ label, value, onChange, error, disabled, maxLength }) {
+function Input({ label, value, onChange, onBlur, error, disabled, maxLength, placeholder }) {
   return (
     <div>
       <label className="text-sm font-medium text-emerald-700 block mb-1">
@@ -532,7 +648,9 @@ function Input({ label, value, onChange, error, disabled, maxLength }) {
         disabled={disabled}
         value={value}
         maxLength={maxLength}
+        placeholder={placeholder}
         onChange={(e) => onChange?.(e.target.value.toUpperCase())}
+        onBlur={onBlur}
         className={`h-11 w-full rounded-lg px-4 pr-14 bg-white border transition focus:outline-none focus:ring-2 ${
           error
             ? "border-red-500 focus:ring-red-500"
@@ -546,7 +664,7 @@ function Input({ label, value, onChange, error, disabled, maxLength }) {
   );
 }
 
-function Select({ label, value, onChange, options, error }) {
+function Select({ label, value, onChange, onBlur, options, error }) {
   return (
     <div>
       <label className="text-sm font-medium text-emerald-700 block mb-1">
@@ -555,6 +673,7 @@ function Select({ label, value, onChange, options, error }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
         className={`h-11 w-full rounded-lg px-4 bg-white border transition focus:outline-none focus:ring-2 ${
           error
             ? "border-red-500 focus:ring-red-500"

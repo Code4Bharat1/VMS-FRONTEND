@@ -149,7 +149,7 @@ export default function StaffSettings() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-emerald-900">
-                Staff Settings
+                Guards Settings
               </h1>
               <p className="text-sm text-emerald-600 mt-1">
                 Manage your profile and account settings

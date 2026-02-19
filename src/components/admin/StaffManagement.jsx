@@ -15,6 +15,10 @@ import {
   AlertCircle,
   Calendar,
   MapPin,
+  ShieldOff,
+  ShieldCheck,
+  ChevronDown,
+  UserX,
 } from "lucide-react";
 
 export default function StaffManagement() {
@@ -32,6 +36,7 @@ export default function StaffManagement() {
   const [showAdd, setShowAdd] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
+  const [activeTab, setActiveTab] = useState("all"); // "all" | "rejected"
 
   const [form, setForm] = useState({
     name: "",
@@ -82,6 +87,21 @@ export default function StaffManagement() {
     return found ? found.bayName : "-";
   };
 
+  const getSupervisorName = (assignedBay) => {
+    if (!assignedBay) return "—";
+    const bayId = String(
+      typeof assignedBay === "object" ? assignedBay?._id : assignedBay
+    );
+    const supervisor = supervisors.find((sup) => {
+      const managedBays = sup.managedBays || [];
+      return managedBays.some((b) => {
+        const bId = String(typeof b === "object" ? b?._id : b);
+        return bId === bayId;
+      });
+    });
+    return supervisor?.name || "—";
+  };
+
   const validateForm = () => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = "Name is required";
@@ -120,14 +140,14 @@ export default function StaffManagement() {
             assignedBay: form.assignedBay,
           }),
         });
-        alert("Staff updated successfully");
+        alert("Guard updated successfully");
       } else {
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`, {
           method: "POST",
           headers,
           body: JSON.stringify(form),
         });
-        alert("Staff created successfully");
+        alert("Guard created successfully");
       }
 
       setShowAdd(false);
@@ -142,7 +162,7 @@ export default function StaffManagement() {
       });
       fetchData();
     } catch (err) {
-      alert("Failed to save staff");
+      alert("Failed to save Guard");
     }
   };
 
@@ -154,7 +174,7 @@ export default function StaffManagement() {
       });
       fetchData();
     } catch (err) {
-      console.error("Toggle staff status error:", err);
+      console.error("Toggle Guard status error:", err);
     }
   };
 
@@ -179,24 +199,20 @@ export default function StaffManagement() {
         ? staffMember.assignedBay?._id
         : staffMember.assignedBay;
 
-    // Find supervisor for this bay
     const supervisor = supervisors.find((sup) => {
-      const supBayId =
-        typeof sup.assignedBay === "object"
-          ? sup.assignedBay?._id
-          : sup.assignedBay;
-      return bayId && supBayId === bayId;
+      const managedBays = sup.managedBays || [];
+      return managedBays.some((b) => {
+        const bId = String(typeof b === "object" ? b?._id : b);
+        return bId === String(bayId);
+      });
     });
 
-    // Get all entries for this staff member
     const staffEntries = entries.filter((e) => {
       const entryStaffId =
         typeof e.createdBy === "object" ? e.createdBy?._id : e.createdBy;
-
       return entryStaffId === staffMember._id;
     });
 
-    // Calculate metrics
     const totalEntriesRecorded = staffEntries.length;
     const todayEntries = staffEntries.filter((e) => {
       const entryDate = new Date(e.createdAt);
@@ -204,14 +220,17 @@ export default function StaffManagement() {
       return entryDate.toDateString() === today.toDateString();
     }).length;
 
-    // Calculate average processing time (for completed entries)
-    const completedEntries = staffEntries.filter((e) => e.outTime);
-    const avgProcessingTime = staffEntries.length
-      ? staffEntries.reduce((sum, e) => sum + (e.processingTimeMs || 0), 0) /
-        staffEntries.length
-      : 0;
+    const validEntries = staffEntries.filter((e) => e.processingTimeMs > 1000);
+const avgMs = validEntries.length
+  ? validEntries.reduce((sum, e) => sum + e.processingTimeMs, 0) / validEntries.length
+  : 0;
+const avgSec = Math.round(avgMs / 1000);
+const avgProcessingTime = validEntries.length === 0
+  ? "N/A"
+  : avgSec < 60
+  ? `${avgSec}s`
+  : `${Math.floor(avgSec / 60)}m ${avgSec % 60}s`;
 
-    // Entry history (last 5)
     const entryHistory = staffEntries
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 5)
@@ -227,7 +246,6 @@ export default function StaffManagement() {
         method: e.entryMethod || "Manual",
       }));
 
-    // Activity overview (last 5 activities)
     const activities = staffEntries
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 5)
@@ -254,14 +272,20 @@ export default function StaffManagement() {
       supervisor: supervisor?.name || "—",
       totalEntriesRecorded,
       todayEntries,
-      avgProcessingTime: Math.round(avgProcessingTime),
+      avgProcessingTime, // already formatted as string
       entryHistory,
       activities,
     });
     setShowDetail(true);
   };
 
-  const filtered = staff.filter((s) => {
+  // Separate active/rejected staff
+  const activeStaff = staff.filter((s) => s.approvalStatus !== "rejected");
+  const rejectedStaff = staff.filter((s) => s.approvalStatus === "rejected");
+
+  const sourceStaff = activeTab === "rejected" ? rejectedStaff : activeStaff;
+
+  const filtered = sourceStaff.filter((s) => {
     const matchesSearch = s.name?.toLowerCase().includes(search.toLowerCase());
     const matchesStatus =
       statusFilter === "all" ||
@@ -278,10 +302,10 @@ export default function StaffManagement() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-emerald-800">
-              Staff Management
+              Guard Management
             </h1>
             <p className="text-sm text-emerald-600 mt-1">
-              Manage security staff and supervisors
+              Manage security Guards and supervisors
             </p>
           </div>
 
@@ -292,7 +316,7 @@ export default function StaffManagement() {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400"
               />
               <input
-                placeholder="Search staff"
+                placeholder="Search Guards"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 pr-4 h-10 w-full sm:w-64 rounded-lg border border-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -301,30 +325,40 @@ export default function StaffManagement() {
 
             <button
               onClick={() => setShowFilters((p) => !p)}
-              className="flex items-center gap-2 px-4 h-10 rounded-lg border border-emerald-200 bg-white text-sm hover:bg-emerald-50 transition"
+              className={`flex items-center gap-2 px-4 h-10 rounded-lg border text-sm transition ${
+                showFilters
+                  ? "bg-emerald-600 text-white border-emerald-600"
+                  : "border-emerald-200 bg-white hover:bg-emerald-50"
+              }`}
             >
               <Filter size={16} />
               Filters
+              <ChevronDown
+                size={14}
+                className={`transition-transform ${showFilters ? "rotate-180" : ""}`}
+              />
             </button>
 
-            <button
-              onClick={() => {
-                setEditId(null);
-                setErrors({});
-                setForm({
-                  name: "",
-                  email: "",
-                  phone: "",
-                  assignedBay: "",
-                  password: "",
-                });
-                setShowAdd(true);
-              }}
-              className="flex items-center gap-2 px-4 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition"
-            >
-              <Plus size={16} />
-              Add Staff
-            </button>
+            {activeTab === "all" && (
+              <button
+                onClick={() => {
+                  setEditId(null);
+                  setErrors({});
+                  setForm({
+                    name: "",
+                    email: "",
+                    phone: "",
+                    assignedBay: "",
+                    password: "",
+                  });
+                  setShowAdd(true);
+                }}
+                className="flex items-center gap-2 px-4 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition shadow-sm hover:shadow-md"
+              >
+                <Plus size={16} />
+                Add Guard
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -349,7 +383,7 @@ export default function StaffManagement() {
 
           <div>
             <label className="block text-emerald-700 font-medium mb-1">
-              Staff Name
+              Guard Name
             </label>
             <select
               value={nameFilter}
@@ -357,7 +391,7 @@ export default function StaffManagement() {
               className="border border-emerald-200 rounded-lg px-3 py-2 w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="all">All</option>
-              {staff.map((s) => (
+              {sourceStaff.map((s) => (
                 <option key={s._id} value={s.name}>
                   {s.name}
                 </option>
@@ -370,34 +404,114 @@ export default function StaffManagement() {
       {/* CONTENT */}
       <div className="px-4 sm:px-8 py-6">
         {/* STATS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-          <Stat title="Total Staff" value={staff.length} icon={Users} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6">
+          <Stat title="Total Guards" value={activeStaff.length} icon={Users} color="emerald" />
           <Stat
-            title="Active Staff"
-            value={staff.filter((s) => s.isActive).length}
+            title="Active Guards"
+            value={activeStaff.filter((s) => s.isActive).length}
             icon={Activity}
+            color="emerald"
           />
           <Stat
             title="Assigned Bays"
             value={
               new Set(
-                staff.map((s) => getBayName(s.assignedBay)).filter(Boolean)
+                activeStaff.map((s) => getBayName(s.assignedBay)).filter(Boolean)
               ).size
             }
             icon={MapPin}
+            color="emerald"
+          />
+          <Stat
+            title="Rejected Guards"
+            value={rejectedStaff.length}
+            icon={UserX}
+            color="red"
           />
         </div>
+
+        {/* TABS */}
+        <div className="flex items-center gap-1 mb-5 bg-white rounded-xl border border-emerald-100 p-1 shadow-sm w-fit">
+          <button
+            onClick={() => {
+              setActiveTab("all");
+              setSearch("");
+              setStatusFilter("all");
+              setNameFilter("all");
+            }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              activeTab === "all"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "text-emerald-700 hover:bg-emerald-50"
+            }`}
+          >
+            <ShieldCheck size={15} />
+            All Guards
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                activeTab === "all"
+                  ? "bg-white/20 text-white"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {activeStaff.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab("rejected");
+              setSearch("");
+              setStatusFilter("all");
+              setNameFilter("all");
+            }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              activeTab === "rejected"
+                ? "bg-red-500 text-white shadow-sm"
+                : "text-red-600 hover:bg-red-50"
+            }`}
+          >
+            <ShieldOff size={15} />
+            Rejected Guards
+            {rejectedStaff.length > 0 && (
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                  activeTab === "rejected"
+                    ? "bg-white/20 text-white"
+                    : "bg-red-100 text-red-600"
+                }`}
+              >
+                {rejectedStaff.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Rejected Banner */}
+        {activeTab === "rejected" && (
+          <div className="mb-5 bg-red-50 border border-red-200 rounded-xl px-5 py-3.5 flex items-start gap-3">
+            <AlertCircle size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-red-700">Rejected Guard Members</p>
+              <p className="text-xs text-red-500 mt-0.5">
+                These guard members have been rejected. You can view their full details but they cannot be assigned to bays.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* TABLE */}
         <div className="hidden md:block bg-white rounded-xl border border-emerald-100 shadow-sm overflow-hidden">
           <table className="w-full">
-            <thead className="bg-emerald-100">
+            <thead className={activeTab === "rejected" ? "bg-red-50" : "bg-emerald-50"}>
               <tr>
-                {["Name", "Email", "Phone", "Bay", "Status", "Action"].map(
+                {["Name", "Email", "Phone", "Bay", "Supervisor", "Status", ...(activeTab === "all" ? ["Action"] : ["Rejection Reason"])].map(
                   (h) => (
                     <th
                       key={h}
-                      className="px-6 py-4 text-sm font-semibold text-center text-emerald-700"
+                      className={`px-6 py-4 text-sm font-semibold text-center ${
+                        activeTab === "rejected" ? "text-red-700" : "text-emerald-700"
+                      }`}
                     >
                       {h}
                     </th>
@@ -406,154 +520,283 @@ export default function StaffManagement() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-emerald-100">
-              {filtered.map((s) => (
-                <tr
-                  key={s._id}
-                  onClick={() => openDetail(s)}
-                  className="hover:bg-emerald-50 cursor-pointer text-center transition"
-                >
-                  <td className="px-6 py-4 font-medium text-emerald-800">
-                    {s.name}
-                  </td>
-                  <td className="px-6 py-4">{s.email}</td>
-                  <td className="px-6 py-4">{s.phone}</td>
-                  <td className="px-6 py-4">{getBayName(s.assignedBay)}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleStaffStatus(s._id);
-                      }}
-                      className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
-                        s.isActive
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-red-100 text-red-600"
-                      }`}
-                    >
-                      {s.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <div className="flex justify-center gap-4">
-                      <Pencil
-                        size={18}
-                        className="text-emerald-600 hover:scale-110 cursor-pointer transition"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditId(s._id);
-                          setForm({
-                            name: s.name,
-                            email: s.email,
-                            phone: s.phone,
-                            assignedBay:
-                              typeof s.assignedBay === "object"
-                                ? s.assignedBay?._id
-                                : s.assignedBay || "",
-                            password: "",
-                          });
-                          setShowAdd(true);
-                        }}
-                      />
-
-                      <Trash2
-                        size={18}
-                        className="text-red-600 hover:scale-110 cursor-pointer transition"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelected(s);
-                          setConfirmDelete(true);
-                        }}
-                      />
+            <tbody className="divide-y divide-emerald-50">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3 text-gray-400">
+                      {activeTab === "rejected" ? (
+                        <ShieldOff size={36} className="text-red-200" />
+                      ) : (
+                        <Users size={36} className="text-emerald-200" />
+                      )}
+                      <p className="text-sm font-medium">
+                        {activeTab === "rejected"
+                          ? "No rejected guards found"
+                          : "No guards found"}
+                      </p>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filtered.map((s) => (
+                  <tr
+                    key={s._id}
+                    onClick={() => openDetail(s)}
+                    className={`cursor-pointer text-center transition group ${
+                      activeTab === "rejected"
+                        ? "hover:bg-red-50/50"
+                        : "hover:bg-emerald-50/70"
+                    }`}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                            activeTab === "rejected"
+                              ? "bg-red-100 text-red-600"
+                              : "bg-emerald-100 text-emerald-700"
+                          }`}
+                        >
+                          {s.name?.charAt(0)?.toUpperCase()}
+                        </div>
+                        <span className="font-medium text-emerald-800">{s.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">{s.email}</td>
+                    <td className="px-6 py-4 text-gray-600">{s.phone}</td>
+                    <td className="px-6 py-4 text-gray-600">{getBayName(s.assignedBay)}</td>
+                    <td className="px-6 py-4 text-gray-600">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700 flex-shrink-0">
+                          {getSupervisorName(s.assignedBay).charAt(0).toUpperCase()}
+                        </span>
+                        {getSupervisorName(s.assignedBay)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {activeTab === "rejected" ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-600">
+                          Rejected
+                        </span>
+                      ) : (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStaffStatus(s._id);
+                          }}
+                          className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium transition hover:opacity-80 ${
+                            s.isActive
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {s.isActive ? "Active" : "Inactive"}
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {activeTab === "rejected" ? (
+                        <span className="text-sm text-red-500 italic">
+                          {s.rejectionReason || "—"}
+                        </span>
+                      ) : (
+                        <div className="flex justify-center gap-3">
+                          <button
+                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-100 transition"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditId(s._id);
+                              setForm({
+                                name: s.name,
+                                email: s.email,
+                                phone: s.phone,
+                                assignedBay:
+                                  typeof s.assignedBay === "object"
+                                    ? s.assignedBay?._id
+                                    : s.assignedBay || "",
+                                password: "",
+                              });
+                              setShowAdd(true);
+                            }}
+                          >
+                            <Pencil size={16} />
+                          </button>
+
+                          <button
+                            className="p-1.5 rounded-lg text-red-500 hover:bg-red-100 transition"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelected(s);
+                              setConfirmDelete(true);
+                            }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
 
-          <div className="px-4 py-3 text-sm text-emerald-600 bg-emerald-50">
-            Showing {filtered.length} staff members
+          <div
+            className={`px-5 py-3 text-sm flex items-center justify-between border-t ${
+              activeTab === "rejected"
+                ? "bg-red-50 border-red-100 text-red-600"
+                : "bg-emerald-50 border-emerald-100 text-emerald-600"
+            }`}
+          >
+            <span>
+              Showing <span className="font-semibold">{filtered.length}</span>{" "}
+              {activeTab === "rejected" ? "rejected " : ""}guard member{filtered.length !== 1 ? "s" : ""}
+            </span>
+            {activeTab === "rejected" && filtered.length > 0 && (
+              <span className="text-xs text-red-400">Click on any row to view full details</span>
+            )}
           </div>
         </div>
 
         {/* MOBILE STAFF LIST */}
-        <div className="md:hidden space-y-4">
+        <div className="md:hidden space-y-3">
+          {filtered.length === 0 && (
+            <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
+              {activeTab === "rejected" ? (
+                <ShieldOff size={36} className="text-red-200" />
+              ) : (
+                <Users size={36} className="text-emerald-200" />
+              )}
+              <p className="text-sm">
+                {activeTab === "rejected" ? "No rejected guards" : "No guards found"}
+              </p>
+            </div>
+          )}
+
           {filtered.map((s) => (
             <div
               key={s._id}
               onClick={() => openDetail(s)}
-              className="bg-white rounded-lg border border-emerald-100 shadow-sm p-4 space-y-3 cursor-pointer hover:shadow-md transition"
+              className={`bg-white rounded-xl border shadow-sm p-4 space-y-3 cursor-pointer transition ${
+                activeTab === "rejected"
+                  ? "border-red-100 hover:shadow-red-100"
+                  : "border-emerald-100 hover:shadow-md"
+              }`}
             >
               <div className="flex justify-between items-start">
-                <div>
-                  <p className="font-semibold text-emerald-800">{s.name}</p>
-                  <p className="text-xs text-emerald-600">{s.email}</p>
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
+                      activeTab === "rejected" || s.approvalStatus === "rejected"
+                        ? "bg-red-100 text-red-600"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {s.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-emerald-800">{s.name}</p>
+                    <p className="text-xs text-gray-500">{s.email}</p>
+                  </div>
                 </div>
 
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleStaffStatus(s._id);
-                  }}
-                  className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
-                    s.isActive
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-red-100 text-red-600"
-                  }`}
-                >
-                  {s.isActive ? "Active" : "Inactive"}
-                </span>
+                {activeTab === "rejected" ? (
+                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-600">
+                    Rejected
+                  </span>
+                ) : (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleStaffStatus(s._id);
+                    }}
+                    className={`cursor-pointer px-3 py-1 rounded-full text-xs font-medium ${
+                      s.isActive
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {s.isActive ? "Active" : "Inactive"}
+                  </span>
+                )}
               </div>
 
-              <div className="text-sm text-gray-700 space-y-1">
-                <p>
-                  <span className="font-medium">Phone:</span> {s.phone}
-                </p>
-                <p>
-                  <span className="font-medium">Bay:</span>{" "}
-                  {getBayName(s.assignedBay)}
-                </p>
+              {/* Info grid - 2 columns */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                <div>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Phone</p>
+                  <p className="text-gray-700 font-medium">{s.phone}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Bay</p>
+                  <p className="text-gray-700 font-medium">{getBayName(s.assignedBay)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Supervisor</p>
+                  <p className="text-gray-700 font-medium flex items-center gap-1">
+                    {getSupervisorName(s.assignedBay) !== "—" && (
+                      <span className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                        activeTab === "rejected" ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-700"
+                      }`}>
+                        {getSupervisorName(s.assignedBay).charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    {getSupervisorName(s.assignedBay)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Email</p>
+                  <p className="text-gray-700 font-medium truncate">{s.email}</p>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-4 pt-2">
-                <Pencil
-                  size={18}
-                  className="text-emerald-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditId(s._id);
-                    setForm({
-                      name: s.name,
-                      email: s.email,
-                      phone: s.phone,
-                      assignedBay:
-                        typeof s.assignedBay === "object"
-                          ? s.assignedBay?._id
-                          : s.assignedBay || "",
-                      password: "",
-                    });
-                    setShowAdd(true);
-                  }}
-                />
+              {/* Rejection reason for rejected tab */}
+              {activeTab === "rejected" && s.rejectionReason && (
+                <div className="bg-red-50 rounded-lg px-3 py-2 border border-red-100">
+                  <p className="text-xs text-red-400 font-medium uppercase tracking-wide mb-0.5">Rejection Reason</p>
+                  <p className="text-sm text-red-600 italic">{s.rejectionReason}</p>
+                </div>
+              )}
 
-                <Trash2
-                  size={18}
-                  className="text-red-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelected(s);
-                    setConfirmDelete(true);
-                  }}
-                />
-              </div>
+              {activeTab === "all" && (
+                <div className="flex justify-end gap-3 pt-1 border-t border-emerald-50">
+                  <button
+                    className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditId(s._id);
+                      setForm({
+                        name: s.name,
+                        email: s.email,
+                        phone: s.phone,
+                        assignedBay:
+                          typeof s.assignedBay === "object"
+                            ? s.assignedBay?._id
+                            : s.assignedBay || "",
+                        password: "",
+                      });
+                      setShowAdd(true);
+                    }}
+                  >
+                    <Pencil size={16} />
+                  </button>
+
+                  <button
+                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelected(s);
+                      setConfirmDelete(true);
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
-
-          {filtered.length === 0 && (
-            <p className="text-center text-sm text-gray-400">No staff found</p>
-          )}
         </div>
       </div>
 
@@ -627,12 +870,18 @@ function DetailPopup({ data, onClose, getBayName }) {
               <div className="flex gap-2 mt-2">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    data.isActive
+                    data.approvalStatus === "rejected"
+                      ? "bg-red-400 text-red-900"
+                      : data.isActive
                       ? "bg-emerald-400 text-emerald-900"
-                      : "bg-red-400 text-red-900"
+                      : "bg-gray-400 text-gray-900"
                   }`}
                 >
-                  {data.isActive ? "Active" : "Inactive"}
+                  {data.approvalStatus === "rejected"
+                      ? "Rejected"
+                      : data.isActive
+                      ? "Active"
+                      : "Inactive"}
                 </span>
               </div>
             </div>
@@ -644,7 +893,7 @@ function DetailPopup({ data, onClose, getBayName }) {
           {/* Stats Grid */}
           <div>
             <h3 className="text-sm font-semibold text-emerald-800 mb-3">
-              Staff details
+              Guard details
             </h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <InfoBox label="Mobile number" value={data.phone} />
@@ -663,7 +912,7 @@ function DetailPopup({ data, onClose, getBayName }) {
               />
               <StatBox
                 label="Avg. processing time"
-                value={`${data.avgProcessingTime} min`}
+                value={data.avgProcessingTime}
                 color="bg-blue-50"
               />
               <StatBox
@@ -683,24 +932,12 @@ function DetailPopup({ data, onClose, getBayName }) {
               <table className="w-full text-sm">
                 <thead className="bg-emerald-50">
                   <tr>
-                    <th className="px-3 py-2 text-left text-emerald-700">
-                      Date
-                    </th>
-                    <th className="px-3 py-2 text-left text-emerald-700">
-                      Time
-                    </th>
-                    <th className="px-3 py-2 text-left text-emerald-700">
-                      Visitor
-                    </th>
-                    <th className="px-3 py-2 text-left text-emerald-700">
-                      Vehicle No.
-                    </th>
-                    <th className="px-3 py-2 text-left text-emerald-700">
-                      Bay
-                    </th>
-                    <th className="px-3 py-2 text-left text-emerald-700">
-                      Entry method
-                    </th>
+                    <th className="px-3 py-2 text-left text-emerald-700">Date</th>
+                    <th className="px-3 py-2 text-left text-emerald-700">Time</th>
+                    <th className="px-3 py-2 text-left text-emerald-700">Visitor</th>
+                    <th className="px-3 py-2 text-left text-emerald-700">Vehicle No.</th>
+                    <th className="px-3 py-2 text-left text-emerald-700">Bay</th>
+                    <th className="px-3 py-2 text-left text-emerald-700">Entry method</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-emerald-100">
@@ -710,19 +947,14 @@ function DetailPopup({ data, onClose, getBayName }) {
                         <td className="px-3 py-2">{entry.date}</td>
                         <td className="px-3 py-2">{entry.time}</td>
                         <td className="px-3 py-2">{entry.visitor}</td>
-                        <td className="px-3 py-2 font-mono">
-                          {entry.vehicleNumber}
-                        </td>
+                        <td className="px-3 py-2 font-mono">{entry.vehicleNumber}</td>
                         <td className="px-3 py-2">{entry.bay}</td>
                         <td className="px-3 py-2">{entry.method}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td
-                        colSpan="6"
-                        className="px-3 py-4 text-center text-gray-500"
-                      >
+                      <td colSpan="6" className="px-3 py-4 text-center text-gray-500">
                         No entries recorded
                       </td>
                     </tr>
@@ -731,8 +963,7 @@ function DetailPopup({ data, onClose, getBayName }) {
               </table>
               {data.entryHistory.length > 0 && (
                 <p className="text-xs text-gray-500 mt-2 px-3">
-                  History is based on Entry Capture logs linked to this staff
-                  account.
+                  History is based on Entry Capture logs linked to this guard account.
                 </p>
               )}
             </div>
@@ -744,8 +975,7 @@ function DetailPopup({ data, onClose, getBayName }) {
               My activities overview
             </h3>
             <p className="text-xs text-gray-500 mb-3">
-              Summary of recent bay activities such as approvals, exits and
-              manual entries.
+              Summary of recent bay activities such as approvals, exits and manual entries.
             </p>
             <div className="space-y-2">
               {data.activities.length > 0 ? (
@@ -754,15 +984,10 @@ function DetailPopup({ data, onClose, getBayName }) {
                     key={idx}
                     className="flex items-start gap-3 bg-gray-50 p-3 rounded-lg"
                   >
-                    <Clock
-                      className="text-emerald-600 mt-0.5 flex-shrink-0"
-                      size={16}
-                    />
+                    <Clock className="text-emerald-600 mt-0.5 flex-shrink-0" size={16} />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
-                        <p className="text-sm text-gray-900">
-                          {activity.action}
-                        </p>
+                        <p className="text-sm text-gray-900">{activity.action}</p>
                         <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
                           {activity.time}
                         </span>
@@ -801,14 +1026,31 @@ function StatBox({ label, value, color }) {
 }
 
 /* ================= OTHER COMPONENTS ================= */
-function Stat({ title, value, icon: Icon }) {
+function Stat({ title, value, icon: Icon, color = "emerald" }) {
+  const colorMap = {
+    emerald: {
+      bg: "bg-white",
+      border: "border-emerald-100",
+      label: "text-emerald-600",
+      icon: "text-emerald-500",
+      value: "text-emerald-800",
+    },
+    red: {
+      bg: "bg-white",
+      border: "border-red-100",
+      label: "text-red-500",
+      icon: "text-red-400",
+      value: "text-red-700",
+    },
+  };
+  const c = colorMap[color];
   return (
-    <div className="bg-white border border-emerald-100 rounded-xl shadow-sm p-4 sm:p-6">
+    <div className={`${c.bg} border ${c.border} rounded-xl shadow-sm p-4 sm:p-5`}>
       <div className="flex justify-between mb-2">
-        <p className="text-sm text-emerald-600">{title}</p>
-        <Icon size={20} className="text-emerald-600" />
+        <p className={`text-sm ${c.label}`}>{title}</p>
+        <Icon size={18} className={c.icon} />
       </div>
-      <p className="text-3xl font-bold text-emerald-800">{value}</p>
+      <p className={`text-3xl font-bold ${c.value}`}>{value}</p>
     </div>
   );
 }
@@ -825,14 +1067,16 @@ function AddStaffModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden">
-        <div className="flex justify-between px-6 py-4 border-b border-emerald-100">
+        <div className="flex justify-between px-6 py-4 border-b border-emerald-100 bg-emerald-50/50">
           <h2 className="font-semibold text-emerald-800">
-            {editId ? "Edit Staff" : "Add New Staff"}
+            {editId ? "Edit Guard" : "Add New Guard"}
           </h2>
-          <X
+          <button
             onClick={onClose}
-            className="cursor-pointer text-emerald-600 hover:bg-emerald-50 p-1 rounded-lg transition"
-          />
+            className="text-emerald-600 hover:bg-emerald-100 p-1 rounded-lg transition"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div className="px-6 py-5 space-y-4 text-sm">
@@ -870,9 +1114,7 @@ function AddStaffModal({
             </label>
             <select
               value={form.assignedBay}
-              onChange={(e) =>
-                setForm({ ...form, assignedBay: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, assignedBay: e.target.value })}
               className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
                 errors.assignedBay
                   ? "border-red-500 focus:ring-red-500"
@@ -892,19 +1134,19 @@ function AddStaffModal({
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3 bg-gray-50/50">
           <button
             onClick={onClose}
-            className="text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition"
+            className="text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition border border-emerald-200"
           >
             Cancel
           </button>
 
           <button
             onClick={onSubmit}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition"
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition shadow-sm"
           >
-            {editId ? "Update Staff" : "Add Staff"}
+            {editId ? "Update Guard" : "Add Guard"}
           </button>
         </div>
       </div>
@@ -933,22 +1175,25 @@ function ConfirmDelete({ onCancel, onDelete }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-        <h3 className="font-semibold text-emerald-800 mb-2">
-          Delete Staff Member?
-        </h3>
-        <p className="text-sm text-emerald-600 mb-4">
-          This action cannot be undone.
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+            <Trash2 size={18} className="text-red-600" />
+          </div>
+          <h3 className="font-semibold text-emerald-800">Delete Guard Member?</h3>
+        </div>
+        <p className="text-sm text-gray-500 mb-5">
+          This action cannot be undone. All data associated with this guard member will be permanently removed.
         </p>
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition"
+            className="text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition border border-emerald-200 text-sm"
           >
             Cancel
           </button>
           <button
             onClick={onDelete}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition cursor-pointer"
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition cursor-pointer text-sm font-medium"
           >
             Delete
           </button>

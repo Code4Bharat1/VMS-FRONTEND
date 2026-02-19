@@ -62,73 +62,82 @@ const MyBays = () => {
   /* CHECK IF BAY IS ASSIGNED TO LOGGED IN SUPERVISOR */
   const isBayAssignedToUser = (bayId) => {
     if (!supervisor) {
-      console.log('No supervisor');
+      console.log("No supervisor");
       return false;
     }
-    
-    console.log('Checking bay:', bayId);
-    console.log('Supervisor data:', supervisor);
-    
+
+    console.log("Checking bay:", bayId);
+    console.log("Supervisor data:", supervisor);
+
     // Check managedBays array (for supervisors managing multiple bays)
     if (supervisor.managedBays && Array.isArray(supervisor.managedBays)) {
-      const result = supervisor.managedBays.some(bay => {
+      const result = supervisor.managedBays.some((bay) => {
         const managedBayId = typeof bay === "object" ? bay._id : bay;
         return String(bayId) === String(managedBayId);
       });
-      console.log('ManagedBays check result:', result);
+      console.log("ManagedBays check result:", result);
       if (result) return true;
     }
-    
+
     // Check assignedBay (single bay assignment)
     if (!supervisor.assignedBay) {
-      console.log('No assignedBay');
+      console.log("No assignedBay");
       return false;
     }
-    
+
     // Handle array of bay objects
     if (Array.isArray(supervisor.assignedBay)) {
-      const result = supervisor.assignedBay.some(bay => {
+      const result = supervisor.assignedBay.some((bay) => {
         const assignedBayId = typeof bay === "object" ? bay._id : bay;
         return String(bayId) === String(assignedBayId);
       });
-      console.log('Array check result:', result);
+      console.log("Array check result:", result);
       return result;
     }
-    
+
     // Handle single bay object
-    if (typeof supervisor.assignedBay === "object" && supervisor.assignedBay._id) {
+    if (
+      typeof supervisor.assignedBay === "object" &&
+      supervisor.assignedBay._id
+    ) {
       const result = String(bayId) === String(supervisor.assignedBay._id);
-      console.log('Single object check result:', result);
+      console.log("Single object check result:", result);
       return result;
     }
-    
+
     // Handle string (could be single bay or comma-separated list)
     const assignedBayString = String(supervisor.assignedBay);
-    console.log('Assigned bay string:', assignedBayString);
-    
+    console.log("Assigned bay string:", assignedBayString);
+
     // Check if it's a comma-separated list of bay names
-    if (assignedBayString.includes(',')) {
-      const assignedBayNames = assignedBayString.split(',').map(b => b.trim());
-      console.log('Assigned bay names:', assignedBayNames);
-      
-      const currentBay = baysData.find(b => String(b._id) === String(bayId));
-      console.log('Current bay:', currentBay);
-      
+    if (assignedBayString.includes(",")) {
+      const assignedBayNames = assignedBayString
+        .split(",")
+        .map((b) => b.trim());
+      console.log("Assigned bay names:", assignedBayNames);
+
+      const currentBay = baysData.find((b) => String(b._id) === String(bayId));
+      console.log("Current bay:", currentBay);
+
       if (!currentBay) {
-        console.log('Bay not found in baysData');
+        console.log("Bay not found in baysData");
         return false;
       }
-      
+
       const result = assignedBayNames.includes(currentBay.bayName);
-      console.log(`Does ${currentBay.bayName} exist in assigned names?`, result);
+      console.log(
+        `Does ${currentBay.bayName} exist in assigned names?`,
+        result,
+      );
       return result;
     }
-    
+
     // Direct comparison for single bay ID or name
-    const currentBay = baysData.find(b => String(b._id) === String(bayId));
-    const result = String(bayId) === assignedBayString || 
-           (currentBay && currentBay.bayName === assignedBayString);
-    console.log('Direct comparison result:', result);
+    const currentBay = baysData.find((b) => String(b._id) === String(bayId));
+    const result =
+      String(bayId) === assignedBayString ||
+      (currentBay && currentBay.bayName === assignedBayString);
+    console.log("Direct comparison result:", result);
     return result;
   };
 
@@ -137,7 +146,9 @@ const MyBays = () => {
     if (isBayAssignedToUser(bay._id)) {
       setSelectedBay(bay);
     } else {
-      setErrorMessage(`You don't have access to Bay ${bay.bayName}. This bay is not assigned to you.`);
+      setErrorMessage(
+        `You don't have access to Bay ${bay.bayName}. This bay is not assigned to you.`,
+      );
       setShowErrorModal(true);
     }
   };
@@ -148,38 +159,39 @@ const MyBays = () => {
   const enrichedBays = baysData.map((bay) => {
     const bayEntries = entries.filter((e) => {
       const entryBayId =
-        typeof e.bayId === "object"
-          ? e.bayId._id
-          : e.bayId || e.assignedBay;
+        typeof e.bayId === "object" ? e.bayId._id : e.bayId || e.assignedBay;
 
       return String(entryBayId) === String(bay._id);
     });
 
     const todayEntries = bayEntries.filter(
-      (e) => new Date(getEntryTime(e)) >= today
+      (e) => new Date(getEntryTime(e)) >= today,
     );
 
     return {
       ...bay,
       vehiclesToday: todayEntries.length,
       currentlyInside: todayEntries.filter((e) => !e.outTime).length,
+      // FIXED - excludes rejected and pending staff
       staffOnDuty: staff.filter((s) => {
         const staffBayId =
-          typeof s.assignedBay === "object"
-            ? s.assignedBay._id
-            : s.assignedBay;
+          typeof s.assignedBay === "object" ? s.assignedBay._id : s.assignedBay;
 
-        return String(staffBayId) === String(bay._id);
+        return (
+          String(staffBayId) === String(bay._id) &&
+          s.approvalStatus !== "rejected" &&
+          s.approvalStatus !== "pending"
+        );
       }).length,
       avgTime:
         todayEntries.length > 0
           ? `${Math.round(
               todayEntries.reduce(
                 (sum, e) => sum + (e.processingTimeMs || 0),
-                0
+                0,
               ) /
                 todayEntries.length /
-                1000
+                1000,
             )}s`
           : "—",
       todayEntries,
@@ -229,7 +241,7 @@ const MyBays = () => {
               title="Total Bays Assigned"
               value={baysData.length}
               icon={Building2}
-              desc="Bay A, Bay B, Bay C"
+              desc="Available Bays"
             />
             <Stat
               title="Active Bays Now"
@@ -244,29 +256,6 @@ const MyBays = () => {
               desc="Target: 20s"
             />
           </div>
-
-          {/* VIEW TOGGLE */}
-          <div className="flex justify-center sm:justify-start mb-6">
-            <div className="flex gap-2 bg-white border border-emerald-100 p-1 rounded-lg">
-              {["Today", "This week", "This month"].map((view) => {
-                const key = view.toLowerCase().replace(" ", "-");
-                return (
-                  <button
-                    key={view}
-                    onClick={() => setActiveView(key)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                      activeView === key
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "text-emerald-600 hover:bg-emerald-50"
-                    }`}
-                  >
-                    {view}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* BAY CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {enrichedBays.map((bay) => {
@@ -314,11 +303,13 @@ const MyBays = () => {
                     </div>
                   </div>
 
-                  <div className={`px-6 py-4 border-t border-emerald-100 text-center text-sm font-medium ${
-                    !isAssigned 
-                      ? "bg-gray-50 text-gray-500 flex items-center justify-center gap-2"
-                      : "bg-emerald-50 text-emerald-600"
-                  }`}>
+                  <div
+                    className={`px-6 py-4 border-t border-emerald-100 text-center text-sm font-medium ${
+                      !isAssigned
+                        ? "bg-gray-50 text-gray-500 flex items-center justify-center gap-2"
+                        : "bg-emerald-50 text-emerald-600"
+                    }`}
+                  >
                     {!isAssigned ? (
                       <>
                         <Lock size={14} />
@@ -356,7 +347,9 @@ const MyBays = () => {
                     <Lock className="text-white" size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-white">Access Denied</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-white">
+                      Access Denied
+                    </h3>
                     <p className="text-white/90 text-xs sm:text-sm mt-0.5">
                       Bay not assigned to you
                     </p>
@@ -368,13 +361,17 @@ const MyBays = () => {
               <div className="p-4 sm:p-6">
                 <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
                   <div className="flex gap-2 sm:gap-3">
-                    <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
+                    <AlertCircle
+                      className="text-red-500 flex-shrink-0 mt-0.5"
+                      size={18}
+                    />
                     <div>
                       <p className="text-xs sm:text-sm text-red-900 font-medium">
                         {errorMessage}
                       </p>
                       <p className="text-[10px] sm:text-xs text-red-700 mt-1.5 sm:mt-2">
-                        Please contact your administrator if you believe this is an error.
+                        Please contact your administrator if you believe this is
+                        an error.
                       </p>
                     </div>
                   </div>
@@ -403,9 +400,7 @@ const Stat = ({ title, value, icon: Icon, desc }) => (
       <p className="text-emerald-600 text-sm font-medium">{title}</p>
       <Icon size={20} className="text-emerald-600" />
     </div>
-    <h3 className="text-2xl sm:text-3xl font-bold text-emerald-800">
-      {value}
-    </h3>
+    <h3 className="text-2xl sm:text-3xl font-bold text-emerald-800">{value}</h3>
     <p className="text-emerald-500 text-sm mt-1">{desc}</p>
   </div>
 );
@@ -467,7 +462,7 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
   todayEntries.forEach((entry) => {
     if (!entry.outTime && !entry.exitTime && !entry.out) {
       const inTime = new Date(
-        entry.inTime || entry.entryTime || entry.createdAt
+        entry.inTime || entry.entryTime || entry.createdAt,
       );
       const now = new Date();
       const minutesInside = Math.floor((now - inTime) / 60000);
@@ -493,7 +488,7 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
       !entry.exitTime &&
       !entry.out &&
       companiesNeedingConfirmation.some((c) =>
-        (entry.visitorCompany || "").includes(c)
+        (entry.visitorCompany || "").includes(c),
       )
     ) {
       alerts.push({
@@ -584,9 +579,8 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
                   </p>
                   <p className="text-xl sm:text-2xl font-bold text-emerald-800">
                     {enrichedBay.currentlyInside ||
-                      todayEntries.filter(
-                        (e) => !e.outTime && !e.exitTime
-                      ).length ||
+                      todayEntries.filter((e) => !e.outTime && !e.exitTime)
+                        .length ||
                       0}
                   </p>
                 </div>
@@ -597,7 +591,10 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
                   <p className="text-xl sm:text-2xl font-bold text-emerald-800">
                     {enrichedBay.staffOnDuty ||
                       staff.filter(
-                        (s) => String(s.assignedBay) === String(bay._id)
+                        (s) =>
+                          String(s.assignedBay) === String(bay._id) &&
+                          s.approvalStatus !== "rejected" &&
+                          s.approvalStatus !== "pending",
                       ).length ||
                       0}
                   </p>
@@ -611,8 +608,7 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
                     Recent Activity
                   </h3>
                   <p className="text-[10px] sm:text-xs text-emerald-600">
-                    Latest entries and exits for {bay.bayName}. Ordered by
-                    time.
+                    Latest entries and exits for {bay.bayName}. Ordered by time.
                   </p>
                 </div>
                 <div className="overflow-x-auto">
@@ -658,7 +654,7 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
                               {formatTime(
                                 entry.inTime ||
                                   entry.entryTime ||
-                                  entry.createdAt
+                                  entry.createdAt,
                               )}
                             </td>
                             <td className="px-2 sm:px-4 py-2 sm:py-3 text-emerald-800 whitespace-nowrap">
@@ -720,7 +716,10 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
               {/* Bay Activity Timeline */}
               <div className="bg-white border border-emerald-100 rounded-lg p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                  <Clock size={16} className="text-emerald-600 sm:w-[18px] sm:h-[18px]" />
+                  <Clock
+                    size={16}
+                    className="text-emerald-600 sm:w-[18px] sm:h-[18px]"
+                  />
                   <h3 className="text-sm sm:text-base font-semibold text-emerald-800">
                     Bay Activity Timeline (Today)
                   </h3>
@@ -735,7 +734,7 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
                       <div className="flex-1 text-xs sm:text-sm">
                         <p className="font-medium text-emerald-800">
                           {formatTime(
-                            entry.inTime || entry.entryTime || entry.createdAt
+                            entry.inTime || entry.entryTime || entry.createdAt,
                           )}{" "}
                           {entry.outTime || entry.exitTime || entry.out
                             ? "Exit"
@@ -767,7 +766,10 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
               {/* Recent Vehicles Linked */}
               <div className="bg-white border border-emerald-100 rounded-lg p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                  <Truck size={16} className="text-emerald-600 sm:w-[18px] sm:h-[18px]" />
+                  <Truck
+                    size={16}
+                    className="text-emerald-600 sm:w-[18px] sm:h-[18px]"
+                  />
                   <h3 className="text-sm sm:text-base font-semibold text-emerald-800">
                     Recent Vehicles Linked
                   </h3>
@@ -801,7 +803,10 @@ const BayModal = ({ bay, entries, staff, enrichedBays, onClose }) => {
               {/* Bay Alerts */}
               <div className="bg-white border border-emerald-100 rounded-lg p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                  <AlertCircle size={16} className="text-orange-600 sm:w-[18px] sm:h-[18px]" />
+                  <AlertCircle
+                    size={16}
+                    className="text-orange-600 sm:w-[18px] sm:h-[18px]"
+                  />
                   <h3 className="text-sm sm:text-base font-semibold text-emerald-800">
                     Bay Alerts
                   </h3>

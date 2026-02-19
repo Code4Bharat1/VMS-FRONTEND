@@ -63,31 +63,30 @@ export default function Supervisors() {
       setEntries(entriesData);
 
       const mapped = supervisorsData.map((u) => {
-  const managedBayIds = (u.managedBays || []).map((b) =>
-    typeof b === "object" ? String(b._id) : String(b)
-  );
+        const managedBayIds = (u.managedBays || []).map((b) =>
+          typeof b === "object" ? String(b._id) : String(b),
+        );
 
-  const staffCount = staffList.filter((s) => {
-    const staffBayId =
-      typeof s.assignedBay === "object"
-        ? String(s.assignedBay?._id)
-        : String(s.assignedBay);
+        const staffCount = staffList.filter((s) => {
+          const staffBayId =
+            typeof s.assignedBay === "object"
+              ? String(s.assignedBay?._id)
+              : String(s.assignedBay);
 
-    return managedBayIds.includes(staffBayId);
-  }).length;
+          return managedBayIds.includes(staffBayId);
+        }).length;
 
-  return {
-    id: u._id,
-    name: u.name,
-    staffCount,
-    mobile: u.phone || "-",
-    email: u.email,
-    status: u.isActive ? "Active" : "Inactive",
-    managedBays: u.managedBays || [],
-    isActive: u.isActive,
-  };
-});
-
+        return {
+          id: u._id,
+          name: u.name,
+          staffCount,
+          mobile: u.phone || "-",
+          email: u.email,
+          status: u.isActive ? "Active" : "Inactive",
+          managedBays: u.managedBays || [],
+          isActive: u.isActive,
+        };
+      });
 
       setSupervisors(mapped);
     } catch (err) {
@@ -98,8 +97,11 @@ export default function Supervisors() {
   const validate = () => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = "Name is required";
-    else if (form.name.length < 3)
-      newErrors.name = "Name must be at least 3 characters";
+    else if (!/^[A-Za-z ]+$/.test(form.name))
+  newErrors.name = "Name must contain only letters";
+else if (form.name.length < 3)
+  newErrors.name = "Name must be at least 3 characters";
+
     if (!form.email.trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       newErrors.email = "Invalid email address";
@@ -193,20 +195,35 @@ export default function Supervisors() {
 
   const deleteSupervisor = async () => {
     if (!selected) return;
+
     try {
       const token = localStorage.getItem("accessToken");
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/supervisors/${selected.id}`,
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/supervisors/${selected._id}`,
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
       );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Delete failed");
+        return;
+      }
+
+      alert("Supervisor deleted successfully");
+
       setConfirmDelete(false);
       setSelected(null);
       loadData();
     } catch (err) {
-      alert("Delete failed");
+      console.error("Delete error:", err);
+      alert("Server error while deleting supervisor");
     }
   };
 
@@ -227,13 +244,7 @@ export default function Supervisors() {
     });
 
     const completedChecks = bayEntries.filter((e) => e.outTime !== null).length;
-    const incidentsCount = bayEntries.filter((e) => {
-      const duration = e.outTime
-        ? (new Date(e.outTime) - new Date(e.inTime)) / 60000
-        : (Date.now() - new Date(e.inTime)) / 60000;
-      return duration > 60;
-    }).length;
-
+    
     const onTimeShifts = bayStaff.filter((s) => s.isActive).length;
     const patrolRounds = Math.floor(bayEntries.length / 5);
     const complianceRate =
@@ -259,9 +270,7 @@ export default function Supervisors() {
       bayStaff,
       staffAssigned: bayStaff.length,
       checksCompleted: completedChecks,
-      incidents: incidentsCount,
       onTimeShifts,
-      patrolRounds,
       complianceRate,
       recentActivities,
     });
@@ -413,7 +422,7 @@ export default function Supervisors() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelected(s);
+                            setSelected({ _id: s.id });
                             setConfirmDelete(true);
                           }}
                           className="text-red-600 hover:scale-110 transition"
@@ -585,7 +594,7 @@ function DetailPopup({ data, onClose }) {
             <h3 className="text-sm font-semibold text-emerald-800 mb-3">
               Staff assigned
             </h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <StatBox
                 label="Staff assigned"
                 value={data.staffAssigned}
@@ -596,11 +605,7 @@ function DetailPopup({ data, onClose }) {
                 value={data.checksCompleted}
                 color="bg-blue-50"
               />
-              <StatBox
-                label="Incidents in last 7 days"
-                value={data.incidents}
-                color="bg-orange-50"
-              />
+              
             </div>
           </div>
 
@@ -642,8 +647,6 @@ function DetailPopup({ data, onClose }) {
               )}
             </div>
           </div>
-
-          
 
           {/* Recent Activities */}
           <div>
@@ -733,7 +736,13 @@ function Modal({ editId, form, setForm, errors, bays, onClose, onSubmit }) {
             label="Name"
             value={form.name}
             error={errors.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) => {
+  const value = e.target.value;
+  if (/^[A-Za-z ]*$/.test(value)) {
+    setForm({ ...form, name: value });
+  }
+}}
+
           />
           <Input
             label="Email"
@@ -747,7 +756,7 @@ function Modal({ editId, form, setForm, errors, bays, onClose, onSubmit }) {
             error={errors.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
-          
+
           {/* ONLY managedBays (multi-select) - NO assignedBay */}
           <div>
             <label className="text-sm font-medium text-emerald-700 block mb-1.5">

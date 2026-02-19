@@ -62,7 +62,7 @@ export default function Sidebar({
           {!collapsed && (
             <div className="flex flex-col leading-tight">
               <span className="font-semibold text-gray-800 text-lg">VMS</span>
-              <span className="text-[11px] text-gray-500">Staff Panel</span>
+              <span className="text-[11px] text-gray-500">Guard Panel</span>
             </div>
           )}
         </div>

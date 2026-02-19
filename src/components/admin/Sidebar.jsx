@@ -26,10 +26,10 @@ const menu = [
   { label: "Bay Management", href: "/admin/Bay", icon: Warehouse },
   { label: "Tenant Management", href: "/admin/Vendors", icon: IdCard },
   { label: "Supervisors Management", href: "/admin/Supervisors", icon: ShieldCheck },
-  { label: "Staff", href: "/admin/Staff", icon: Users },
+  { label: "Guards Management", href: "/admin/Staff", icon: Users },
   { label: "Activity Logs", href: "/admin/logs", icon: BarChart3 },
   { label: "Settings", href: "/admin/SettingPage", icon: Settings },
-  { label: "Pending Staff", href: "/admin/Pending", icon: Users },
+  { label: "Pending Guards", href: "/admin/Pending", icon: Users },
 ];
 
 /* ================= SIDEBAR ================= */

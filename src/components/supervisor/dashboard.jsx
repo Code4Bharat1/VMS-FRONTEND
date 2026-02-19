@@ -147,7 +147,7 @@ const SupervisorDashboard = () => {
             <div>
               <h1 className="text-xl font-bold text-emerald-800">Supervisor Panel</h1>
               <p className="text-emerald-600 mt-1 text-sm">
-                Monitor your assigned security staff, bays, and supervision activities.
+                Monitor your assigned security guards, bays, and supervision activities.
               </p>
             </div>
 
@@ -201,7 +201,7 @@ const SupervisorDashboard = () => {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
             <div className="bg-white rounded-xl p-4 sm:p-6 border border-emerald-100 shadow-sm hover:shadow transition">
               <div className="flex justify-between mb-2">
-                <p className="text-emerald-600 text-sm">Total Staff Assigned</p>
+                <p className="text-emerald-600 text-sm">Total guards Assigned</p>
                 <Users className="text-emerald-600" size={20} />
               </div>
               <h3 className="text-3xl font-bold text-emerald-800">{stats.totalStaff}</h3>
@@ -235,7 +235,7 @@ const SupervisorDashboard = () => {
           {/* VIEW TOGGLE */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-lg font-bold text-emerald-800">Staff Performance</h2>
+              <h2 className="text-lg font-bold text-emerald-800">Guard Performance</h2>
               <p className="text-emerald-600 text-sm">
                 Performance overview of staff under you.
               </p>
@@ -256,17 +256,18 @@ const SupervisorDashboard = () => {
                     <thead className="bg-emerald-100">
                       <tr>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">
-                          Staff Name
+                          guard Name
                         </th>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">
                           Mobile
                         </th>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">
-                          Entries
+                          Email
                         </th>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">
-                          Avg Time
+                          Entries
                         </th>
+                        
                         <th className="px-6 py-4 text-center text-sm font-semibold text-emerald-700">
                           Status
                         </th>
@@ -279,8 +280,8 @@ const SupervisorDashboard = () => {
                             {s.name}
                           </td>
                           <td className="px-6 py-4 text-center">{s.mobile}</td>
+                          <td className="px-6 py-4 text-center">{s.email}</td>
                           <td className="px-6 py-4 text-center">{s.entries}</td>
-                          <td className="px-6 py-4 text-center">{s.avgTime}</td>
                           <td className="px-6 py-4 text-center">
                             <span
                               className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -301,13 +302,13 @@ const SupervisorDashboard = () => {
                 </div>
 
                 <div className="px-4 py-3 text-sm text-emerald-600 bg-emerald-50">
-                  Showing {staffData.length} staff members
+                  Showing {staffData.length} guard members
                 </div>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-12">
                 <Users className="w-12 h-12 text-emerald-300 mb-4" />
-                <p className="text-emerald-600">No staff data available</p>
+                <p className="text-emerald-600">No Guard data available</p>
               </div>
             )}
           </div>

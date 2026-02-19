@@ -99,7 +99,7 @@ const MyStaff = () => {
         },
       });
 
-      alert("Staff added successfully and sent for admin approval.");
+      alert("Guard added successfully and sent for admin approval.");
 
       setShowAddStaff(false);
       setForm({
@@ -176,7 +176,7 @@ const MyStaff = () => {
       );
 
       alert(
-        `Staff status updated to ${!currentStatus ? "Active" : "Inactive"}`,
+        `guard status updated to ${!currentStatus ? "Active" : "Inactive"}`,
       );
     } catch (err) {
       console.error("Failed to toggle status", err);
@@ -269,7 +269,7 @@ const MyStaff = () => {
                 {staff.name}
               </h2>
               <p className="text-sm text-emerald-600">
-                Staff Details & Activity
+                guard Details & Activity
               </p>
             </div>
             <button
@@ -310,8 +310,8 @@ const MyStaff = () => {
               <div className="bg-white border border-emerald-100 rounded-lg p-4">
                 <p className="text-sm text-emerald-600 mb-1">Average Time</p>
                 <p className="text-3xl font-bold text-emerald-800">
-                  {staff.avgTime || "—"}
-                </p>
+  {getStaffAvgTime(staff._id)}
+</p>
               </div>
 
               <div className="bg-white border border-emerald-100 rounded-lg p-4">
@@ -322,7 +322,7 @@ const MyStaff = () => {
               </div>
 
               <div className="bg-white border border-emerald-100 rounded-lg p-4">
-                <p className="text-sm text-emerald-600 mb-1">Staff on Duty</p>
+                <p className="text-sm text-emerald-600 mb-1">Guard on Duty</p>
                 <p className="text-3xl font-bold text-emerald-800">1</p>
               </div>
             </div>
@@ -330,12 +330,12 @@ const MyStaff = () => {
             {/* Staff Information */}
             <div className="bg-white border border-emerald-100 rounded-lg p-5">
               <h3 className="text-emerald-700 font-semibold mb-4">
-                Staff Information
+                Guard Information
               </h3>
 
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between py-2 border-b border-emerald-50">
-                  <span className="text-emerald-600">Staff Name:</span>
+                  <span className="text-emerald-600">Guard Name:</span>
                   <span className="text-emerald-800 font-medium text-right">
                     {staff.name}
                   </span>
@@ -428,7 +428,9 @@ const MyStaff = () => {
                 </div>
                 <div>
                   <p className="text-emerald-600 mb-1">Avg processing time</p>
-                  <p className="font-semibold text-emerald-800 text-lg">16s</p>
+                  <p className="font-semibold text-emerald-800 text-lg">
+  {getStaffAvgTime(staff._id)}
+</p>
                   <p className="text-gray-400 text-xs">Within target (20s)</p>
                 </div>
                 <div>
@@ -439,10 +441,7 @@ const MyStaff = () => {
                   <p className="text-gray-400 text-xs">Stable vs last week</p>
                 </div>
                 <div>
-                  <p className="text-emerald-600 mb-1">Incidents logged</p>
-                  <p className="font-semibold text-emerald-800 text-lg">
-                    {staff.incidents || 0}
-                  </p>
+                 
                   <p className="text-gray-400 text-xs">No open items</p>
                 </div>
               </div>
@@ -451,10 +450,10 @@ const MyStaff = () => {
             {/* Supervisor Note */}
             <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 text-sm text-emerald-700">
               <p className="font-semibold text-emerald-800 mb-2">
-                Supervisor–Staff Relationship
+                Supervisor–Guard Relationship
               </p>
               <p>
-                This staff member is assigned to one of your managed bays. and
+                This guard member is assigned to one of your managed bays. and
                 reports exclusively to you. Performance reviews and schedules
                 are managed at supervisor level.
               </p>
@@ -474,6 +473,23 @@ const MyStaff = () => {
       </div>
     );
   };
+
+  const getStaffAvgTime = (staffId) => {
+  const staffEntries = getStaffEntries(staffId).filter(
+    (e) => e.processingTimeMs > 1000
+  );
+
+  if (staffEntries.length === 0) return "N/A";
+
+  const avgMs =
+    staffEntries.reduce((sum, e) => sum + e.processingTimeMs, 0) /
+    staffEntries.length;
+
+  const avgSec = Math.round(avgMs / 1000);
+  return avgSec < 60
+    ? `${avgSec}s`
+    : `${Math.floor(avgSec / 60)}m ${avgSec % 60}s`;
+};
 
   const getStaffEntryCount = (staff) => {
     return entries.filter((entry) => {
@@ -544,9 +560,9 @@ const MyStaff = () => {
         <div className="sticky top-0 z-40 bg-white border-b border-emerald-100 px-4 md:px-8 py-4 md:py-6">
           <div className="flex flex-col sm:flex-row gap-4 sm:justify-between">
             <div>
-              <h1 className="text-xl font-bold text-emerald-800">My Staff</h1>
+              <h1 className="text-xl font-bold text-emerald-800">My guard</h1>
               <p className="text-emerald-600 text-sm">
-                Monitor your assigned security staff
+                Monitor your assigned security guards
               </p>
             </div>
 
@@ -556,7 +572,7 @@ const MyStaff = () => {
                 className="px-4 h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-2 transition font-medium text-sm"
               >
                 <Plus size={16} />
-                Add Staff
+                Add Guard
               </button>
 
               <div className="w-10 h-10 bg-emerald-600 text-white rounded-lg flex items-center justify-center font-bold">
@@ -577,13 +593,13 @@ const MyStaff = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
             <StatCard
-              title="Total Staff"
+              title="Total Guards"
               value={approvedStaff.length}
               icon={<Users className="text-emerald-600" />}
             />
 
             <StatCard
-              title="Active Staff"
+              title="Active Guards"
               value={approvedStaff.filter((s) => s.isActive).length}
               icon={<Activity className="text-emerald-600" />}
             />
@@ -619,7 +635,7 @@ const MyStaff = () => {
                   : "bg-white text-emerald-600 border border-emerald-200"
               }`}
             >
-              Approved Staff ({approvedStaff.length})
+              All Guards ({approvedStaff.length})
             </button>
 
             <button
@@ -641,7 +657,7 @@ const MyStaff = () => {
                   : "bg-white text-red-600 border border-red-200"
               }`}
             >
-              Rejected Staff ({rejectedStaff.length})
+              Rejected Guards ({rejectedStaff.length})
             </button>
           </div>
 
@@ -686,7 +702,6 @@ const MyStaff = () => {
               "Bay",
               "Email",
               "Entries",
-              "Avg",
               "Status",
               "Action",
             ]
@@ -742,7 +757,6 @@ const MyStaff = () => {
           {viewMode === "approved" && (
             <>
               <td className="px-6 py-4">{getStaffEntryCount(s)}</td>
-              <td className="px-6 py-4">{s.avgTime || "—"}</td>
               <td className="px-6 py-4">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -813,8 +827,8 @@ const MyStaff = () => {
       {viewMode === "pending"
         ? "pending requests"
         : viewMode === "rejected"
-        ? "rejected staff"
-        : "staff"}{" "}
+        ? "rejected guards"
+        : "guards"}{" "}
       found
     </div>
   )}
@@ -917,8 +931,8 @@ const MyStaff = () => {
       {viewMode === "pending"
         ? "pending requests"
         : viewMode === "rejected"
-        ? "rejected staff"
-        : "staff"}{" "}
+        ? "rejected guards"
+        : "guards"}{" "}
       found
     </div>
   )}
@@ -940,7 +954,7 @@ const MyStaff = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden">
             <div className="flex justify-between items-center px-6 py-4 border-b border-emerald-100">
-              <h2 className="font-semibold text-emerald-800">Add New Staff</h2>
+              <h2 className="font-semibold text-emerald-800">Add New Guard</h2>
               <button
                 onClick={() => setShowAddStaff(false)}
                 className="text-emerald-600 hover:bg-emerald-50 p-2 rounded-lg transition"
@@ -1011,7 +1025,7 @@ const MyStaff = () => {
                 onClick={saveStaff}
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition font-medium"
               >
-                Add Staff
+                Add Guard
               </button>
             </div>
           </div>

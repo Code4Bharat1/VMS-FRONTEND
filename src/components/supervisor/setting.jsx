@@ -144,10 +144,10 @@ export default function SupervisorSettings() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50">
       <Sidebar activePage={activePage} onPageChange={setActivePage} />
 
-      <div className="flex-1 flex flex-col w-full min-w-0">
+      <div className="flex-1 flex flex-col w-full min-w-0 overflow-auto">
         {/* ================= HEADER ================= */}
         <header className="bg-white/80 backdrop-blur-md border-b border-emerald-100 shadow-sm">
           <div className="px-4 sm:px-6 py-5">

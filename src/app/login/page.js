@@ -10,6 +10,9 @@ import authService from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
 import { Eye, EyeOff } from "lucide-react";
 
+/* =========================
+   VALIDATION SCHEMA (UNCHANGED)
+   ========================= */
 const schema = yup.object().shape({
   email: yup
     .string()
@@ -21,10 +24,22 @@ const schema = yup.object().shape({
 export default function LoginPage() {
   const router = useRouter();
   const { isAuthenticated, user, login } = useAuth();
+
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /* =========================
+     🆕 CAPTCHA STATES (ADDED)
+     ========================= */
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaSvg, setCaptchaSvg] = useState("");
+  const [captchaId, setCaptchaId] = useState("");
+  const [captchaValue, setCaptchaValue] = useState("");
+
+  /* =========================
+     AUTH REDIRECT (UNCHANGED)
+     ========================= */
   useEffect(() => {
     if (isAuthenticated && user) {
       if (user.role === "admin") {
@@ -37,6 +52,9 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, user, router]);
 
+  /* =========================
+     FORM SETUP (UNCHANGED)
+     ========================= */
   const {
     register,
     handleSubmit,
@@ -46,12 +64,34 @@ export default function LoginPage() {
     defaultValues: { email: "", password: "" },
   });
 
+  /* =========================
+     🆕 LOAD CAPTCHA (ADDED)
+     ========================= */
+  const loadCaptcha = async () => {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/captcha`
+    );
+    const data = await res.json();
+
+    setCaptchaSvg(data.svg);
+    setCaptchaId(data.id);
+  };
+
+  /* =========================
+     SUBMIT HANDLER (EXTENDED, NOT REPLACED)
+     ========================= */
   const onSubmit = async (values) => {
     setLoading(true);
     setServerError("");
 
     try {
-      const { accessToken, user } = await authService.login(values);
+      const payload = {
+        ...values,
+        captchaId,
+        captchaValue,
+      };
+
+      const { accessToken, user } = await authService.login(payload);
       login(accessToken, user);
 
       if (user.role === "admin") {
@@ -61,9 +101,18 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error(err);
+
       const msg =
         err.response?.data?.message || "Login failed. Please try again.";
       setServerError(msg);
+
+      /* =========================
+         🆕 SHOW CAPTCHA WHEN BACKEND ASKS
+         ========================= */
+      if (err.response?.data?.requireCaptcha) {
+        setShowCaptcha(true);
+        loadCaptcha();
+      }
     } finally {
       setLoading(false);
     }
@@ -85,6 +134,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          {/* ================= EMAIL ================= */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Email
@@ -106,42 +156,59 @@ export default function LoginPage() {
             )}
           </div>
 
-<div className="relative">
-  <input
-    {...register("password")}
-    type={showPassword ? "text" : "password"}
-    placeholder="••••••••"
-    className={`mt-1 w-full outline-0 rounded-md border px-3 py-2 pr-10 focus:ring-2 ${
-      errors.password
-        ? "border-red-300 focus:ring-red-200"
-        : "border-gray-200 focus:ring-emerald-200"
-    }`}
-  />
+          {/* ================= PASSWORD ================= */}
+          <div className="relative">
+            <input
+              {...register("password")}
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              className={`mt-1 w-full outline-0 rounded-md border px-3 py-2 pr-10 focus:ring-2 ${
+                errors.password
+                  ? "border-red-300 focus:ring-red-200"
+                  : "border-gray-200 focus:ring-emerald-200"
+              }`}
+            />
 
-  {/* 👁 View / Hide Button */}
-  <button
-    type="button"
-    onClick={() => setShowPassword((prev) => !prev)}
-    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-600 transition"
-  >
-    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-  </button>
-</div>
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-600 transition"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
 
-{/* Error message */}
-{errors.password && (
-  <p className="mt-1 text-sm text-red-500">
-    {errors.password.message}
-  </p>
-)}
+          {errors.password && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.password.message}
+            </p>
+          )}
 
-
+          {/* ================= SERVER ERROR ================= */}
           {serverError && (
             <p className="text-sm text-red-600 mt-1 text-center">
               {serverError}
             </p>
           )}
 
+          {/* ================= 🆕 CAPTCHA UI (ADDED) ================= */}
+          {showCaptcha && (
+            <div className="mt-2">
+              <div
+                className="mb-2"
+                dangerouslySetInnerHTML={{ __html: captchaSvg }}
+              />
+              <input
+                type="text"
+                placeholder="Enter captcha"
+                value={captchaValue}
+                onChange={(e) => setCaptchaValue(e.target.value)}
+                className="w-full rounded-md border px-3 py-2 outline-0 focus:ring-2 focus:ring-emerald-200"
+              />
+            </div>
+          )}
+
+          {/* ================= LOGIN BUTTON ================= */}
           <button
             type="submit"
             disabled={loading}

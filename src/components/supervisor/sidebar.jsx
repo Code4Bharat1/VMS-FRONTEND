@@ -28,7 +28,7 @@ const Sidebar = () => {
       label: "Supervisor Overview",
       href: "/supervisor/dashboard",
     },
-    { id: "staff", icon: Users, label: "My Staff", href: "/supervisor/staff" },
+    { id: "staff", icon: Users, label: "My Guards", href: "/supervisor/staff" },
     { id: "bays", icon: Building2, label: "My Bays", href: "/supervisor/bays" },
     { id: "search", icon: Search, label: "Search Entries", href: "/supervisor/search" },
     {

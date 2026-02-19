@@ -10,7 +10,6 @@ import {
   Car,
   Building2,
   X,
-  TrendingUp,
   Users,
 } from "lucide-react";
 
@@ -24,6 +23,7 @@ export default function BayManagement() {
   const [bayName, setBayName] = useState("");
   const [bayType, setBayType] = useState("");
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
 
   /* Delete State */
   const [deletingId, setDeletingId] = useState(null);
@@ -34,7 +34,7 @@ export default function BayManagement() {
 
   /* Activity Timeline Date Filter */
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split('T')[0]
+    new Date().toISOString().split("T")[0],
   );
 
   useEffect(() => {
@@ -63,9 +63,39 @@ export default function BayManagement() {
     }
   };
 
+  const validateBay = () => {
+    const newErrors = {};
+
+    const nameRegex = /^[A-Za-z0-9]+$/;
+    const typeRegex = /^[A-Za-z ]+$/; // characters + space
+
+    // BAY NAME
+    if (!bayName.trim()) {
+      newErrors.bayName = "Bay name is required";
+    } else if (!nameRegex.test(bayName.trim())) {
+      newErrors.bayName = "Bay name must contain only letters and numbers";
+    } else if (bayName.length > 10) {
+      newErrors.bayName = "Bay name must be max 10 characters";
+    }
+
+    // BAY TYPE
+    if (!bayType.trim()) {
+      newErrors.bayType = "Bay type is required";
+    } else if (!typeRegex.test(bayType.trim())) {
+      newErrors.bayType = "Bay type must contain only letters";
+    } else if (bayType.trim().length < 3) {
+      newErrors.bayType = "Bay type must be at least 3 characters";
+    } else if (bayType.trim().length > 30) {
+      newErrors.bayType = "Bay type must be max 30 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   /* ADD BAY */
   const addBay = async () => {
-    if (!bayName || !bayType) return;
+    if (!validateBay()) return;
 
     try {
       setSaving(true);
@@ -73,13 +103,14 @@ export default function BayManagement() {
 
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/bays`,
-        { bayName, bayType },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { bayName: bayName.trim(), bayType: bayType.trim() },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       setShowAddBay(false);
       setBayName("");
       setBayType("");
+      setErrors({});
       fetchData();
     } catch (err) {
       console.error("Failed to add bay", err);
@@ -109,7 +140,7 @@ export default function BayManagement() {
   };
 
   /* ANALYTICS HELPERS */
-  const BAY_CAPACITY = 3;
+  const BAY_CAPACITY = 100;
 
   const getBayStats = (bayId) => {
     const active = entries.filter(
@@ -117,7 +148,7 @@ export default function BayManagement() {
         e.outTime === null &&
         e.bayId &&
         String(typeof e.bayId === "object" ? e.bayId._id : e.bayId) ===
-          String(bayId)
+          String(bayId),
     );
 
     const occupied = active.length;
@@ -197,17 +228,14 @@ export default function BayManagement() {
   }, [entries, selectedDate]);
 
   // Get max count for scaling
-  const maxHourlyCount = Math.max(
-    ...getHourlyActivity.map((h) => h.count),
-    1
-  );
+  const maxHourlyCount = Math.max(...getHourlyActivity.map((h) => h.count), 1);
 
   // Get current hour for highlighting
   const currentHour = new Date().getHours();
 
   // Filter to show only hours with activity or current working hours (8-18)
   const relevantHours = getHourlyActivity.filter(
-    (h) => h.count > 0 || (h.hour >= 6 && h.hour <= 20)
+    (h) => h.count > 0 || (h.hour >= 6 && h.hour <= 20),
   );
 
   if (loading) {
@@ -236,7 +264,12 @@ export default function BayManagement() {
           </div>
 
           <button
-            onClick={() => setShowAddBay(true)}
+            onClick={() => {
+              setShowAddBay(true);
+              setErrors({});
+              setBayName("");
+              setBayType("");
+            }}
             className="flex items-center justify-center gap-2 px-4 h-11 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition"
           >
             <Plus size={18} />
@@ -297,8 +330,8 @@ export default function BayManagement() {
                           utilisation > 80
                             ? "bg-red-500"
                             : utilisation > 50
-                            ? "bg-yellow-500"
-                            : "bg-emerald-600"
+                              ? "bg-yellow-500"
+                              : "bg-emerald-600"
                         }`}
                         style={{ width: `${utilisation}%` }}
                       />
@@ -336,7 +369,7 @@ export default function BayManagement() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
+                max={new Date().toISOString().split("T")[0]}
                 className="w-full h-10 rounded-lg px-3 border border-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -344,17 +377,19 @@ export default function BayManagement() {
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {relevantHours.length === 0 ? (
                 <p className="text-sm text-emerald-500 text-center py-8">
-                  No entries recorded on {new Date(selectedDate).toLocaleDateString('en-IN', { 
-                    day: '2-digit', 
-                    month: 'short', 
-                    year: 'numeric' 
+                  No entries recorded on{" "}
+                  {new Date(selectedDate).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
                   })}
                 </p>
               ) : (
                 relevantHours.map((hourData) => {
                   const percentage = (hourData.count / maxHourlyCount) * 100;
                   const isCurrentHour = hourData.hour === currentHour;
-                  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+                  const isToday =
+                    selectedDate === new Date().toISOString().split("T")[0];
 
                   return (
                     <div key={hourData.hour} className="space-y-1">
@@ -381,7 +416,9 @@ export default function BayManagement() {
                       <div className="h-3 bg-emerald-50 rounded-full overflow-hidden">
                         <div
                           className={`h-3 transition-all ${
-                            isCurrentHour && isToday ? "bg-emerald-600" : "bg-emerald-400"
+                            isCurrentHour && isToday
+                              ? "bg-emerald-600"
+                              : "bg-emerald-400"
                           }`}
                           style={{ width: `${percentage}%` }}
                         />
@@ -394,27 +431,29 @@ export default function BayManagement() {
 
             <div className="flex justify-between text-xs text-emerald-600 mt-4 pt-4 border-t border-emerald-100">
               <span className="font-medium">
-                {selectedDate === new Date().toISOString().split('T')[0] 
-                  ? `Current time: ${new Date().toLocaleTimeString("en-IN", { 
-                      hour: "2-digit", 
-                      minute: "2-digit" 
+                {selectedDate === new Date().toISOString().split("T")[0]
+                  ? `Current time: ${new Date().toLocaleTimeString("en-IN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}`
-                  : new Date(selectedDate).toLocaleDateString('en-IN', { 
-                      day: '2-digit', 
-                      month: 'short', 
-                      year: 'numeric' 
-                    })
-                }
+                  : new Date(selectedDate).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
               </span>
               <span className="font-medium">
-                Total: {entries.filter(e => {
-                  const entryDate = new Date(e.inTime || e.createdAt);
-                  const targetDate = new Date(selectedDate);
-                  targetDate.setHours(0, 0, 0, 0);
-                  const nextDay = new Date(targetDate);
-                  nextDay.setDate(nextDay.getDate() + 1);
-                  return entryDate >= targetDate && entryDate < nextDay;
-                }).length}
+                Total:{" "}
+                {
+                  entries.filter((e) => {
+                    const entryDate = new Date(e.inTime || e.createdAt);
+                    const targetDate = new Date(selectedDate);
+                    targetDate.setHours(0, 0, 0, 0);
+                    const nextDay = new Date(targetDate);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    return entryDate >= targetDate && entryDate < nextDay;
+                  }).length
+                }
               </span>
             </div>
           </div>
@@ -555,10 +594,20 @@ export default function BayManagement() {
                 </label>
                 <input
                   value={bayName}
-                  onChange={(e) => setBayName(e.target.value)}
-                  className="w-full h-11 rounded-lg px-3 border border-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (/^[A-Za-z0-9]*$/.test(value)) {
+                      setBayName(value);
+                      setErrors({ ...errors, bayName: "" });
+                    }
+                  }}
+                  className={`w-full h-11 rounded-lg px-3 border text-sm focus:outline-none focus:ring-2
+      ${errors.bayName ? "border-red-500 focus:ring-red-500" : "border-emerald-200 focus:ring-emerald-500"}`}
                   placeholder="e.g., A, B, C1"
                 />
+                {errors.bayName && (
+                  <p className="text-xs text-red-600 mt-1">{errors.bayName}</p>
+                )}
               </div>
 
               <div>
@@ -567,10 +616,20 @@ export default function BayManagement() {
                 </label>
                 <input
                   value={bayType}
-                  onChange={(e) => setBayType(e.target.value)}
-                  className="w-full h-11 rounded-lg px-3 border border-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (/^[A-Za-z ]*$/.test(value)) {
+                      setBayType(value);
+                      setErrors({ ...errors, bayType: "" });
+                    }
+                  }}
+                  className={`w-full h-11 rounded-lg px-3 border text-sm focus:outline-none focus:ring-2
+      ${errors.bayType ? "border-red-500 focus:ring-red-500" : "border-emerald-200 focus:ring-emerald-500"}`}
                   placeholder="e.g., Loading, Unloading, Service"
                 />
+                {errors.bayType && (
+                  <p className="text-xs text-red-600 mt-1">{errors.bayType}</p>
+                )}
               </div>
             </div>
 
@@ -583,8 +642,9 @@ export default function BayManagement() {
               </button>
               <button
                 onClick={addBay}
-                disabled={saving || !bayName || !bayType}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={saving}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium
+             hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? "Saving..." : "Add Bay"}
               </button>
