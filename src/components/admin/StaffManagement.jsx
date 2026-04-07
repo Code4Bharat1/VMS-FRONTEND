@@ -130,7 +130,7 @@ export default function StaffManagement() {
       };
 
       if (editId) {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/${editId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/${editId}`, {
           method: "PUT",
           headers,
           body: JSON.stringify({
@@ -140,13 +140,29 @@ export default function StaffManagement() {
             assignedBay: form.assignedBay,
           }),
         });
+
+        // ✅ Check for API errors
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.message || "Failed to update guard");
+          return;
+        }
+
         alert("Guard updated successfully");
       } else {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff`, {
           method: "POST",
           headers,
           body: JSON.stringify(form),
         });
+
+        // ✅ Check for API errors — catches "Email already exists" (400)
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.message || "Failed to create guard");
+          return; // ✅ Stop here, don't close modal or reset form
+        }
+
         alert("Guard created successfully");
       }
 
@@ -162,7 +178,7 @@ export default function StaffManagement() {
       });
       fetchData();
     } catch (err) {
-      alert("Failed to save Guard");
+      alert("Network error. Please check your connection.");
     }
   };
 
@@ -280,8 +296,9 @@ const avgProcessingTime = validEntries.length === 0
   };
 
   // Separate active/rejected staff
-  const activeStaff = staff.filter((s) => s.approvalStatus !== "rejected");
-  const rejectedStaff = staff.filter((s) => s.approvalStatus === "rejected");
+  // AFTER
+const activeStaff = staff.filter((s) => s.approvalStatus === "approved");
+const rejectedStaff = staff.filter((s) => s.approvalStatus === "rejected");
 
   const sourceStaff = activeTab === "rejected" ? rejectedStaff : activeStaff;
 

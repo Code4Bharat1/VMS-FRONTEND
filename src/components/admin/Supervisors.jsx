@@ -153,7 +153,7 @@ else if (form.name.length < 3)
       };
 
       if (editId) {
-        await fetch(
+        const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/supervisors/${editId}`,
           {
             method: "PUT",
@@ -166,13 +166,29 @@ else if (form.name.length < 3)
             }),
           },
         );
+
+        // ✅ Check for API errors
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.message || "Failed to update supervisor");
+          return; // ✅ Stop — don't close modal
+        }
+
         alert("Supervisor updated successfully");
       } else {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supervisors`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supervisors`, {
           method: "POST",
           headers,
           body: JSON.stringify(form),
         });
+
+        // ✅ Check for API errors — catches "Email already exists" (400)
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.message || "Failed to create supervisor");
+          return; // ✅ Stop — don't close modal
+        }
+
         alert("Supervisor created successfully");
       }
 
@@ -189,7 +205,7 @@ else if (form.name.length < 3)
 
       loadData();
     } catch (err) {
-      alert(err.message || "Something went wrong");
+      alert("Network error. Please check your connection.");
     }
   };
 

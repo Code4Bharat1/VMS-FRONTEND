@@ -143,10 +143,10 @@ export default function Dashboard() {
   };
 
   /* ================= DERIVED METRICS (from existing data) ================= */
-
-  const totalStaff = staff.length;
-  const activeStaff = staff.filter((s) => s.isActive).length;
-  const inactiveStaff = totalStaff - activeStaff;
+const approvedStaff = staff.filter(s => s.approvalStatus !== "rejected");
+  const totalStaff = approvedStaff.length;
+const activeStaff = approvedStaff.filter((s) => s.isActive).length;
+const inactiveStaff = totalStaff - activeStaff;
   const activeSupervisors = supervisors.filter((s) => s.isActive).length;
 
   // Today's entries
@@ -232,7 +232,8 @@ export default function Dashboard() {
   const activeVendors = vendors.filter(v => v.status === "active").length;
 
   const barGraphData = getBarGraphData(entries, timeRange);
-  const distributionData = getDistributionData({ staff, supervisors, entries, timeRange });
+  // ✅ Pass approvedStaff here too
+const distributionData = getDistributionData({ staff: approvedStaff, supervisors, entries, timeRange });
 
   if (loading) {
     return (
@@ -276,12 +277,12 @@ export default function Dashboard() {
 
         {/* ── ROW 1: PRIMARY STATS ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Staff" value={totalStaff} icon={Users}
+          <StatCard title="Total guards" value={totalStaff} icon={Users}
             sub={`${activeStaff} active · ${inactiveStaff} inactive`} accent="emerald" />
-          <StatCard title="Active Staff" value={activeStaff} icon={UserCheck}
+          <StatCard title="Active guards" value={activeStaff} icon={UserCheck}
             sub={totalStaff > 0 ? `${Math.round((activeStaff / totalStaff) * 100)}% of workforce` : "—"}
             accent="emerald" trend={activeStaff > inactiveStaff ? "up" : "down"} />
-          <StatCard title="Inactive Staff" value={inactiveStaff} icon={UserX}
+          <StatCard title="Inactive guards" value={inactiveStaff} icon={UserX}
             sub="Needs attention" accent={inactiveStaff > 0 ? "red" : "emerald"} />
           <StatCard title="Supervisors" value={`${activeSupervisors}/${supervisors.length}`}
             icon={Shield} sub={`${activeSupervisors} active supervisors`} accent="emerald" />

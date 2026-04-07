@@ -113,11 +113,16 @@ const MyStaff = () => {
       fetchStaff();
     } catch (err) {
       if (err.inner) {
+        // Yup validation errors
         const e = {};
         err.inner.forEach((x) => (e[x.path] = x.message));
         setErrors(e);
+      } else if (err.response) {
+        // ✅ API error (4xx, 5xx) — show the backend message to the user
+        alert(err.response.data?.message || "Something went wrong. Please try again.");
       } else {
-        console.error(err);
+        // Network error or unexpected issue
+        alert("Network error. Please check your connection and try again.");
       }
     }
   };
