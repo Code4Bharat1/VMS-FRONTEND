@@ -94,7 +94,7 @@ const schema = yup.object().shape({
 
   tenantName: yup
     .string()
-    .required("Please select a tenant / destination"),
+    .required("Please select a tenant "),
 
   vehicleNumber: yup
     .string()
@@ -147,6 +147,10 @@ export default function ManualEntry() {
   const fileInputRef = useRef(null);
   const [currentTime, setCurrentTime] = useState("");
 
+  const [allEntries, setAllEntries] = useState([]);
+const [qidSearch, setQidSearch] = useState("");
+const [showQidDropdown, setShowQidDropdown] = useState(false);
+const qidRef = useRef(null);
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -176,23 +180,47 @@ export default function ManualEntry() {
 
   /* ================= FETCH VENDORS/TENANTS ================= */
   useEffect(() => {
-    const fetchVendors = async () => {
-      try {
-        setVendorLoading(true);
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/vendors`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setVendors(res.data?.vendors || []);
-      } catch (err) {
-        console.error("Failed to fetch vendors:", err.response?.data || err);
-        alert(err.response?.data?.message || "Failed to fetch tenants");
-      } finally {
-        setVendorLoading(false);
-      }
-    };
-    if (token) fetchVendors();
-  }, [token]);
+  if (!token) return;
+
+  const fetchVendors = async () => {
+    try {
+      setVendorLoading(true);
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/vendors`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setVendors(res.data?.vendors || []);
+    } catch (err) {
+      console.error("Failed to fetch vendors:", err.response?.data || err);
+      alert(err.response?.data?.message || "Failed to fetch tenants");
+    } finally {
+      setVendorLoading(false);
+    }
+  };
+
+  const fetchAllEntries = async () => {
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/entries`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAllEntries(res.data?.entries || []);
+    } catch (err) {
+      console.error("Failed to fetch entry history:", err);
+    }
+  };
+
+  fetchVendors();
+  fetchAllEntries();
+}, [token]);
+
+useEffect(() => {
+  const handleClickOutside = (e) => {
+    if (qidRef.current && !qidRef.current.contains(e.target)) {
+      setShowQidDropdown(false);
+    }
+  };
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, []);
 
   /* ================= OCR ================= */
   const handlePlateImage = (file) => {
@@ -297,6 +325,7 @@ export default function ManualEntry() {
   const clearForm = () => {
     setVisitorName("");
     setQidNumber("");
+    setQidSearch("");
     setMobile("");
     setCompany("");
     setTenantName("");
@@ -306,6 +335,29 @@ export default function ManualEntry() {
     setErrors({});
   };
 
+  const autoFillFromEntry = (entry) => {
+  if (!entry) return;
+  setVisitorName(entry.visitorName || "");
+  setMobile(entry.visitorMobile || "");
+  setCompany(entry.visitorCompany || "");
+  setQidNumber(entry.qidNumber || "");
+  setQidSearch(entry.qidNumber || "");
+  setErrors((prev) => ({
+    ...prev,
+    visitorName: undefined,
+    mobile: undefined,
+    company: undefined,
+    qidNumber: undefined,
+  }));
+};
+const handleMobileBlur = () => {
+  validateField("mobile", mobile);
+  if (!mobile || mobile.length < 7) return;
+  const match = allEntries.find(
+    (e) => e.visitorMobile === mobile || e.visitorMobile === mobile.trim()
+  );
+  if (match) autoFillFromEntry(match);
+};
   /* ================= SAVE ================= */
 
   const saveEntry = async () => {
@@ -388,21 +440,76 @@ formStartTime.current = Date.now(); // ← ADD
               placeholder="Enter visitor's full name"
             />
 
-            <Input
-              label="QID"
-              value={qidNumber}
-              onChange={setQidNumber}
-              onBlur={() => validateField("qidNumber", qidNumber)}
-              error={errors.qidNumber}
-              placeholder="e.g. 28512345678"
-              maxLength={20}
-            />
+           <div ref={qidRef} style={{ position: "relative" }}>
+  <label className="text-sm font-medium text-emerald-700 block mb-1">QID</label>
+  <input
+    value={qidSearch}
+    onChange={(e) => {
+      const val = e.target.value.replace(/\D/g, "").slice(0, 11);
+      setQidSearch(val);
+      setQidNumber(val);
+      setShowQidDropdown(true);
+      setErrors((prev) => ({ ...prev, qidNumber: undefined }));
+    }}
+    onFocus={() => setShowQidDropdown(true)}
+    onBlur={() => {
+      setTimeout(() => setShowQidDropdown(false), 150);
+      validateField("qidNumber", qidNumber);
+    }}
+    placeholder="Search or enter 11-digit QID"
+    maxLength={11}
+    className={`h-11 w-full rounded-lg px-4 bg-white border transition focus:outline-none focus:ring-2 ${
+      errors.qidNumber
+        ? "border-red-500 focus:ring-red-500"
+        : "border-emerald-200 focus:ring-emerald-500"
+    }`}
+  />
+  {errors.qidNumber && (
+    <p className="text-xs text-red-600 mt-1">{errors.qidNumber}</p>
+  )}
+  {showQidDropdown && (() => {
+    const seen = new Set();
+    const suggestions = allEntries
+      .filter((e) => {
+        if (!e.qidNumber) return false;
+        if (seen.has(e.qidNumber)) return false;
+        seen.add(e.qidNumber);
+        return (
+          !qidSearch ||
+          e.qidNumber.includes(qidSearch) ||
+          (e.visitorName || "").toLowerCase().includes(qidSearch.toLowerCase())
+        );
+      })
+      .slice(0, 8);
+    if (suggestions.length === 0) return null;
+    return (
+      <div className="absolute z-50 top-[calc(100%+4px)] left-0 right-0 bg-white border border-emerald-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+      {suggestions.map((e) => (
+          <button
+            key={e._id}
+            type="button"
+            onMouseDown={() => {
+              autoFillFromEntry(e);
+              setShowQidDropdown(false);
+            }}
+            className="w-full text-left px-4 py-2.5 hover:bg-emerald-50 transition border-b border-emerald-50 last:border-0"
+          >
+            <p className="text-sm font-medium text-emerald-800">{e.qidNumber}</p>
+            <p className="text-xs text-emerald-600">
+              {e.visitorName} · {e.visitorMobile} · {e.visitorCompany}
+            </p>
+          </button>
+        ))}
+      </div>
+    );
+  })()}
+</div>
 
             <Input
               label="Mobile"
               value={mobile}
               onChange={setMobile}
-              onBlur={() => validateField("mobile", mobile)}
+              onBlur={handleMobileBlur}
               error={errors.mobile}
               placeholder="+974 XXXX XXXX"
               maxLength={15}
@@ -430,7 +537,7 @@ formStartTime.current = Date.now(); // ← ADD
 
             <div>
               <label className="text-sm font-medium text-emerald-700 block mb-1">
-                Tenant / Destination
+                Tenant
               </label>
               <select
                 value={tenantName}
@@ -446,7 +553,7 @@ formStartTime.current = Date.now(); // ← ADD
                 }`}
                 disabled={vendorLoading}
               >
-                <option value="">Select Tenant/Destination</option>
+                <option value="">Select Tenant</option>
                 {vendors.map((v) => (
                   <option key={v._id} value={v.companyName}>
                     {v.companyName} - {v.shopId}, Floor {v.floorNo}

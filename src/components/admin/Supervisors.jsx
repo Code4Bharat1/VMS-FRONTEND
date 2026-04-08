@@ -98,9 +98,9 @@ export default function Supervisors() {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = "Name is required";
     else if (!/^[A-Za-z ]+$/.test(form.name))
-  newErrors.name = "Name must contain only letters";
-else if (form.name.length < 3)
-  newErrors.name = "Name must be at least 3 characters";
+      newErrors.name = "Name must contain only letters";
+    else if (form.name.length < 3)
+      newErrors.name = "Name must be at least 3 characters";
 
     if (!form.email.trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
@@ -176,11 +176,14 @@ else if (form.name.length < 3)
 
         alert("Supervisor updated successfully");
       } else {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/supervisors`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(form),
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/supervisors`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify(form),
+          },
+        );
 
         // ✅ Check for API errors — catches "Email already exists" (400)
         if (!res.ok) {
@@ -260,7 +263,7 @@ else if (form.name.length < 3)
     });
 
     const completedChecks = bayEntries.filter((e) => e.outTime !== null).length;
-    
+
     const onTimeShifts = bayStaff.filter((s) => s.isActive).length;
     const patrolRounds = Math.floor(bayEntries.length / 5);
     const complianceRate =
@@ -320,9 +323,11 @@ else if (form.name.length < 3)
         </div>
         <button
           onClick={() => {
-            setEditId(null);
-            setShowAdd(true);
-          }}
+  setEditId(null);
+  setForm({ name: "", email: "", phone: "", password: "", managedBays: [] });
+  setErrors({});
+  setShowAdd(true);
+}}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition"
         >
           <Plus size={16} /> Add Supervisor
@@ -621,7 +626,6 @@ function DetailPopup({ data, onClose }) {
                 value={data.checksCompleted}
                 color="bg-blue-50"
               />
-              
             </div>
           </div>
 
@@ -753,12 +757,11 @@ function Modal({ editId, form, setForm, errors, bays, onClose, onSubmit }) {
             value={form.name}
             error={errors.name}
             onChange={(e) => {
-  const value = e.target.value;
-  if (/^[A-Za-z ]*$/.test(value)) {
-    setForm({ ...form, name: value });
-  }
-}}
-
+              const value = e.target.value;
+              if (/^[A-Za-z ]*$/.test(value)) {
+                setForm({ ...form, name: value });
+              }
+            }}
           />
           <Input
             label="Email"
@@ -775,40 +778,48 @@ function Modal({ editId, form, setForm, errors, bays, onClose, onSubmit }) {
 
           {/* ONLY managedBays (multi-select) - NO assignedBay */}
           <div>
-            <label className="text-sm font-medium text-emerald-700 block mb-1.5">
-              Assigned Bays
-            </label>
-            <select
-              multiple
-              value={form.managedBays}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  managedBays: Array.from(
-                    e.target.selectedOptions,
-                    (o) => o.value,
-                  ),
-                })
-              }
-              className={`w-full px-3 py-2 rounded-lg border border-emerald-200
-                focus:outline-none focus:ring-2 ${
-                  errors.managedBays ? "ring-red-500" : "focus:ring-emerald-500"
-                }`}
-              size="5"
-            >
-              {bays.map((b) => (
-                <option key={b._id} value={b._id}>
-                  {b.bayName}
-                </option>
-              ))}
-            </select>
-            {errors.managedBays && (
-              <p className="text-xs text-red-600 mt-1">{errors.managedBays}</p>
-            )}
-            <p className="text-xs text-emerald-600 mt-1">
-              Hold Ctrl/Cmd to select multiple bays
-            </p>
-          </div>
+  <label className="text-sm font-medium text-emerald-700 block mb-1.5">
+    Assigned Bays
+  </label>
+  <div className={`w-full rounded-lg border max-h-44 overflow-y-auto divide-y divide-emerald-50 ${
+    errors.managedBays ? "border-red-400" : "border-emerald-200"
+  }`}>
+    {bays.filter((b) => b.status === "active").length === 0 ? (
+      <p className="text-xs text-gray-400 px-3 py-3">No active bays available</p>
+    ) : (
+      bays.filter((b) => b.status === "active").map((b) => {
+        const isChecked = form.managedBays.includes(b._id);
+        return (
+          <label
+            key={b._id}
+            className="flex items-center gap-3 px-3 py-2.5 hover:bg-emerald-50 cursor-pointer transition"
+          >
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={() => {
+                const updated = isChecked
+                  ? form.managedBays.filter((id) => id !== b._id)
+                  : [...form.managedBays, b._id];
+                setForm({ ...form, managedBays: updated });
+              }}
+              className="accent-emerald-600 w-4 h-4 flex-shrink-0"
+            />
+            <span className="text-sm text-emerald-800">{b.bayName}</span>
+          </label>
+        );
+      })
+    )}
+  </div>
+  {errors.managedBays && (
+    <p className="text-xs text-red-600 mt-1">{errors.managedBays}</p>
+  )}
+  <p className="text-xs text-emerald-500 mt-1">
+    {form.managedBays.length === 0
+      ? "No bays selected"
+      : `${form.managedBays.length} bay${form.managedBays.length > 1 ? "s" : ""} selected`}
+  </p>
+</div>
 
           {!editId && (
             <Input

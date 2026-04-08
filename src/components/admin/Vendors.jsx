@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Search, Plus, Users, Activity, Trash2, Pencil, X,
   Building2, Tag, Phone, Hash, Layers, ChevronDown,
-  MapPin, Filter
+  MapPin, Filter, Settings2, Check
 } from "lucide-react";
 import axios from "axios";
 import * as yup from "yup";
@@ -33,6 +33,8 @@ export default function VendorManagement() {
   const [showAdd, setShowAdd] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  // ── NEW ──
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
 
   const [form, setForm] = useState({
     companyName: "", contactPerson: "", mobile: "",
@@ -42,7 +44,6 @@ export default function VendorManagement() {
 
   const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
-  /* ================= FETCH (UNCHANGED) ================= */
   useEffect(() => { fetchVendors(); fetchCategories(); }, []);
 
   const fetchVendors = async () => {
@@ -63,7 +64,6 @@ export default function VendorManagement() {
     setCategories(res.data.categories || []);
   };
 
-  /* ================= FILTER ================= */
   const filteredVendors = vendors.filter((v) => {
     const matchSearch = [v.companyName, v.contactPerson, v.mobile, v.shopId, v.crNo]
       .join(" ").toLowerCase().includes(search.toLowerCase());
@@ -72,7 +72,6 @@ export default function VendorManagement() {
     return matchSearch && matchStatus && matchCat;
   });
 
-  /* ================= VALIDATION (UNCHANGED) ================= */
   const validateForm = async () => {
     try {
       await vendorSchema.validate(form, { abortEarly: false });
@@ -86,7 +85,6 @@ export default function VendorManagement() {
     }
   };
 
-  /* ================= CRUD (UNCHANGED) ================= */
   const submitVendor = async () => {
     if (!(await validateForm())) return;
     try {
@@ -94,7 +92,7 @@ export default function VendorManagement() {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Tenant created successfully");
-      closeModal(); fetchVendors();
+      closeModal(); fetchVendors(); fetchCategories();
     } catch (err) {
       if (err.response?.status === 400) toast.error(err.response.data.message);
       else toast.error("Failed to create Tenant");
@@ -106,7 +104,7 @@ export default function VendorManagement() {
     await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/vendors/${editId}`, form, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    closeModal(); fetchVendors();
+    closeModal(); fetchVendors(); fetchCategories();
   };
 
   const toggleVendorStatus = async (id) => {
@@ -129,7 +127,6 @@ export default function VendorManagement() {
     setForm({ companyName: "", Category: "", contactPerson: "", mobile: "", shopId: "", floorNo: "", crNo: "" });
   };
 
-  /* ================= STATS ================= */
   const totalTenants = vendors.length;
   const activeTenants = vendors.filter(v => v.status === "active").length;
   const uniqueCategories = [...new Set(vendors.map(v => v.Category).filter(Boolean))].length;
@@ -155,6 +152,13 @@ export default function VendorManagement() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+            {/* ── NEW: Manage Categories button ── */}
+            <button
+              onClick={() => setShowCategoryManager(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 rounded-lg font-medium text-sm transition"
+            >
+              <Settings2 size={15} />  Edit Categories
+            </button>
             <button
               onClick={() => setShowAdd(true)}
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition shadow-sm hover:shadow-md"
@@ -180,8 +184,6 @@ export default function VendorManagement() {
           <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
             <Filter size={13} /> Filters:
           </div>
-
-          {/* Status filter */}
           <div className="flex gap-1.5">
             {["all", "active", "inactive"].map(s => (
               <button
@@ -197,8 +199,6 @@ export default function VendorManagement() {
               </button>
             ))}
           </div>
-
-          {/* Category filter */}
           <select
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
@@ -209,7 +209,6 @@ export default function VendorManagement() {
               <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
             ))}
           </select>
-
           {(statusFilter !== "all" || categoryFilter !== "all" || search) && (
             <button
               onClick={() => { setStatusFilter("all"); setCategoryFilter("all"); setSearch(""); }}
@@ -218,7 +217,6 @@ export default function VendorManagement() {
               <X size={11} /> Clear filters
             </button>
           )}
-
           <span className="ml-auto text-xs text-emerald-500">
             {filteredVendors.length} of {totalTenants} tenants
           </span>
@@ -324,7 +322,6 @@ export default function VendorManagement() {
               )}
             </tbody>
           </table>
-
           {!loading && filteredVendors.length > 0 && (
             <div className="px-5 py-3 bg-emerald-50/50 border-t border-emerald-100 text-xs text-emerald-500">
               Showing {filteredVendors.length} tenant{filteredVendors.length !== 1 ? "s" : ""}
@@ -361,30 +358,13 @@ export default function VendorManagement() {
                   {v.status}
                 </button>
               </div>
-
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                <div>
-                  <p className="text-xs text-gray-400 font-medium">Reg No</p>
-                  <p className="font-mono text-xs text-emerald-700">{v.crNo}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 font-medium">Shop ID</p>
-                  <p className="font-mono text-emerald-700 font-semibold">{v.shopId}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 font-medium">Floor</p>
-                  <p className="text-gray-700">{v.floorNo}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 font-medium">Mobile</p>
-                  <p className="text-gray-700">{v.mobile}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs text-gray-400 font-medium">Contact Person</p>
-                  <p className="text-gray-700">{v.contactPerson}</p>
-                </div>
+                <div><p className="text-xs text-gray-400 font-medium">Reg No</p><p className="font-mono text-xs text-emerald-700">{v.crNo}</p></div>
+                <div><p className="text-xs text-gray-400 font-medium">Shop ID</p><p className="font-mono text-emerald-700 font-semibold">{v.shopId}</p></div>
+                <div><p className="text-xs text-gray-400 font-medium">Floor</p><p className="text-gray-700">{v.floorNo}</p></div>
+                <div><p className="text-xs text-gray-400 font-medium">Mobile</p><p className="text-gray-700">{v.mobile}</p></div>
+                <div className="col-span-2"><p className="text-xs text-gray-400 font-medium">Contact Person</p><p className="text-gray-700">{v.contactPerson}</p></div>
               </div>
-
               <div className="flex justify-end gap-2 pt-1 border-t border-emerald-50">
                 <button
                   onClick={() => {
@@ -407,7 +387,6 @@ export default function VendorManagement() {
             </div>
           ))}
         </div>
-
       </div>
 
       {/* ── MODALS ── */}
@@ -426,44 +405,255 @@ export default function VendorManagement() {
       {confirmDelete && (
         <ConfirmDelete onCancel={() => setConfirmDelete(false)} onDelete={deleteVendor} />
       )}
+
+      {/* ── NEW: Category Manager Modal ── */}
+      {showCategoryManager && (
+        <CategoryManager
+          categories={categories}
+          vendors={vendors}
+          token={token}
+          onClose={() => setShowCategoryManager(false)}
+          onRefresh={() => { fetchCategories(); fetchVendors(); }}
+        />
+      )}
     </div>
   );
 }
 
-/* ================= STAT CARD ================= */
+/* ================= CATEGORY MANAGER MODAL ================= */
+const CategoryManager = ({ categories, vendors, token, onClose, onRefresh }) => {
+  const [editingCategory, setEditingCategory] = useState(null); // the original name being renamed
+  const [renameValue, setRenameValue] = useState("");
+  const [deletingCategory, setDeletingCategory] = useState(null);
+  const [saving, setSaving] = useState(false);
+const [categorySearchQuery, setCategorySearchQuery] = useState("");
+
+const vendorCountFor = (cat) => vendors.filter(v => v.Category === cat).length;
+const filteredCategories = categories.filter(cat =>
+  cat.toLowerCase().includes(categorySearchQuery.toLowerCase())
+);
+  const handleRename = async (oldName) => {
+    const newName = renameValue.trim().toLowerCase();
+    if (!newName || newName === oldName) { setEditingCategory(null); return; }
+    setSaving(true);
+    try {
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/vendors/categories/rename`,
+        { oldName, newName },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Renamed "${oldName}" → "${newName}"`);
+      setEditingCategory(null);
+      onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Rename failed");
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (name) => {
+    setSaving(true);
+    try {
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_URL}/vendors/categories/${encodeURIComponent(name)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Category "${name}" deleted`);
+      setDeletingCategory(null);
+      onRefresh();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Delete failed");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+
+        {/* Header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-emerald-100 bg-emerald-50/50">
+          <div>
+            <h2 className="font-bold text-emerald-800 flex items-center gap-2">
+              <Tag size={16} /> Manage Categories
+            </h2>
+            <p className="text-xs text-emerald-500 mt-0.5">{categories.length} categories total</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-emerald-100 rounded-lg transition text-emerald-600">
+            <X size={18} />
+          </button>
+        </div>
+        {/* Search */}
+<div className="px-6 py-3 border-b border-emerald-100">
+  <div className="relative">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400" size={14} />
+    <input
+      type="text"
+      value={categorySearchQuery}
+      onChange={e => setCategorySearchQuery(e.target.value)}
+      placeholder="Search categories..."
+      className="w-full bg-emerald-50 border border-emerald-200 pl-9 pr-8 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+    />
+    {categorySearchQuery && (
+      <button
+        onClick={() => setCategorySearchQuery("")}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 hover:text-emerald-600 transition"
+      >
+        <X size={13} />
+      </button>
+    )}
+  </div>
+</div>
+
+        {/* List */}
+        <div className="divide-y divide-emerald-50 max-h-[60vh] overflow-y-auto">
+          {categories.length === 0 && (
+  <div className="py-12 text-center text-gray-400 text-sm">No categories yet</div>
+)}
+{categories.length > 0 && filteredCategories.length === 0 && (
+  <div className="py-12 text-center text-gray-400 text-sm">
+    No categories match <span className="text-emerald-600">"{categorySearchQuery}"</span>
+  </div>
+)}
+{filteredCategories.map((cat) => {
+            const count = vendorCountFor(cat);
+            const isEditing = editingCategory === cat;
+            const isConfirmingDelete = deletingCategory === cat;
+
+            return (
+              <div key={cat} className="px-6 py-3.5">
+                {/* ── View / Edit row ── */}
+                {!isConfirmingDelete && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700 flex-shrink-0">
+                      {cat.charAt(0).toUpperCase()}
+                    </div>
+
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleRename(cat); if (e.key === "Escape") setEditingCategory(null); }}
+                        className="flex-1 border border-emerald-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="New category name..."
+                      />
+                    ) : (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-emerald-800 capitalize truncate">{cat}</p>
+                        <p className="text-xs text-gray-400">{count} tenant{count !== 1 ? "s" : ""}</p>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={() => handleRename(cat)}
+                            disabled={saving}
+                            className="p-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-50"
+                            title="Save"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            onClick={() => setEditingCategory(null)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition"
+                            title="Cancel"
+                          >
+                            <X size={14} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => { setEditingCategory(cat); setRenameValue(cat); setDeletingCategory(null); }}
+                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-100 transition"
+                            title="Rename"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => { setDeletingCategory(cat); setEditingCategory(null); }}
+                            className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition"
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Inline delete confirmation ── */}
+                {isConfirmingDelete && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-3 space-y-2">
+                    <p className="text-sm font-medium text-red-700">
+                      Delete <span className="capitalize">"{cat}"</span>?
+                    </p>
+                    {count > 0 ? (
+                      <p className="text-xs text-red-500">
+                        ⚠️ {count} tenant{count !== 1 ? "s" : ""} use this category. Reassign them before deleting.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500">No tenants are using this category. Safe to delete.</p>
+                    )}
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => setDeletingCategory(null)}
+                        className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleDelete(cat)}
+                        disabled={saving || count > 0}
+                        className="px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed font-medium"
+                      >
+                        {saving ? "Deleting..." : "Yes, Delete"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-emerald-100 bg-gray-50/50 text-right">
+          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── rest of components unchanged ── */
 const StatCard = ({ title, value, icon: Icon, sub, accent = "emerald" }) => (
-  <div className={`bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${
-    accent === "orange" ? "border-orange-100" : "border-emerald-100"
-  }`}>
+  <div className={`bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition-shadow ${accent === "orange" ? "border-orange-100" : "border-emerald-100"}`}>
     <div className="flex justify-between items-start mb-3">
       <div className={`p-2 rounded-lg ${accent === "orange" ? "bg-orange-50" : "bg-emerald-50"}`}>
         <Icon className={`w-4 h-4 ${accent === "orange" ? "text-orange-500" : "text-emerald-600"}`} />
       </div>
     </div>
-    <p className={`text-2xl font-bold mb-0.5 ${accent === "orange" ? "text-orange-700" : "text-emerald-800"}`}>
-      {value}
-    </p>
+    <p className={`text-2xl font-bold mb-0.5 ${accent === "orange" ? "text-orange-700" : "text-emerald-800"}`}>{value}</p>
     <p className={`text-sm font-medium ${accent === "orange" ? "text-orange-500" : "text-emerald-600"}`}>{title}</p>
     {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
   </div>
 );
 
-/* ================= ADD/EDIT MODAL ================= */
 const Modal = ({ title, onClose, onSubmit, form, setForm, errors, categories, categorySearch, setCategorySearch, showCategoryDropdown, setShowCategoryDropdown }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-      {/* Modal Header */}
       <div className="flex justify-between items-center px-6 py-4 border-b border-emerald-100 bg-emerald-50/50">
         <div>
           <h2 className="font-bold text-emerald-800">{title}</h2>
           <p className="text-xs text-emerald-500 mt-0.5">Fill in all required fields</p>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-emerald-100 rounded-lg transition text-emerald-600">
-          <X size={18} />
-        </button>
+        <button onClick={onClose} className="p-2 hover:bg-emerald-100 rounded-lg transition text-emerald-600"><X size={18} /></button>
       </div>
-
-      {/* Modal Body */}
       <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Company Name" name="companyName" form={form} setForm={setForm} error={errors.companyName} icon={<Building2 size={13} />} />
@@ -473,8 +663,6 @@ const Modal = ({ title, onClose, onSubmit, form, setForm, errors, categories, ca
           <Field label="Shop ID" name="shopId" form={form} setForm={setForm} error={errors.shopId} icon={<Hash size={13} />} />
           <Field label="Floor No" name="floorNo" form={form} setForm={setForm} error={errors.floorNo} icon={<Layers size={13} />} />
         </div>
-
-        {/* Category dropdown — full width */}
         <div className="relative">
           <label className="block text-sm font-medium text-emerald-700 mb-1.5 flex items-center gap-1">
             <Tag size={13} /> Category
@@ -486,29 +674,19 @@ const Modal = ({ title, onClose, onSubmit, form, setForm, errors, categories, ca
               onFocus={() => setShowCategoryDropdown(true)}
               onChange={(e) => { setCategorySearch(e.target.value); setForm({ ...form, Category: e.target.value }); setShowCategoryDropdown(true); }}
               placeholder="Select or type a category..."
-              className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:outline-none transition pr-9 ${
-                errors.Category ? "border-red-400 focus:ring-red-400" : "border-emerald-200 focus:ring-emerald-500"
-              }`}
+              className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:outline-none transition pr-9 ${errors.Category ? "border-red-400 focus:ring-red-400" : "border-emerald-200 focus:ring-emerald-500"}`}
             />
             <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 pointer-events-none" />
           </div>
-
           {showCategoryDropdown && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-emerald-100 rounded-lg shadow-xl max-h-48 overflow-auto z-50">
               {categories.filter(c => c.toLowerCase().includes(categorySearch.toLowerCase())).map(c => (
-                <div
-                  key={c}
-                  onClick={() => { setForm({ ...form, Category: c }); setCategorySearch(c); setShowCategoryDropdown(false); }}
-                  className="px-4 py-2.5 hover:bg-emerald-50 cursor-pointer text-sm text-emerald-700 capitalize border-b border-emerald-50 last:border-0 transition"
-                >
+                <div key={c} onClick={() => { setForm({ ...form, Category: c }); setCategorySearch(c); setShowCategoryDropdown(false); }} className="px-4 py-2.5 hover:bg-emerald-50 cursor-pointer text-sm text-emerald-700 capitalize border-b border-emerald-50 last:border-0 transition">
                   {c.charAt(0).toUpperCase() + c.slice(1)}
                 </div>
               ))}
               {categorySearch && !categories.some(c => c.toLowerCase() === categorySearch.toLowerCase()) && (
-                <div
-                  onClick={() => { const nc = categorySearch.trim().toLowerCase(); setForm({ ...form, Category: nc }); setCategorySearch(nc); setShowCategoryDropdown(false); }}
-                  className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 cursor-pointer text-sm text-emerald-700 font-medium transition"
-                >
+                <div onClick={() => { const nc = categorySearch.trim().toLowerCase(); setForm({ ...form, Category: nc }); setCategorySearch(nc); setShowCategoryDropdown(false); }} className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 cursor-pointer text-sm text-emerald-700 font-medium transition">
                   ➕ Add "{categorySearch}" as new category
                 </div>
               )}
@@ -517,29 +695,19 @@ const Modal = ({ title, onClose, onSubmit, form, setForm, errors, categories, ca
           {errors.Category && <p className="text-red-500 text-xs mt-1">{errors.Category}</p>}
         </div>
       </div>
-
-      {/* Modal Footer */}
       <div className="px-6 py-4 border-t border-emerald-100 bg-gray-50/50 flex justify-end gap-3">
-        <button onClick={onClose} className="px-4 py-2 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 text-sm font-medium transition">
-          Cancel
-        </button>
-        <button onClick={onSubmit} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition shadow-sm">
-          {/* label changes based on context set by parent */}
-          Save Tenant
-        </button>
+        <button onClick={onClose} className="px-4 py-2 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 text-sm font-medium transition">Cancel</button>
+        <button onClick={onSubmit} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition shadow-sm">Save Tenant</button>
       </div>
     </div>
   </div>
 );
 
-/* ================= CONFIRM DELETE ================= */
 const ConfirmDelete = ({ onCancel, onDelete }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
     <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-          <Trash2 size={18} className="text-red-600" />
-        </div>
+        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center"><Trash2 size={18} className="text-red-600" /></div>
         <h3 className="font-bold text-emerald-800">Delete Tenant?</h3>
       </div>
       <p className="text-sm text-gray-500 mb-5">This action cannot be undone. All data for this tenant will be permanently removed.</p>
@@ -551,19 +719,15 @@ const ConfirmDelete = ({ onCancel, onDelete }) => (
   </div>
 );
 
-/* ================= FIELD ================= */
 const Field = ({ label, name, form, setForm, error, icon }) => (
   <div>
     <label className="block text-sm font-medium text-emerald-700 mb-1.5 flex items-center gap-1">
-      {icon && <span className="text-emerald-400">{icon}</span>}
-      {label}
+      {icon && <span className="text-emerald-400">{icon}</span>}{label}
     </label>
     <input
       value={form[name] || ""}
       onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-      className={`w-full border rounded-lg px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 ${
-        error ? "border-red-400 focus:ring-red-400" : "border-emerald-200 focus:ring-emerald-500"
-      }`}
+      className={`w-full border rounded-lg px-3 py-2.5 text-sm transition focus:outline-none focus:ring-2 ${error ? "border-red-400 focus:ring-red-400" : "border-emerald-200 focus:ring-emerald-500"}`}
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
   </div>

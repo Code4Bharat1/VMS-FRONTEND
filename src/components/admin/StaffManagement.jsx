@@ -44,6 +44,7 @@ export default function StaffManagement() {
     phone: "",
     assignedBay: "",
     password: "",
+    supervisorId: "",
   });
   const [errors, setErrors] = useState({});
 
@@ -134,11 +135,12 @@ export default function StaffManagement() {
           method: "PUT",
           headers,
           body: JSON.stringify({
-            name: form.name,
-            email: form.email,
-            phone: form.phone,
-            assignedBay: form.assignedBay,
-          }),
+  name: form.name,
+  email: form.email,
+  phone: form.phone,
+  assignedBay: form.assignedBay,
+  supervisorId: form.supervisorId || null,  // ✅ ADD THIS
+}),
         });
 
         // ✅ Check for API errors
@@ -175,6 +177,7 @@ export default function StaffManagement() {
         phone: "",
         assignedBay: "",
         password: "",
+        supervisorId: "",
       });
       fetchData();
     } catch (err) {
@@ -359,17 +362,18 @@ const rejectedStaff = staff.filter((s) => s.approvalStatus === "rejected");
             {activeTab === "all" && (
               <button
                 onClick={() => {
-                  setEditId(null);
-                  setErrors({});
-                  setForm({
-                    name: "",
-                    email: "",
-                    phone: "",
-                    assignedBay: "",
-                    password: "",
-                  });
-                  setShowAdd(true);
-                }}
+  setEditId(null);
+  setErrors({});
+  setForm({
+    name: "",
+    email: "",
+    phone: "",
+    assignedBay: "",
+    password: "",
+    supervisorId: "", // ✅ ADD THIS
+  });
+  setShowAdd(true);
+}}
                 className="flex items-center gap-2 px-4 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition shadow-sm hover:shadow-md"
               >
                 <Plus size={16} />
@@ -626,15 +630,18 @@ const rejectedStaff = staff.filter((s) => s.approvalStatus === "rejected");
                               e.stopPropagation();
                               setEditId(s._id);
                               setForm({
-                                name: s.name,
-                                email: s.email,
-                                phone: s.phone,
-                                assignedBay:
-                                  typeof s.assignedBay === "object"
-                                    ? s.assignedBay?._id
-                                    : s.assignedBay || "",
-                                password: "",
-                              });
+  name: s.name,
+  email: s.email,
+  phone: s.phone,
+  assignedBay:
+    typeof s.assignedBay === "object"
+      ? s.assignedBay?._id
+      : s.assignedBay || "",
+  password: "",
+  supervisorId: s.supervisorId  // ✅ ADD THIS
+    ? (typeof s.supervisorId === "object" ? s.supervisorId._id : s.supervisorId)
+    : "",
+});
                               setShowAdd(true);
                             }}
                           >
@@ -785,15 +792,18 @@ const rejectedStaff = staff.filter((s) => s.approvalStatus === "rejected");
                       e.stopPropagation();
                       setEditId(s._id);
                       setForm({
-                        name: s.name,
-                        email: s.email,
-                        phone: s.phone,
-                        assignedBay:
-                          typeof s.assignedBay === "object"
-                            ? s.assignedBay?._id
-                            : s.assignedBay || "",
-                        password: "",
-                      });
+  name: s.name,
+  email: s.email,
+  phone: s.phone,
+  assignedBay:
+    typeof s.assignedBay === "object"
+      ? s.assignedBay?._id
+      : s.assignedBay || "",
+  password: "",
+  supervisorId: s.supervisorId  // ✅ ADD THIS
+    ? (typeof s.supervisorId === "object" ? s.supervisorId._id : s.supervisorId)
+    : "",
+});
                       setShowAdd(true);
                     }}
                   >
@@ -825,18 +835,20 @@ const rejectedStaff = staff.filter((s) => s.approvalStatus === "rejected");
           setForm={setForm}
           errors={errors}
           bays={bays}
-          onClose={() => {
-            setShowAdd(false);
-            setEditId(null);
-            setErrors({});
-            setForm({
-              name: "",
-              email: "",
-              phone: "",
-              assignedBay: "",
-              password: "",
-            });
-          }}
+           supervisors={supervisors}
+         onClose={() => {
+  setShowAdd(false);
+  setEditId(null);
+  setErrors({});
+  setForm({
+    name: "",
+    email: "",
+    phone: "",
+    assignedBay: "",
+    password: "",
+    supervisorId: "", // ✅ ADD THIS
+  });
+}}
           onSubmit={saveStaff}
         />
       )}
@@ -1072,15 +1084,26 @@ function Stat({ title, value, icon: Icon, color = "emerald" }) {
   );
 }
 
-function AddStaffModal({
-  editId,
-  form,
-  setForm,
-  errors,
-  bays,
-  onClose,
-  onSubmit,
-}) {
+function AddStaffModal({ editId, form, setForm, errors, bays, supervisors, onClose, onSubmit }) {
+  // Get bays filtered by selected supervisor (if any)
+ const filteredBays = form.supervisorId
+  ? bays.filter((b) => {
+      const sup = supervisors.find((s) => s._id === form.supervisorId);
+      if (!sup) return true;
+      return sup.managedBays?.some((mb) =>
+        String(typeof mb === "object" ? mb._id : mb) === String(b._id)
+      );
+    })
+  : bays.filter((b) => b.status === "active");
+
+// ADD THIS NEW computed variable:
+const filteredSupervisors = form.assignedBay
+  ? supervisors.filter((sup) =>
+      sup.managedBays?.some(
+        (mb) => String(typeof mb === "object" ? mb._id : mb) === String(form.assignedBay)
+      )
+    )
+  : supervisors;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white w-full max-w-lg rounded-xl shadow-xl overflow-hidden">
@@ -1088,50 +1111,78 @@ function AddStaffModal({
           <h2 className="font-semibold text-emerald-800">
             {editId ? "Edit Guard" : "Add New Guard"}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-emerald-600 hover:bg-emerald-100 p-1 rounded-lg transition"
-          >
+          <button onClick={onClose} className="text-emerald-600 hover:bg-emerald-100 p-1 rounded-lg transition">
             <X size={18} />
           </button>
         </div>
 
         <div className="px-6 py-5 space-y-4 text-sm">
-          <Field
-            label="Full Name"
-            value={form.name}
+          <Field label="Full Name" value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            error={errors.name}
-          />
-          <Field
-            label="Email"
-            value={form.email}
+            error={errors.name} />
+          <Field label="Email" value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            error={errors.email}
-          />
-          <Field
-            label="Phone"
-            value={form.phone}
+            error={errors.email} />
+          <Field label="Phone" value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            error={errors.phone}
-          />
+            error={errors.phone} />
           {!editId && (
-            <Field
-              type="password"
-              label="Password"
-              value={form.password}
+            <Field type="password" label="Password" value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              error={errors.password}
-            />
+              error={errors.password} />
           )}
 
+          {/* ── OPTIONAL SUPERVISOR DROPDOWN ── */}
+          <div>
+            <label className="block mb-1 font-medium text-emerald-700">
+              Assign Under Supervisor{" "}
+              <span className="text-gray-400 font-normal text-xs">(optional)</span>
+            </label>
+            <select
+              value={form.supervisorId}
+              onChange={(e) => {
+                // Reset bay when supervisor changes
+                setForm({ ...form, supervisorId: e.target.value, assignedBay: "" });
+              }}
+              className="w-full border border-emerald-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="">No supervisor / assign later</option>
+              {filteredSupervisors.map((sup) => (
+  <option key={sup._id} value={sup._id}>
+    {sup.name}
+  </option>
+))}
+            </select>
+            {form.supervisorId && (
+              <p className="text-xs text-emerald-600 mt-1">
+                Bay list is now filtered to this supervisor's bays.
+              </p>
+            )}
+          </div>
+
+          {/* ── BAY DROPDOWN (filtered if supervisor selected) ── */}
           <div>
             <label className="block mb-1 font-medium text-emerald-700">
               Assigned Bay
             </label>
             <select
               value={form.assignedBay}
-              onChange={(e) => setForm({ ...form, assignedBay: e.target.value })}
+              onChange={(e) => {
+  const selectedBayId = e.target.value;
+  
+  // Auto-find the supervisor who manages this bay
+  const matchingSupervisor = supervisors.find((sup) =>
+    sup.managedBays?.some(
+      (mb) => String(typeof mb === "object" ? mb._id : mb) === String(selectedBayId)
+    )
+  );
+
+  setForm({
+    ...form,
+    assignedBay: selectedBayId,
+    supervisorId: matchingSupervisor ? matchingSupervisor._id : form.supervisorId,
+  });
+}}
               className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
                 errors.assignedBay
                   ? "border-red-500 focus:ring-red-500"
@@ -1139,7 +1190,7 @@ function AddStaffModal({
               }`}
             >
               <option value="">Select Bay</option>
-              {bays.map((b) => (
+              {filteredBays.map((b) => (
                 <option key={b._id} value={b._id}>
                   {b.bayName}
                 </option>
@@ -1148,21 +1199,21 @@ function AddStaffModal({
             {errors.assignedBay && (
               <p className="text-red-600 text-xs mt-1">{errors.assignedBay}</p>
             )}
+            {form.supervisorId && filteredBays.length === 0 && (
+              <p className="text-amber-600 text-xs mt-1">
+                This supervisor has no active bays assigned.
+              </p>
+            )}
           </div>
         </div>
 
         <div className="px-6 py-4 border-t border-emerald-100 flex justify-end gap-3 bg-gray-50/50">
-          <button
-            onClick={onClose}
-            className="text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition border border-emerald-200"
-          >
+          <button onClick={onClose}
+            className="text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg transition border border-emerald-200">
             Cancel
           </button>
-
-          <button
-            onClick={onSubmit}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition shadow-sm"
-          >
+          <button onClick={onSubmit}
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition shadow-sm">
             {editId ? "Update Guard" : "Add Guard"}
           </button>
         </div>

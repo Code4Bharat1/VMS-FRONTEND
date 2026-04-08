@@ -17,7 +17,7 @@ export default function BayManagement() {
   const [bays, setBays] = useState([]);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-
+const [togglingId, setTogglingId] = useState(null);
   /* Add Bay Modal State */
   const [showAddBay, setShowAddBay] = useState(false);
   const [bayName, setBayName] = useState("");
@@ -118,6 +118,24 @@ export default function BayManagement() {
       setSaving(false);
     }
   };
+  const toggleBay = async (id) => {
+  try {
+    setTogglingId(id);
+    const token = localStorage.getItem("accessToken");
+
+    await axios.patch(
+      `${process.env.NEXT_PUBLIC_API_URL}/bays/${id}/status`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    fetchData();
+  } catch (err) {
+    console.error("Failed to toggle bay status", err);
+  } finally {
+    setTogglingId(null);
+  }
+};
 
   /* DELETE BAY */
   const deleteBay = async (id) => {
@@ -305,9 +323,16 @@ export default function BayManagement() {
                         Bay {bay.bayName}
                       </h3>
                     </div>
-                    <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
-                      Live
-                    </span>
+                    <span
+  onClick={(e) => { e.stopPropagation(); toggleBay(bay._id); }}
+  className={`cursor-pointer text-xs px-3 py-1 rounded-full font-medium transition hover:opacity-80 ${
+    bay.status === "active"
+      ? "bg-emerald-100 text-emerald-700"
+      : "bg-gray-100 text-gray-500"
+  }`}
+>
+  {togglingId === bay._id ? "..." : bay.status === "active" ? "Active" : "Inactive"}
+</span>
                   </div>
 
                   <p className="text-xs text-emerald-600 mb-3">
@@ -345,6 +370,78 @@ export default function BayManagement() {
             })}
           </div>
         </div>
+        {/* BAY FILL SPEED RANKING */}
+<div className="bg-white rounded-xl border border-emerald-100 p-4 sm:p-6 shadow-sm">
+  <div className="flex items-center gap-2 mb-1">
+    <Activity className="text-emerald-600" size={20} />
+    <h3 className="font-semibold text-emerald-800">Bay Fill Speed Ranking</h3>
+  </div>
+  <p className="text-xs text-emerald-600 mb-5">
+    Bays ranked by current occupancy — highest fill rate at the top
+  </p>
+
+  <div className="space-y-3">
+    {[...bays]
+      .map((bay) => ({ bay, ...getBayStats(bay._id) }))
+      .sort((a, b) => b.occupied - a.occupied)
+      .map(({ bay, occupied, utilisation }, index) => {
+        // const medal = index === 0 ?  : index === 1 ? "🥈" : index === 2 ? "🥉" : null;
+        const barColor =
+          utilisation > 80
+            ? "bg-red-500"
+            : utilisation > 50
+            ? "bg-yellow-500"
+            : "bg-emerald-500";
+        const badgeColor =
+          utilisation > 80
+            ? "bg-red-100 text-red-700"
+            : utilisation > 50
+            ? "bg-yellow-100 text-yellow-700"
+            : "bg-emerald-100 text-emerald-700";
+
+        return (
+          <div key={bay._id} className="flex items-center gap-3">
+            {/* Rank */}
+            <div className="w-7 text-center text-sm font-bold text-emerald-400 flex-shrink-0">
+              { `#${index + 1}`}
+            </div>
+
+            {/* Bay name */}
+            <div className="w-16 flex-shrink-0">
+              <p className="text-sm font-semibold text-emerald-800">
+                Bay {bay.bayName}
+              </p>
+              <p className="text-[10px] text-emerald-500 truncate">{bay.bayType}</p>
+            </div>
+
+            {/* Bar */}
+            <div className="flex-1 h-3 bg-emerald-50 rounded-full overflow-hidden">
+              <div
+                className={`h-3 rounded-full transition-all duration-500 ${barColor}`}
+                style={{ width: `${utilisation}%` }}
+              />
+            </div>
+
+            {/* Badge */}
+            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${badgeColor}`}>
+              {occupied} vehicles
+            </span>
+          </div>
+        );
+      })}
+
+    {bays.length === 0 && (
+      <p className="text-sm text-emerald-500 text-center py-6">No bays available</p>
+    )}
+  </div>
+
+  {/* Legend */}
+  <div className="flex gap-4 mt-5 pt-4 border-t border-emerald-100 text-xs text-gray-500">
+    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"/> High (&gt;80%)</span>
+    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block"/> Medium (&gt;50%)</span>
+    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"/> Low</span>
+  </div>
+</div>
 
         {/* ACTIVITY TIMELINE + VEHICLE LINKAGE */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -523,7 +620,7 @@ export default function BayManagement() {
         </div>
 
         {/* ALERTS */}
-        <div className="bg-white rounded-xl border border-emerald-100 p-4 sm:p-6 shadow-sm">
+        {/* <div className="bg-white rounded-xl border border-emerald-100 p-4 sm:p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="text-orange-500" size={20} />
             <h3 className="font-semibold text-emerald-800">
@@ -568,7 +665,7 @@ export default function BayManagement() {
               ))
             )}
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* ADD BAY MODAL */}
